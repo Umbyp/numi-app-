@@ -1,0 +1,401 @@
+[
+  {
+    "id": "th_kaprao_moo",
+    "name": "ผัดกะเพราหมูสับ",
+    "nameEn": "Stir-fried basil with minced pork",
+    "kcalPer100": 168,
+    "proteinPer100": 11.2,
+    "carbPer100": 6.4,
+    "fatPer100": 11.0,
+    "servingUnits": [
+      { "label": "1 จาน (ไม่รวมข้าว)", "grams": 180 },
+      { "label": "1 จาน + ไข่ดาว + ข้าว", "grams": 420 }
+    ]
+  },
+  {
+    "id": "th_kaprao_gai",
+    "name": "ผัดกะเพราไก่",
+    "nameEn": "Stir-fried basil with chicken",
+    "kcalPer100": 150,
+    "proteinPer100": 13.0,
+    "carbPer100": 6.0,
+    "fatPer100": 8.0,
+    "servingUnits": [
+      { "label": "1 จาน (ไม่รวมข้าว)", "grams": 180 },
+      { "label": "1 จาน + ไข่ดาว + ข้าว", "grams": 420 }
+    ]
+  },
+  {
+    "id": "th_khao_man_gai",
+    "name": "ข้าวมันไก่",
+    "nameEn": "Hainanese chicken rice",
+    "kcalPer100": 190,
+    "proteinPer100": 8.5,
+    "carbPer100": 20.0,
+    "fatPer100": 8.5,
+    "servingUnits": [{ "label": "1 จาน", "grams": 450 }]
+  },
+  {
+    "id": "th_khao_pad_moo",
+    "name": "ข้าวผัดหมู",
+    "nameEn": "Pork fried rice",
+    "kcalPer100": 175,
+    "proteinPer100": 7.0,
+    "carbPer100": 22.0,
+    "fatPer100": 6.5,
+    "servingUnits": [{ "label": "1 จาน", "grams": 400 }]
+  },
+  {
+    "id": "th_tom_yum_goong",
+    "name": "ต้มยำกุ้งน้ำใส",
+    "nameEn": "Clear tom yum with shrimp",
+    "kcalPer100": 45,
+    "proteinPer100": 6.0,
+    "carbPer100": 3.0,
+    "fatPer100": 1.2,
+    "servingUnits": [{ "label": "1 ถ้วย", "grams": 350 }]
+  },
+  {
+    "id": "th_tom_kha_gai",
+    "name": "ต้มข่าไก่",
+    "nameEn": "Chicken in coconut galangal soup",
+    "kcalPer100": 95,
+    "proteinPer100": 6.0,
+    "carbPer100": 4.0,
+    "fatPer100": 6.5,
+    "servingUnits": [{ "label": "1 ถ้วย", "grams": 350 }]
+  },
+  {
+    "id": "th_somtam_thai",
+    "name": "ส้มตำไทย",
+    "nameEn": "Green papaya salad (Thai style)",
+    "kcalPer100": 65,
+    "proteinPer100": 1.5,
+    "carbPer100": 14.0,
+    "fatPer100": 0.5,
+    "servingUnits": [{ "label": "1 จาน", "grams": 250 }]
+  },
+  {
+    "id": "th_somtam_pla_ra",
+    "name": "ส้มตำปลาร้า",
+    "nameEn": "Green papaya salad with fermented fish",
+    "kcalPer100": 70,
+    "proteinPer100": 3.0,
+    "carbPer100": 13.0,
+    "fatPer100": 0.6,
+    "servingUnits": [{ "label": "1 จาน", "grams": 250 }]
+  },
+  {
+    "id": "th_moo_ping",
+    "name": "หมูปิ้ง",
+    "nameEn": "Grilled pork skewer",
+    "kcalPer100": 220,
+    "proteinPer100": 20.0,
+    "carbPer100": 5.0,
+    "fatPer100": 13.0,
+    "servingUnits": [{ "label": "1 ไม้", "grams": 35 }]
+  },
+  {
+    "id": "th_gai_yang",
+    "name": "ไก่ย่าง",
+    "nameEn": "Grilled chicken",
+    "kcalPer100": 200,
+    "proteinPer100": 24.0,
+    "carbPer100": 0.5,
+    "fatPer100": 11.0,
+    "servingUnits": [{ "label": "1 ชิ้น (สะโพก)", "grams": 150 }]
+  },
+  {
+    "id": "th_pad_thai_goong",
+    "name": "ผัดไทยกุ้งสด",
+    "nameEn": "Pad Thai with shrimp",
+    "kcalPer100": 180,
+    "proteinPer100": 7.5,
+    "carbPer100": 24.0,
+    "fatPer100": 6.0,
+    "servingUnits": [{ "label": "1 จาน", "grams": 350 }]
+  },
+  {
+    "id": "th_pad_see_ew_moo",
+    "name": "ผัดซีอิ๊วหมู",
+    "nameEn": "Stir-fried flat noodles with pork",
+    "kcalPer100": 175,
+    "proteinPer100": 8.0,
+    "carbPer100": 20.0,
+    "fatPer100": 7.0,
+    "servingUnits": [{ "label": "1 จาน", "grams": 380 }]
+  },
+  {
+    "id": "th_kuay_teow_moo_nam",
+    "name": "ก๋วยเตี๋ยวหมูน้ำใส",
+    "nameEn": "Clear pork noodle soup",
+    "kcalPer100": 60,
+    "proteinPer100": 4.0,
+    "carbPer100": 8.0,
+    "fatPer100": 1.5,
+    "servingUnits": [{ "label": "1 ชาม", "grams": 500 }]
+  },
+  {
+    "id": "th_kuay_teow_moo_tom_yum",
+    "name": "ก๋วยเตี๋ยวต้มยำหมู",
+    "nameEn": "Pork tom yum noodle soup",
+    "kcalPer100": 75,
+    "proteinPer100": 4.5,
+    "carbPer100": 9.5,
+    "fatPer100": 2.5,
+    "servingUnits": [{ "label": "1 ชาม", "grams": 500 }]
+  },
+  {
+    "id": "th_khao_soi_gai",
+    "name": "ข้าวซอยไก่",
+    "nameEn": "Northern curry noodle soup with chicken",
+    "kcalPer100": 140,
+    "proteinPer100": 6.5,
+    "carbPer100": 12.0,
+    "fatPer100": 7.5,
+    "servingUnits": [{ "label": "1 ชาม", "grams": 500 }]
+  },
+  {
+    "id": "th_massaman_gai",
+    "name": "แกงมัสมั่นไก่",
+    "nameEn": "Massaman chicken curry",
+    "kcalPer100": 150,
+    "proteinPer100": 9.0,
+    "carbPer100": 7.0,
+    "fatPer100": 9.5,
+    "servingUnits": [{ "label": "1 จาน (ไม่รวมข้าว)", "grams": 250 }]
+  },
+  {
+    "id": "th_gaeng_keow_wan_gai",
+    "name": "แกงเขียวหวานไก่",
+    "nameEn": "Green curry with chicken",
+    "kcalPer100": 120,
+    "proteinPer100": 8.0,
+    "carbPer100": 5.0,
+    "fatPer100": 7.5,
+    "servingUnits": [{ "label": "1 จาน (ไม่รวมข้าว)", "grams": 250 }]
+  },
+  {
+    "id": "th_larb_moo",
+    "name": "ลาบหมู",
+    "nameEn": "Spicy minced pork salad",
+    "kcalPer100": 145,
+    "proteinPer100": 15.0,
+    "carbPer100": 5.0,
+    "fatPer100": 7.5,
+    "servingUnits": [{ "label": "1 จาน", "grams": 200 }]
+  },
+  {
+    "id": "th_kai_jeow",
+    "name": "ไข่เจียว",
+    "nameEn": "Thai omelette",
+    "kcalPer100": 220,
+    "proteinPer100": 11.0,
+    "carbPer100": 2.0,
+    "fatPer100": 19.0,
+    "servingUnits": [{ "label": "1 จาน (ไข่ 2 ฟอง)", "grams": 130 }]
+  },
+  {
+    "id": "th_kai_tom",
+    "name": "ไข่ต้ม",
+    "nameEn": "Boiled egg",
+    "kcalPer100": 155,
+    "proteinPer100": 13.0,
+    "carbPer100": 1.1,
+    "fatPer100": 11.0,
+    "servingUnits": [{ "label": "1 ฟอง", "grams": 50 }]
+  },
+  {
+    "id": "th_khao_suay",
+    "name": "ข้าวสวย",
+    "nameEn": "Steamed jasmine rice",
+    "kcalPer100": 130,
+    "proteinPer100": 2.4,
+    "carbPer100": 28.0,
+    "fatPer100": 0.3,
+    "servingUnits": [
+      { "label": "1 ทัพพี", "grams": 100 },
+      { "label": "1 จาน", "grams": 200 }
+    ]
+  },
+  {
+    "id": "th_khao_niew",
+    "name": "ข้าวเหนียว",
+    "nameEn": "Sticky rice",
+    "kcalPer100": 160,
+    "proteinPer100": 3.0,
+    "carbPer100": 35.0,
+    "fatPer100": 0.4,
+    "servingUnits": [{ "label": "1 ก้อน", "grams": 100 }]
+  },
+  {
+    "id": "th_khao_niew_mamuang",
+    "name": "ข้าวเหนียวมะม่วง",
+    "nameEn": "Mango sticky rice",
+    "kcalPer100": 195,
+    "proteinPer100": 3.0,
+    "carbPer100": 33.0,
+    "fatPer100": 6.0,
+    "servingUnits": [{ "label": "1 จาน", "grams": 300 }]
+  },
+  {
+    "id": "th_thai_milk_tea",
+    "name": "ชาไทยเย็น (ใส่นมข้น)",
+    "nameEn": "Thai iced milk tea",
+    "kcalPer100": 75,
+    "proteinPer100": 1.0,
+    "carbPer100": 12.0,
+    "fatPer100": 2.5,
+    "servingUnits": [{ "label": "1 แก้ว", "grams": 400 }]
+  },
+  {
+    "id": "th_kafae_yen",
+    "name": "กาแฟเย็น (ใส่นมข้นหวาน)",
+    "nameEn": "Thai iced coffee",
+    "kcalPer100": 70,
+    "proteinPer100": 1.0,
+    "carbPer100": 11.0,
+    "fatPer100": 2.3,
+    "servingUnits": [{ "label": "1 แก้ว", "grams": 400 }]
+  },
+  {
+    "id": "th_americano",
+    "name": "อเมริกาโน่ (ไม่ใส่น้ำตาล)",
+    "nameEn": "Black americano, unsweetened",
+    "kcalPer100": 2,
+    "proteinPer100": 0.1,
+    "carbPer100": 0.3,
+    "fatPer100": 0,
+    "servingUnits": [{ "label": "1 แก้ว", "grams": 350 }]
+  },
+  {
+    "id": "th_namtok_moo",
+    "name": "น้ำตกหมู",
+    "nameEn": "Spicy grilled pork salad",
+    "kcalPer100": 155,
+    "proteinPer100": 16.0,
+    "carbPer100": 5.0,
+    "fatPer100": 8.0,
+    "servingUnits": [{ "label": "1 จาน", "grams": 200 }]
+  },
+  {
+    "id": "th_pad_kana_moo_grob",
+    "name": "ผัดคะน้าหมูกรอบ",
+    "nameEn": "Stir-fried kale with crispy pork",
+    "kcalPer100": 160,
+    "proteinPer100": 9.0,
+    "carbPer100": 6.0,
+    "fatPer100": 11.0,
+    "servingUnits": [{ "label": "1 จาน", "grams": 250 }]
+  },
+  {
+    "id": "th_tod_man_pla",
+    "name": "ทอดมันปลา",
+    "nameEn": "Thai fish cake",
+    "kcalPer100": 210,
+    "proteinPer100": 12.0,
+    "carbPer100": 12.0,
+    "fatPer100": 12.5,
+    "servingUnits": [{ "label": "1 ชิ้น", "grams": 30 }]
+  },
+  {
+    "id": "th_satay_moo",
+    "name": "หมูสะเต๊ะ",
+    "nameEn": "Pork satay",
+    "kcalPer100": 230,
+    "proteinPer100": 19.0,
+    "carbPer100": 8.0,
+    "fatPer100": 14.0,
+    "servingUnits": [{ "label": "1 ไม้ (ไม่รวมน้ำจิ้ม)", "grams": 30 }]
+  },
+  {
+    "id": "th_kluay_nam_wa",
+    "name": "กล้วยน้ำว้า",
+    "nameEn": "Cultivated banana",
+    "kcalPer100": 110,
+    "proteinPer100": 1.2,
+    "carbPer100": 28.0,
+    "fatPer100": 0.3,
+    "servingUnits": [{ "label": "1 ผล", "grams": 80 }]
+  },
+  {
+    "id": "th_mamuang_sook",
+    "name": "มะม่วงสุก",
+    "nameEn": "Ripe mango",
+    "kcalPer100": 60,
+    "proteinPer100": 0.8,
+    "carbPer100": 15.0,
+    "fatPer100": 0.4,
+    "servingUnits": [{ "label": "1 ผล", "grams": 200 }]
+  },
+  {
+    "id": "th_saparot",
+    "name": "สับปะรด",
+    "nameEn": "Pineapple",
+    "kcalPer100": 50,
+    "proteinPer100": 0.5,
+    "carbPer100": 13.0,
+    "fatPer100": 0.1,
+    "servingUnits": [{ "label": "1 ถ้วย", "grams": 150 }]
+  },
+  {
+    "id": "th_naem_moo",
+    "name": "แหนม",
+    "nameEn": "Fermented pork sausage",
+    "kcalPer100": 190,
+    "proteinPer100": 16.0,
+    "carbPer100": 4.0,
+    "fatPer100": 12.0,
+    "servingUnits": [{ "label": "1 ลูก", "grams": 50 }]
+  },
+  {
+    "id": "th_moo_yang_num_jim",
+    "name": "คอหมูย่าง",
+    "nameEn": "Grilled pork neck",
+    "kcalPer100": 250,
+    "proteinPer100": 22.0,
+    "carbPer100": 1.0,
+    "fatPer100": 17.0,
+    "servingUnits": [{ "label": "1 จาน", "grams": 150 }]
+  },
+  {
+    "id": "th_khanom_krok",
+    "name": "ขนมครก",
+    "nameEn": "Coconut rice pancake",
+    "kcalPer100": 220,
+    "proteinPer100": 3.0,
+    "carbPer100": 28.0,
+    "fatPer100": 11.0,
+    "servingUnits": [{ "label": "4 ชิ้น", "grams": 80 }]
+  },
+  {
+    "id": "th_pa_tong_go",
+    "name": "ปาท่องโก๋",
+    "nameEn": "Thai fried dough",
+    "kcalPer100": 380,
+    "proteinPer100": 6.0,
+    "carbPer100": 45.0,
+    "fatPer100": 19.0,
+    "servingUnits": [{ "label": "1 คู่", "grams": 30 }]
+  },
+  {
+    "id": "th_khao_tom_moo",
+    "name": "ข้าวต้มหมู",
+    "nameEn": "Rice soup with pork",
+    "kcalPer100": 55,
+    "proteinPer100": 4.0,
+    "carbPer100": 7.5,
+    "fatPer100": 1.0,
+    "servingUnits": [{ "label": "1 ชาม", "grams": 450 }]
+  },
+  {
+    "id": "th_khanom_pang_sangkhaya",
+    "name": "ขนมปังสังขยา",
+    "nameEn": "Toast with pandan custard",
+    "kcalPer100": 290,
+    "proteinPer100": 6.0,
+    "carbPer100": 40.0,
+    "fatPer100": 12.0,
+    "servingUnits": [{ "label": "1 แผ่น", "grams": 70 }]
+  }
+]
