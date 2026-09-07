@@ -79,6 +79,28 @@ export function calcMacroTargets(
   };
 }
 
+/**
+ * สัดส่วนสารอาหารที่แนะนำต่อเป้าหมาย (% ของแคลอรี่) — ใช้เป็นค่าเริ่มต้นให้กดใช้ได้ ไม่ได้บังคับ
+ * ลดน้ำหนัก: โปรตีนสูงขึ้นเพื่อรักษามวลกล้ามเนื้อระหว่างที่แคลอรี่ขาด
+ * เพิ่มน้ำหนัก: คาร์บสูงขึ้นเพื่อเป็นพลังงานให้ฝึกหนักและสร้างกล้ามเนื้อ
+ * คงที่: สมดุลกลาง ๆ
+ */
+export const RECOMMENDED_MACRO_PCT: Record<'lose' | 'maintain' | 'gain', { protein: number; carb: number; fat: number }> = {
+  lose: { protein: 35, carb: 35, fat: 30 },
+  maintain: { protein: 30, carb: 40, fat: 30 },
+  gain: { protein: 25, carb: 45, fat: 30 },
+};
+
+/** เหมือน RECOMMENDED_MACRO_PCT แต่เพิ่มโปรตีนอีก 5% (ลดคาร์บลงเท่ากัน) ถ้าเลือกเน้นรักษา/สร้างกล้ามเนื้อ */
+export function recommendedMacroPct(
+  goalType: 'lose' | 'maintain' | 'gain',
+  prioritizeMuscle: boolean
+): { protein: number; carb: number; fat: number } {
+  const base = RECOMMENDED_MACRO_PCT[goalType];
+  if (!prioritizeMuscle) return base;
+  return { protein: Math.min(base.protein + 5, 45), carb: Math.max(base.carb - 5, 20), fat: base.fat };
+}
+
 /** สเกลค่าโภชนาการจากต่อ-100g เป็นปริมาณจริง */
 export function scaleFood(food: Food, amountG: number) {
   const f = amountG / 100;

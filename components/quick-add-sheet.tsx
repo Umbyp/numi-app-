@@ -8,6 +8,8 @@ import { type, fontFamily } from '../lib/fonts';
 import { radius } from '../lib/theme';
 import { CameraIcon, BarcodeIcon, ActivityIcon, ScaleIcon } from './icons/nav-icons';
 import { Mascot } from './mascot';
+import { FoodVisual } from './food-visual';
+import { FadeInView } from './fade-in';
 import { getFrequentFoods, addMealEntry, type FrequentFood } from '../lib/db/queries';
 import { detectMealType } from '../lib/meal-type';
 import { useNumiStore } from '../lib/store';
@@ -133,30 +135,36 @@ export function QuickAddSheet({ visible, onClose }: Props) {
           <GridButton label="กรอกเอง" c={c} onPress={goManual} icon={<PenLine size={22} color={c.brand} />} />
         </View>
 
-        {(loadingFrequent || frequent.length > 0) && (
-          <View style={{ gap: 8 }}>
-            <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4 }]}>บันทึกซ้ำจากที่กินบ่อย</Text>
-            {loadingFrequent ? (
-              <ActivityIndicator color={c.muted} />
-            ) : (
-              <View style={styles.frequentRow}>
-                {frequent.map((f) => (
+        <View style={{ gap: 8 }}>
+          <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4 }]}>บันทึกซ้ำจากที่กินบ่อย</Text>
+          {loadingFrequent ? (
+            <ActivityIndicator color={c.muted} />
+          ) : frequent.length > 0 ? (
+            <View style={styles.frequentRow}>
+              {frequent.map((f) => (
+                <FadeInView key={f.foodId} style={{ flex: 1 }}>
                   <Pressable
-                    key={f.foodId}
                     style={[styles.frequentCard, { backgroundColor: c.surfaceAlt }, logging === f.foodId && { opacity: 0.5 }]}
                     disabled={logging === f.foodId}
                     onPress={() => repeatFood(f)}
                   >
-                    <Text style={[type.row, { color: c.text, fontSize: 13 }]} numberOfLines={1}>
-                      {f.name}
-                    </Text>
+                    <View style={styles.frequentTitleRow}>
+                      <FoodVisual name={f.name} size={20} />
+                      <Text style={[type.row, { color: c.text, fontSize: 13, flex: 1 }]} numberOfLines={1}>
+                        {f.name}
+                      </Text>
+                    </View>
                     <Text style={[type.label, { color: c.faint, fontSize: 10 }]}>{Math.round(f.kcal)} kcal</Text>
                   </Pressable>
-                ))}
-              </View>
-            )}
-          </View>
-        )}
+                </FadeInView>
+              ))}
+            </View>
+          ) : (
+            <Text style={[type.label, { color: c.faint, fontSize: 12 }]}>
+              บันทึกอาหารสัก 2-3 ครั้ง แล้วอาหารที่กินบ่อยจะโผล่ตรงนี้ให้กดซ้ำได้เลย
+            </Text>
+          )}
+        </View>
 
         <View style={styles.footerRow}>
           <Pressable style={[styles.footerBtn, { backgroundColor: c.surfaceAlt }]} onPress={goWorkout}>
@@ -216,7 +224,8 @@ const styles = StyleSheet.create({
   gridBtn: { flex: 1, alignItems: 'center', gap: 8 },
   gridIcon: { width: '100%', height: 70, borderRadius: radius.card - 6, alignItems: 'center', justifyContent: 'center' },
   frequentRow: { flexDirection: 'row', gap: 8 },
-  frequentCard: { flex: 1, height: 56, borderRadius: radius.card - 8, padding: 12, justifyContent: 'center', gap: 2 },
+  frequentCard: { flex: 1, height: 56, borderRadius: radius.card - 8, padding: 12, justifyContent: 'center', gap: 4 },
+  frequentTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   footerRow: { flexDirection: 'row', gap: 8 },
   footerBtn: { flex: 1, height: 52, borderRadius: radius.card - 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
 });

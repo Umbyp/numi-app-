@@ -19,7 +19,11 @@ async function getRemainingKcal(localDate: string): Promise<number> {
 }
 
 /** รันจริงหลังผู้ใช้กดยืนยันการ์ด (หรือทันทีสำหรับ read-only tool) — จุดเดียวที่เขียนลง DB */
-export async function executeToolCall(name: string, args: unknown): Promise<string> {
+export async function executeToolCall(
+  name: string,
+  args: unknown,
+  opts?: { photoUri?: string | null }
+): Promise<string> {
   switch (name) {
     case 'search_food': {
       const { queries } = args as { queries: string[] };
@@ -53,6 +57,7 @@ export async function executeToolCall(name: string, args: unknown): Promise<stri
           fatG: item.fat_g,
           estimated: item.estimated,
           note: data.note,
+          photoUri: opts?.photoUri ?? null,
         });
       }
       const total = data.items.reduce((s, i) => s + i.kcal, 0);

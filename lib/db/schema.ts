@@ -29,6 +29,8 @@ export const profile = sqliteTable('profile', {
   addExerciseKcal: integer('add_exercise_kcal', { mode: 'boolean' }).notNull().default(false),
   // น้ำหนักเป้าหมาย — แยกจาก manualKcal เพราะเป็นคนละมิติ (น้ำหนักตัว vs แคลอรี่ต่อวัน)
   goalWeightKg: real('goal_weight_kg'),
+  // เน้นรักษา/สร้างกล้ามเนื้อเป็นพิเศษ — มีผลกับสัดส่วนมาโครที่แนะนำ และวันเวท/คาร์ดิโอที่ AI แนะนำ
+  prioritizeMuscle: integer('prioritize_muscle', { mode: 'boolean' }).notNull().default(false),
 });
 
 // ค่าตั้งค่าระดับแอป (เช่นธีม) แยกจาก profile เพราะต้องใช้ได้ก่อนผู้ใช้กรอกโปรไฟล์ครบด้วย

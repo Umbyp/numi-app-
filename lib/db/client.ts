@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS profile (
   carb_pct REAL NOT NULL DEFAULT 0.40,
   fat_pct REAL NOT NULL DEFAULT 0.30,
   add_exercise_kcal INTEGER NOT NULL DEFAULT 0,
-  goal_weight_kg REAL
+  goal_weight_kg REAL,
+  prioritize_muscle INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS foods (
@@ -117,7 +118,10 @@ CREATE TABLE IF NOT EXISTS app_settings (
 
 // คอลัมน์ที่เพิ่มทีหลัง CREATE_TABLES ตอนแรก — ต้องเผื่อเครื่องที่ลงแอปไปแล้วก่อนหน้านี้
 // ไม่มี migration framework เพราะแอปคนเดียว ใช้วิธีลอง ALTER แล้วเมิน error "duplicate column" พอ
-const COLUMN_MIGRATIONS = [`ALTER TABLE profile ADD COLUMN goal_weight_kg REAL`];
+const COLUMN_MIGRATIONS = [
+  `ALTER TABLE profile ADD COLUMN goal_weight_kg REAL`,
+  `ALTER TABLE profile ADD COLUMN prioritize_muscle INTEGER NOT NULL DEFAULT 0`,
+];
 
 let migrated: Promise<void> | null = null;
 

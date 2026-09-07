@@ -12,10 +12,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Search, X } from 'lucide-react-native';
+import { Search, X, Sparkles } from 'lucide-react-native';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { AmountStepper } from '../components/amount-stepper';
 import { MealTypeIcon } from '../components/icons/meal-type-icons';
+import { FoodVisual } from '../components/food-visual';
+import { FadeInView } from '../components/fade-in';
 import { MEAL_TYPES, detectMealType, type MealType } from '../lib/meal-type';
 import { searchFoods, addMealEntry, createUserFood } from '../lib/db/queries';
 import { scaleFood } from '../lib/nutrition';
@@ -47,13 +49,20 @@ export default function AddFoodScreen() {
   const [manualFat, setManualFat] = useState('');
 
   useEffect(() => {
-    searchFoods(query).then(setResults);
+    const timer = setTimeout(() => {
+      searchFoods(query).then(setResults);
+    }, 250);
+    return () => clearTimeout(timer);
   }, [query]);
 
   function pickFood(food: Food) {
     setSelected(food);
     const firstUnit = food.servingUnits?.[0];
     setAmountG(firstUnit?.grams ?? 100);
+  }
+
+  function askNumiToEstimate() {
+    router.replace({ pathname: '/chat', params: { initialText: query.trim() } });
   }
 
   async function handleConfirmSelected() {
@@ -151,9 +160,12 @@ export default function AddFoodScreen() {
             {selected ? (
               <View style={[styles.selectedCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
                 <View style={styles.selectedHeader}>
-                  <Text style={[textType.cardTitle, { color: c.text, fontSize: 16 }]} numberOfLines={1}>
-                    {selected.name}
-                  </Text>
+                  <View style={styles.selectedTitleRow}>
+                    <FoodVisual name={selected.name} size={40} />
+                    <Text style={[textType.cardTitle, { color: c.text, fontSize: 16, flex: 1 }]} numberOfLines={1}>
+                      {selected.name}
+                    </Text>
+                  </View>
                   <Pressable onPress={() => setSelected(null)} hitSlop={10}>
                     <X size={18} color={c.muted} />
                   </Pressable>
@@ -202,15 +214,32 @@ export default function AddFoodScreen() {
                 keyExtractor={(item) => item.id}
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
-                  <Pressable style={[styles.resultRow, { borderBottomColor: c.line }]} onPress={() => pickFood(item)}>
-                    <Text style={[textType.row, { color: c.text, fontSize: 15 }]}>{item.name}</Text>
-                    <Text style={[textType.label, { color: c.muted, fontSize: 12 }]}>{Math.round(item.kcalPer100)} kcal/100g</Text>
-                  </Pressable>
+                  <FadeInView>
+                    <Pressable style={[styles.resultRow, { borderBottomColor: c.line }]} onPress={() => pickFood(item)}>
+                      <FoodVisual name={item.name} size={36} />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={[textType.row, { color: c.text, fontSize: 15 }]} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                        <Text style={[textType.label, { color: c.muted, fontSize: 12 }]}>{Math.round(item.kcalPer100)} kcal/100g</Text>
+                      </View>
+                    </Pressable>
+                  </FadeInView>
                 )}
                 ListEmptyComponent={
-                  <Text style={[textType.label, { color: c.subtext, textAlign: 'center', marginTop: 20 }]}>
-                    ไม่พบอาหาร ลองพิมพ์คำอื่น หรือเพิ่มเอง
-                  </Text>
+                  <View style={styles.emptyState}>
+                    <Text style={[textType.label, { color: c.subtext, textAlign: 'center' }]}>
+                      ไม่พบอาหาร ลองพิมพ์คำอื่น หรือเพิ่มเอง
+                    </Text>
+                    {query.trim().length > 0 && (
+                      <Pressable style={[styles.askNumiBtn, { backgroundColor: c.brandTint }]} onPress={askNumiToEstimate}>
+                        <Sparkles size={15} color={c.brand} />
+                        <Text style={[textType.row, { color: c.brand, fontSize: 13 }]} numberOfLines={1}>
+                          ให้ Numi ช่วยประมาณ "{query.trim()}"
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
                 }
               />
             )}
@@ -301,14 +330,25 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 15 },
   resultRow: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
   },
   manualLink: { alignItems: 'center', paddingVertical: 14 },
+  emptyState: { alignItems: 'center', gap: 12, marginTop: 20, paddingHorizontal: 24 },
+  askNumiBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: radius.pill,
+    paddingHorizontal: 14,
+    height: 38,
+  },
   selectedCard: { margin: 16, padding: 16, borderRadius: radius.card, borderWidth: StyleSheet.hairlineWidth },
-  selectedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  selectedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
+  selectedTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 },
   unitRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
   unitPill: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 6 },
   amountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 },

@@ -76,7 +76,6 @@ function RootLayoutInner() {
         <Stack.Screen name="log-workout" options={{ presentation: 'modal', headerShown: true, title: 'บันทึกออกกำลังกาย' }} />
         <Stack.Screen name="activity-history" options={{ presentation: 'modal', headerShown: true, title: 'ประวัติกิจกรรม' }} />
         <Stack.Screen name="scan-barcode" options={{ presentation: 'modal', headerShown: true, title: 'สแกนบาร์โค้ด' }} />
-        <Stack.Screen name="workout-plan" options={{ presentation: 'modal', headerShown: true, title: 'แผนออกกำลังกาย' }} />
         <Stack.Screen name="workout-plan-detail" options={{ presentation: 'modal', headerShown: true, title: 'รายละเอียดแผน' }} />
       </Stack>
     </>

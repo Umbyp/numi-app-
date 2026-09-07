@@ -22,6 +22,7 @@ import { captureFoodPhoto } from '../lib/ai/capture-photo';
 import { takePendingImage } from '../lib/ai/pending-image';
 import { CommandCard } from '../components/command-card';
 import { Mascot } from '../components/mascot';
+import { FadeInView } from '../components/fade-in';
 import { useNumiStore } from '../lib/store';
 import { type, fontFamily } from '../lib/fonts';
 import { radius, pillShadow, fabShadow } from '../lib/theme';
@@ -129,39 +130,41 @@ export default function ChatScreen() {
             data={rows}
             keyExtractor={(r) => r.key}
             contentContainerStyle={styles.list}
-            renderItem={({ item }) =>
-              item.kind === 'card' ? (
-                <CommandCard
-                  card={pendingCards.find((p) => p.id === item.key)!}
-                  onConfirm={handleConfirm}
-                  onDismiss={dismissCard}
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.bubble,
-                    item.role === 'user'
-                      ? [styles.bubbleUser, { backgroundColor: item.imageUri ? 'transparent' : c.brand }]
-                      : [styles.bubbleAssistant, { backgroundColor: c.surface, borderColor: c.line }, pillShadow(scheme)],
-                  ]}
-                >
-                  {item.imageUri && <Image source={{ uri: item.imageUri }} style={styles.imageThumb} />}
-                  {item.text.trim() ? (
-                    <Text
-                      style={{
-                        color: item.role === 'user' ? '#fff' : c.text,
-                        fontSize: 14,
-                        fontFamily: fontFamily(500),
-                        lineHeight: 20,
-                        marginTop: item.imageUri ? 8 : 0,
-                      }}
-                    >
-                      {item.text}
-                    </Text>
-                  ) : null}
-                </View>
-              )
-            }
+            renderItem={({ item }) => (
+              <FadeInView>
+                {item.kind === 'card' ? (
+                  <CommandCard
+                    card={pendingCards.find((p) => p.id === item.key)!}
+                    onConfirm={handleConfirm}
+                    onDismiss={dismissCard}
+                  />
+                ) : (
+                  <View
+                    style={[
+                      styles.bubble,
+                      item.role === 'user'
+                        ? [styles.bubbleUser, { backgroundColor: item.imageUri ? 'transparent' : c.brand }]
+                        : [styles.bubbleAssistant, { backgroundColor: c.surface, borderColor: c.line }, pillShadow(scheme)],
+                    ]}
+                  >
+                    {item.imageUri && <Image source={{ uri: item.imageUri }} style={styles.imageThumb} />}
+                    {item.text.trim() ? (
+                      <Text
+                        style={{
+                          color: item.role === 'user' ? '#fff' : c.text,
+                          fontSize: 14,
+                          fontFamily: fontFamily(500),
+                          lineHeight: 20,
+                          marginTop: item.imageUri ? 8 : 0,
+                        }}
+                      >
+                        {item.text}
+                      </Text>
+                    ) : null}
+                  </View>
+                )}
+              </FadeInView>
+            )}
           />
         )}
 

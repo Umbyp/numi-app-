@@ -29,6 +29,7 @@ export interface UserContext {
   goalTypeLabel: string;
   bmr: number;
   tdee: number;
+  prioritizeMuscle: boolean;
 }
 
 /** ดึงบริบทผู้ใช้ปัจจุบันมาแปะใน system prompt ตรง ๆ แทนที่จะให้ AI เรียก tool ไปดึงเอง (ประหยัด round trip) */
@@ -72,5 +73,6 @@ export async function buildUserContext(): Promise<UserContext> {
     goalTypeLabel: profile ? GOAL_TYPE_LABEL[profile.goalType] : 'ไม่ทราบ',
     bmr: goals.bmr,
     tdee: goals.tdee,
+    prioritizeMuscle: profile?.prioritizeMuscle ?? false,
   };
 }

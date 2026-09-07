@@ -1,4 +1,5 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { Dumbbell } from 'lucide-react-native';
 
 interface IconProps {
   color: string;
@@ -43,6 +44,11 @@ export function InsightsIcon({ color, size = 22 }: TabIconProps) {
       <Rect x={15} y={9} width={4} height={10} rx={1.6} fill={color} />
     </Svg>
   );
+}
+
+/** เพิ่มทีหลังนอกเหนือจาก Numi Design System v2 — ใช้ lucide ตรง ๆ แทนพอร์ต SVG ใหม่ */
+export function WorkoutPlanIcon({ color, size = 22 }: TabIconProps) {
+  return <Dumbbell color={color} size={size} strokeWidth={1.9} />;
 }
 
 export function AccountIcon({ color, size = 22 }: TabIconProps) {

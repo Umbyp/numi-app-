@@ -4,14 +4,14 @@ import { X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { AmountStepper } from '../amount-stepper';
-import { MealTypeIcon } from '../icons/meal-type-icons';
+import { FoodVisual } from '../food-visual';
 import { getMealTypeMeta, type MealType } from '../../lib/meal-type';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
 import type { AddMealArgs } from '../../lib/ai/validators';
 
 interface Props {
-  card: { id: string; args: AddMealArgs };
+  card: { id: string; args: AddMealArgs; photoUri?: string | null };
   onConfirm: (id: string, editedArgs: AddMealArgs) => void;
   onDismiss: (id: string) => void;
 }
@@ -62,9 +62,7 @@ export function AddMealCard({ card, onConfirm, onDismiss }: Props) {
 
       {items.map((item, idx) => (
         <View key={idx} style={styles.row}>
-          <View style={[styles.iconBox, { backgroundColor: c[meta.bgKey] }]}>
-            <MealTypeIcon type={meta.key} color={c[meta.colorKey]} size={18} />
-          </View>
+          <FoodVisual name={item.name} photoUri={card.photoUri} size={36} />
 
           <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
             <View style={styles.nameRow}>
@@ -128,7 +126,6 @@ const styles = StyleSheet.create({
   mealPill: { borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 2 },
   divider: { height: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  iconBox: { width: 36, height: 36, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   estBadge: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 },
   badgeRow: { flexDirection: 'row', gap: 5 },

@@ -11,16 +11,16 @@ import { Mascot } from '../../components/mascot';
 const ROWS: {
   label: string;
   bgKey: 'brandTint' | 'dinnerBg' | 'surfaceAlt';
-  route?: '/account-edit' | '/weight-history' | '/activity-history' | '/workout-plan';
+  route?: '/account-edit' | '/weight-history' | '/activity-history';
+  editStep?: 'basic' | 'goal' | 'macros' | 'summary';
   disabled?: boolean;
 }[] = [
-  { label: 'ข้อมูลส่วนตัว', bgKey: 'brandTint', route: '/account-edit' },
-  { label: 'เป้าหมายน้ำหนัก', bgKey: 'brandTint', route: '/account-edit' },
-  { label: 'เป้าหมายสารอาหาร', bgKey: 'brandTint', route: '/account-edit' },
+  { label: 'ข้อมูลส่วนตัว', bgKey: 'brandTint', route: '/account-edit', editStep: 'basic' },
+  { label: 'เป้าหมายน้ำหนัก', bgKey: 'brandTint', route: '/account-edit', editStep: 'goal' },
+  { label: 'เป้าหมายสารอาหาร', bgKey: 'brandTint', route: '/account-edit', editStep: 'macros' },
   { label: 'ประวัติกิจกรรม', bgKey: 'dinnerBg', route: '/activity-history' },
-  { label: 'แผนออกกำลังกาย', bgKey: 'dinnerBg', route: '/workout-plan' },
   { label: 'ประวัติน้ำหนัก', bgKey: 'brandTint', route: '/weight-history' },
-  { label: 'ตั้งค่าแอป · ธีม', bgKey: 'surfaceAlt', route: '/account-edit' },
+  { label: 'ตั้งค่าแอป · ธีม', bgKey: 'surfaceAlt', route: '/account-edit', editStep: 'summary' },
 ];
 
 export default function AccountScreen() {
@@ -83,7 +83,11 @@ export default function AccountScreen() {
               key={row.label}
               style={[styles.row, i < ROWS.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line }]}
               disabled={row.disabled || !row.route}
-              onPress={() => row.route && router.push(row.route)}
+              onPress={() => {
+                if (!row.route) return;
+                if (row.editStep) router.push({ pathname: '/account-edit', params: { step: row.editStep } });
+                else router.push(row.route);
+              }}
             >
               <View style={[styles.rowIcon, { backgroundColor: c[row.bgKey] }]} />
               <Text style={[type.row, { color: row.disabled ? c.faint : c.text, fontSize: 14, flex: 1 }]}>{row.label}</Text>

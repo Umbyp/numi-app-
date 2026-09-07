@@ -200,6 +200,7 @@ export interface NewMealEntry {
   fatG: number;
   estimated?: boolean;
   note?: string;
+  photoUri?: string | null;
 }
 
 export async function addMealEntry(entry: NewMealEntry) {
@@ -217,6 +218,7 @@ export async function addMealEntry(entry: NewMealEntry) {
     fatG: entry.fatG,
     estimated: entry.estimated ?? false,
     note: entry.note,
+    photoUri: entry.photoUri ?? null,
     loggedAt: now,
     localDate: localDateString(now),
   });

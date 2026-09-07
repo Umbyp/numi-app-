@@ -13,6 +13,7 @@ export interface PendingCard {
   tool: string;
   args: any;
   status: 'pending' | 'confirmed' | 'dismissed';
+  photoUri?: string | null;
 }
 
 const MAX_TOOL_HOPS = 5;
@@ -43,6 +44,8 @@ export function useChat() {
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
+  // จำรูปล่าสุดที่ส่งให้ AI ดู ไว้แนบกับ add_meal การ์ดที่เกิดขึ้นทันทีหลังจากนั้น (ถ้ามี)
+  const pendingPhotoUriRef = useRef<string | null>(null);
 
   useEffect(() => {
     getChatMessages(100).then((rows) => {
@@ -85,6 +88,7 @@ export function useChat() {
 
   /** ส่งรูปอาหารให้ AI ดู (vision) — base64DataUrl คือ "data:image/jpeg;base64,...." ที่ย่อ/บีบอัดมาแล้ว */
   async function sendImage(base64DataUrl: string, caption?: string) {
+    pendingPhotoUriRef.current = base64DataUrl;
     await sendMessage({
       role: 'user',
       content: [
@@ -139,7 +143,12 @@ export function useChat() {
         appendMessage(errMsg);
         return runTurn([...history, reply, errMsg], ctx, depth + 1);
       }
-      setPendingCards((p) => [...p, { id: call.id, tool: call.function.name, args: parsed.data, status: 'pending' }]);
+      let photoUri: string | null = null;
+      if (call.function.name === 'add_meal') {
+        photoUri = pendingPhotoUriRef.current;
+        pendingPhotoUriRef.current = null;
+      }
+      setPendingCards((p) => [...p, { id: call.id, tool: call.function.name, args: parsed.data, status: 'pending', photoUri }]);
     }
   }
 
@@ -147,7 +156,7 @@ export function useChat() {
     const card = pendingCards.find((c) => c.id === cardId);
     if (!card) return;
 
-    const result = await executeToolCall(card.tool, editedArgs ?? card.args);
+    const result = await executeToolCall(card.tool, editedArgs ?? card.args, { photoUri: card.photoUri });
     setPendingCards((p) => p.map((c) => (c.id === cardId ? { ...c, status: 'confirmed' } : c)));
 
     const toolMsg: Message = { role: 'tool', tool_call_id: cardId, content: result };

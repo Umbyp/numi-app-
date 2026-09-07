@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { MoreHorizontal } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalorieRing } from '../../components/calorie-ring';
 import { MacroBar } from '../../components/macro-bar';
@@ -44,6 +43,10 @@ export default function DashboardScreen() {
 
   const bmi = profile && latestWeightKg ? calcBMI(latestWeightKg, profile.heightCm) : null;
 
+  function goToBasicInfo() {
+    router.push({ pathname: '/account-edit', params: { step: 'basic' } });
+  }
+
   const cardStyle = [styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)];
 
   return (
@@ -75,7 +78,6 @@ export default function DashboardScreen() {
               <Text style={[type.cardTitle, { color: c.text, fontSize: 17 }]}>แคลอรี่</Text>
               <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>ที่ควรได้รับ = เป้าหมาย − อาหาร + กิจกรรม</Text>
             </View>
-            <MoreHorizontal size={18} color={c.faint} />
           </View>
 
           <View style={styles.ringRow}>
@@ -103,9 +105,22 @@ export default function DashboardScreen() {
               badge={bmi ? bmiCategory(bmi) : undefined}
               c={c}
               last={false}
+              onPress={goToBasicInfo}
             />
-            <HealthRow label="เผาผลาญพื้นฐาน" value={`BMR ${Math.round(goals?.bmr ?? 0).toLocaleString()} kcal`} c={c} last={false} />
-            <HealthRow label="ใช้ทั้งหมดต่อวัน" value={`TDEE ${Math.round(goals?.tdee ?? 0).toLocaleString()} kcal`} c={c} last />
+            <HealthRow
+              label="เผาผลาญพื้นฐาน"
+              value={`BMR ${Math.round(goals?.bmr ?? 0).toLocaleString()} kcal`}
+              c={c}
+              last={false}
+              onPress={goToBasicInfo}
+            />
+            <HealthRow
+              label="ใช้ทั้งหมดต่อวัน"
+              value={`TDEE ${Math.round(goals?.tdee ?? 0).toLocaleString()} kcal`}
+              c={c}
+              last
+              onPress={goToBasicInfo}
+            />
           </View>
         )}
 
@@ -145,15 +160,19 @@ function HealthRow({
   badge,
   c,
   last,
+  onPress,
 }: {
   label: string;
   value: string;
   badge?: string;
   c: ReturnType<typeof useTheme>;
   last: boolean;
+  onPress?: () => void;
 }) {
   return (
-    <View style={[styles.healthRow, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line }]}>
+    <Pressable
+      onPress={onPress}
+      style={[styles.healthRow, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line }]}>
       <View style={{ flex: 1, gap: 4 }}>
         <Text style={[type.row, { color: c.text, fontSize: 13 }]}>{label}</Text>
         <View style={styles.healthValueRow}>
@@ -166,7 +185,7 @@ function HealthRow({
         </View>
       </View>
       <Text style={{ color: c.faint, fontSize: 17 }}>›</Text>
-    </View>
+    </Pressable>
   );
 }
 

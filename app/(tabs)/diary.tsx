@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, X } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { useNumiStore } from '../../lib/store';
 import { getMealEntriesForDate, getWorkoutsForDate, getWeightForDate, deleteMealEntry, type MealType } from '../../lib/db/queries';
@@ -10,16 +11,19 @@ import { localDateString } from '../../lib/nutrition';
 import { MEAL_TYPES, getMealTypeMeta } from '../../lib/meal-type';
 import { MealTypeIcon } from '../../components/icons/meal-type-icons';
 import { ActivityIcon, ScaleIcon } from '../../components/icons/nav-icons';
+import { FoodVisual } from '../../components/food-visual';
+import { FadeInView } from '../../components/fade-in';
+import { DatePickerModal } from '../../components/date-picker-modal';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
 
 const DAY_LABELS = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
 
-function currentWeekDates(): Date[] {
-  const today = new Date();
-  const dow = (today.getDay() + 6) % 7; // 0 = Monday
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - dow);
+/** สัปดาห์ (จันทร์-อาทิตย์) ที่ครอบคลุมวันที่ระบุ — ไม่ใช่สัปดาห์ปัจจุบันเสมอ เพราะต้องเลื่อนตามวันที่เลือกจากปฏิทินได้ */
+function weekContaining(reference: Date): Date[] {
+  const dow = (reference.getDay() + 6) % 7; // 0 = Monday
+  const monday = new Date(reference);
+  monday.setDate(reference.getDate() - dow);
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
@@ -39,7 +43,8 @@ export default function DiaryScreen() {
   const [entries, setEntries] = useState<Awaited<ReturnType<typeof getMealEntriesForDate>>>([]);
   const [activityKcal, setActivityKcal] = useState(0);
   const [dayWeightKg, setDayWeightKg] = useState<number | null>(null);
-  const week = useMemo(currentWeekDates, []);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const week = useMemo(() => weekContaining(new Date(`${selectedDate}T00:00:00`)), [selectedDate]);
 
   const load = useCallback((date: string) => {
     getMealEntriesForDate(date).then(setEntries);
@@ -55,6 +60,7 @@ export default function DiaryScreen() {
   );
 
   async function handleDeleteEntry(id: string) {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await deleteMealEntry(id);
     load(selectedDate);
     refresh();
@@ -75,13 +81,26 @@ export default function DiaryScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.headerRow}>
           <Text style={[type.greeting, { color: c.text, fontSize: 24 }]}>ไดอารี่</Text>
-          <View style={[styles.datePill, { backgroundColor: c.surface }, cardShadow(scheme)]}>
+          <Pressable
+            style={[styles.datePill, { backgroundColor: c.surface }, cardShadow(scheme)]}
+            onPress={() => setPickerOpen(true)}
+          >
             <Calendar size={14} color={c.brand} />
             <Text style={[type.row, { color: c.text, fontSize: 14 }]}>
               {selectedD.getDate()} {THAI_MONTHS_SHORT[selectedD.getMonth()]} {selectedD.getFullYear() + 543}
             </Text>
-          </View>
+          </Pressable>
         </View>
+
+        <DatePickerModal
+          visible={pickerOpen}
+          selectedDate={selectedDate}
+          onSelect={(d) => {
+            setSelectedDate(d);
+            setPickerOpen(false);
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
 
         <View style={styles.weekRow}>
           {week.map((d, i) => {
@@ -135,7 +154,8 @@ export default function DiaryScreen() {
                 </View>
                 {list.length > 0 ? (
                   list.map((e) => (
-                    <View key={e.id} style={styles.mealFoodRow}>
+                    <FadeInView key={e.id} style={styles.mealFoodRow}>
+                      <FoodVisual name={e.name} photoUri={e.photoUri} size={28} />
                       <Text style={[type.row, { color: c.text, fontSize: 13, flex: 1 }]} numberOfLines={1}>
                         {e.name}
                       </Text>
@@ -148,7 +168,7 @@ export default function DiaryScreen() {
                           <X size={14} color={c.faint} />
                         </Pressable>
                       )}
-                    </View>
+                    </FadeInView>
                   ))
                 ) : (
                   <Text style={[type.label, { color: c.faint, fontSize: 12, paddingLeft: 35 }]}>ยังไม่ได้บันทึก</Text>
@@ -206,7 +226,7 @@ const styles = StyleSheet.create({
   mealHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   mealIcon: { width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   addPill: { height: 28, paddingHorizontal: 11, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  mealFoodRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 35 },
+  mealFoodRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   divider: { height: 1, marginVertical: 2 },
   statRow: { flexDirection: 'row', gap: 8 },
   statCard: { flex: 1, borderRadius: radius.card - 6, padding: 12, gap: 3 },

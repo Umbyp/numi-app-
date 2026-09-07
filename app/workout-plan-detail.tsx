@@ -17,6 +17,8 @@ import type { WorkoutPlanDay, WorkoutPlanExercise } from '../lib/db/schema';
 import { calcKcalBurned, localDateString } from '../lib/nutrition';
 import { WORKOUT_CATEGORIES, metsByCategory, type WorkoutCategory } from '../lib/met';
 import { AmountStepper } from '../components/amount-stepper';
+import { Mascot } from '../components/mascot';
+import { CategoryIcon, categoryTint, DayTypeIcon, dayTypeTint } from '../components/icons/workout-icons';
 import { type as textType, fontFamily } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
 
@@ -32,10 +34,6 @@ const DAY_TYPE_LABEL: Record<WorkoutPlanDay['dayType'], string> = {
   strength: 'วันเวท',
   both: 'คาร์ดิโอ + เวท',
 };
-
-function categoryLabel(category: WorkoutCategory): string {
-  return WORKOUT_CATEGORIES.find((c) => c.key === category)?.label ?? category;
-}
 
 /** หมวดที่ปรากฏบ่อยสุดในวันนั้น ใช้เป็น category ของ workout รวมที่บันทึกตอนกดทำ */
 function dominantCategory(categories: WorkoutCategory[]): WorkoutCategory {
@@ -177,7 +175,10 @@ export default function WorkoutPlanDetailScreen() {
   if (!plan) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['bottom']}>
-        <Text style={[textType.label, { color: c.subtext, textAlign: 'center', marginTop: 24 }]}>ไม่พบแผนนี้</Text>
+        <View style={styles.emptyState}>
+          <Mascot size={56} />
+          <Text style={[textType.label, { color: c.subtext, textAlign: 'center' }]}>ไม่พบแผนนี้</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -219,6 +220,7 @@ export default function WorkoutPlanDetailScreen() {
                       onPress={() => updateDay(dayIdx, { dayType: opt.key })}
                       style={[styles.chip, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
                     >
+                      <DayTypeIcon dayType={opt.key} size={13} color={active ? '#fff' : c.subtext} />
                       <Text style={[textType.row, { fontSize: 12, color: active ? '#fff' : c.text }]}>{opt.label}</Text>
                     </Pressable>
                   );
@@ -247,9 +249,14 @@ export default function WorkoutPlanDetailScreen() {
                 placeholderTextColor={c.faint}
               />
 
-              {day.exercises.map((ex, exIdx) => (
+              {day.exercises.map((ex, exIdx) => {
+                const exTint = categoryTint(ex.category, c);
+                return (
                 <View key={exIdx} style={[styles.exerciseEditCard, { borderColor: c.line }]}>
                   <View style={styles.exerciseEditHeader}>
+                    <View style={[styles.smallIconBox, { backgroundColor: exTint.bg }]}>
+                      <CategoryIcon category={ex.category} size={15} color={exTint.icon} />
+                    </View>
                     <Text style={[textType.row, { color: c.text, fontSize: 13, flex: 1 }]} numberOfLines={1}>
                       {ex.name}
                     </Text>
@@ -276,7 +283,8 @@ export default function WorkoutPlanDetailScreen() {
                     />
                   )}
                 </View>
-              ))}
+                );
+              })}
 
               {addingToDay === dayIdx ? (
                 <View style={{ gap: 8 }}>
@@ -289,21 +297,28 @@ export default function WorkoutPlanDetailScreen() {
                           onPress={() => setPickerCategory(cat.key)}
                           style={[styles.chip, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
                         >
+                          <CategoryIcon category={cat.key} size={13} color={active ? '#fff' : c.subtext} />
                           <Text style={[textType.row, { fontSize: 12, color: active ? '#fff' : c.text }]}>{cat.label}</Text>
                         </Pressable>
                       );
                     })}
                   </View>
-                  {metsByCategory(pickerCategory).map((opt) => (
-                    <Pressable
-                      key={opt.key}
-                      onPress={() => addExercise(dayIdx, opt)}
-                      style={[styles.exerciseOption, { backgroundColor: c.surfaceAlt }]}
-                    >
-                      <Text style={[textType.row, { fontSize: 13, color: c.text, flex: 1 }]}>{opt.name}</Text>
-                      <Text style={[textType.label, { fontSize: 11, color: c.faint }]}>MET {opt.met}</Text>
-                    </Pressable>
-                  ))}
+                  {metsByCategory(pickerCategory).map((opt) => {
+                    const pTint = categoryTint(pickerCategory, c);
+                    return (
+                      <Pressable
+                        key={opt.key}
+                        onPress={() => addExercise(dayIdx, opt)}
+                        style={[styles.exerciseOption, { backgroundColor: c.surfaceAlt }]}
+                      >
+                        <View style={[styles.smallIconBox, { backgroundColor: pTint.bg }]}>
+                          <CategoryIcon category={pickerCategory} size={15} color={pTint.icon} />
+                        </View>
+                        <Text style={[textType.row, { fontSize: 13, color: c.text, flex: 1 }]}>{opt.name}</Text>
+                        <Text style={[textType.label, { fontSize: 11, color: c.faint }]}>MET {opt.met}</Text>
+                      </Pressable>
+                    );
+                  })}
                   <Pressable onPress={() => setAddingToDay(null)}>
                     <Text style={[textType.row, { color: c.subtext, fontSize: 12, textAlign: 'center' }]}>ปิด</Text>
                   </Pressable>
@@ -357,33 +372,41 @@ export default function WorkoutPlanDetailScreen() {
               return `${d.getDate()} ${THAI_MONTHS_SHORT[d.getMonth()]}`;
             });
 
+          const dTint = dayTypeTint(day.dayType, c);
           return (
-            <View key={dayIdx} style={cardStyle}>
+            <View key={dayIdx} style={[...cardStyle, { borderLeftWidth: 4, borderLeftColor: dTint.icon }]}>
               <View style={styles.dayHeaderRow}>
                 <Text style={[textType.cardTitle, { color: c.text, fontSize: 15 }]}>{day.label}</Text>
-                <View style={[styles.dayTypeBadge, { backgroundColor: c.brandTint }]}>
-                  <Text style={[textType.badge, { color: c.brand }]}>{DAY_TYPE_LABEL[day.dayType]}</Text>
+                <View style={[styles.dayTypeBadge, { backgroundColor: dTint.bg }]}>
+                  <DayTypeIcon dayType={day.dayType} size={12} color={dTint.icon} />
+                  <Text style={[textType.badge, { color: dTint.icon }]}>{DAY_TYPE_LABEL[day.dayType]}</Text>
                 </View>
               </View>
               {day.warmup && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>ก่อนเล่น: {day.warmup}</Text>}
               {day.duringNote && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>ระหว่างเล่น: {day.duringNote}</Text>}
               {day.cooldown && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>หลังเล่น: {day.cooldown}</Text>}
 
-              {day.exercises.map((ex, exIdx) => (
-                <View key={exIdx} style={styles.exerciseRow}>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={[textType.row, { color: c.text, fontSize: 13 }]} numberOfLines={1}>
-                      {ex.name}
+              {day.exercises.map((ex, exIdx) => {
+                const exTint = categoryTint(ex.category, c);
+                return (
+                  <View key={exIdx} style={styles.exerciseRow}>
+                    <View style={[styles.smallIconBox, { backgroundColor: exTint.bg }]}>
+                      <CategoryIcon category={ex.category} size={15} color={exTint.icon} />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={[textType.row, { color: c.text, fontSize: 13 }]} numberOfLines={1}>
+                        {ex.name}
+                      </Text>
+                      {ex.note && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>{ex.note}</Text>}
+                    </View>
+                    <Text style={[textType.label, { color: c.muted, fontSize: 11 }]} numberOfLines={2}>
+                      MET {ex.met} · {ex.durationMin} นาที
+                      {ex.sets != null && ex.reps ? ` · ${ex.sets}x${ex.reps}` : ''}
+                      {ex.restSec != null ? ` · พัก ${ex.restSec}วิ` : ''}
                     </Text>
-                    {ex.note && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>{ex.note}</Text>}
                   </View>
-                  <Text style={[textType.label, { color: c.muted, fontSize: 11 }]}>
-                    {categoryLabel(ex.category)} · MET {ex.met} · {ex.durationMin} นาที
-                    {ex.sets != null && ex.reps ? ` · ${ex.sets}x${ex.reps}` : ''}
-                    {ex.restSec != null ? ` · พัก ${ex.restSec}วิ` : ''}
-                  </Text>
-                </View>
-              ))}
+                );
+              })}
 
               <Pressable
                 style={[styles.doneBtn, { backgroundColor: c.brand }, completingDay === dayIdx && { opacity: 0.6 }]}
@@ -410,17 +433,19 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   editPill: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: radius.pill, paddingHorizontal: 12, height: 32 },
   dayHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  dayTypeBadge: { borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 3 },
-  exerciseRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingVertical: 4 },
+  dayTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 3 },
+  exerciseRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  smallIconBox: { width: 32, height: 32, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
   doneBtn: { borderRadius: radius.iconBox, paddingVertical: 11, alignItems: 'center', marginTop: 4 },
   input: { borderRadius: radius.iconBox, paddingHorizontal: 14, paddingVertical: 10, fontSize: 13 },
   dayEditHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   chipRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  chip: { height: 32, paddingHorizontal: 12, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 32, paddingHorizontal: 12, borderRadius: radius.pill, justifyContent: 'center' },
   exerciseEditCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card - 8, padding: 10, gap: 8 },
   exerciseEditHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stepperRow: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' },
-  exerciseOption: { flexDirection: 'row', alignItems: 'center', height: 42, paddingHorizontal: 12, borderRadius: radius.iconBox },
+  exerciseOption: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, paddingHorizontal: 10, borderRadius: radius.iconBox },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
   addRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40, borderRadius: radius.iconBox },
   actions: { flexDirection: 'row', gap: 10 },
   ghostBtn: { flex: 1, borderRadius: radius.iconBox, paddingVertical: 13, alignItems: 'center' },

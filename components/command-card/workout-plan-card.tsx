@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
-import { WORKOUT_CATEGORIES, type WorkoutCategory } from '../../lib/met';
+import { CategoryIcon, categoryTint, DayTypeIcon, dayTypeTint } from '../icons/workout-icons';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
 import type { WorkoutPlanArgs } from '../../lib/ai/validators';
@@ -12,10 +12,6 @@ interface Props {
   card: { id: string; args: WorkoutPlanArgs };
   onConfirm: (id: string, editedArgs: WorkoutPlanArgs) => void;
   onDismiss: (id: string) => void;
-}
-
-function categoryLabel(category: WorkoutCategory): string {
-  return WORKOUT_CATEGORIES.find((c) => c.key === category)?.label ?? category;
 }
 
 const DAY_TYPE_LABEL: Record<'cardio' | 'strength' | 'both', string> = {
@@ -53,39 +49,50 @@ export function WorkoutPlanCard({ card, onConfirm, onDismiss }: Props) {
 
       <View style={[styles.divider, { backgroundColor: c.line }]} />
 
-      {days.map((day, dayIdx) => (
-        <View key={dayIdx} style={{ gap: 6 }}>
-          <View style={styles.dayHeaderRow}>
-            <Text style={[type.row, { color: c.text, fontSize: 13 }]}>{day.label}</Text>
-            <Badge label={DAY_TYPE_LABEL[day.day_type]} bg={c.brandTint} text={c.brand} />
-          </View>
-          {day.warmup && <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>ก่อนเล่น: {day.warmup}</Text>}
-          {day.during_note && <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>ระหว่างเล่น: {day.during_note}</Text>}
-          {day.cooldown && <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>หลังเล่น: {day.cooldown}</Text>}
-
-          {day.exercises.map((ex, exIdx) => (
-            <View key={exIdx} style={styles.row}>
-              <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-                <Text style={[type.row, { color: c.text, fontSize: 13 }]} numberOfLines={1}>
-                  {ex.name}
-                </Text>
-                <View style={styles.badgeRow}>
-                  <Badge label={categoryLabel(ex.category)} bg={c.surfaceAlt} text={c.subtext} />
-                  <Badge label={`MET ${ex.met}`} bg={c.surfaceAlt} text={c.subtext} />
-                  <Badge label={`${ex.duration_min} นาที`} bg={c.surfaceAlt} text={c.subtext} />
-                  {ex.sets != null && ex.reps && (
-                    <Badge label={`${ex.sets}x${ex.reps}`} bg={c.surfaceAlt} text={c.subtext} />
-                  )}
-                  {ex.rest_sec != null && <Badge label={`พัก ${ex.rest_sec}วิ`} bg={c.surfaceAlt} text={c.subtext} />}
-                </View>
+      {days.map((day, dayIdx) => {
+        const dTint = dayTypeTint(day.day_type, c);
+        return (
+          <View key={dayIdx} style={{ gap: 6 }}>
+            <View style={styles.dayHeaderRow}>
+              <Text style={[type.row, { color: c.text, fontSize: 13 }]}>{day.label}</Text>
+              <View style={[styles.dayTypePill, { backgroundColor: dTint.bg }]}>
+                <DayTypeIcon dayType={day.day_type} size={12} color={dTint.icon} />
+                <Text style={[type.badge, { color: dTint.icon }]}>{DAY_TYPE_LABEL[day.day_type]}</Text>
               </View>
-              <Pressable hitSlop={10} onPress={() => removeExercise(dayIdx, exIdx)}>
-                <X size={16} color={c.muted} />
-              </Pressable>
             </View>
-          ))}
-        </View>
-      ))}
+            {day.warmup && <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>ก่อนเล่น: {day.warmup}</Text>}
+            {day.during_note && <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>ระหว่างเล่น: {day.during_note}</Text>}
+            {day.cooldown && <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>หลังเล่น: {day.cooldown}</Text>}
+
+            {day.exercises.map((ex, exIdx) => {
+              const eTint = categoryTint(ex.category, c);
+              return (
+                <View key={exIdx} style={styles.row}>
+                  <View style={[styles.iconBox, { backgroundColor: eTint.bg }]}>
+                    <CategoryIcon category={ex.category} size={17} color={eTint.icon} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+                    <Text style={[type.row, { color: c.text, fontSize: 13 }]} numberOfLines={1}>
+                      {ex.name}
+                    </Text>
+                    <View style={styles.badgeRow}>
+                      <Badge label={`MET ${ex.met}`} bg={c.surfaceAlt} text={c.subtext} />
+                      <Badge label={`${ex.duration_min} นาที`} bg={c.surfaceAlt} text={c.subtext} />
+                      {ex.sets != null && ex.reps && (
+                        <Badge label={`${ex.sets}x${ex.reps}`} bg={c.surfaceAlt} text={c.subtext} />
+                      )}
+                      {ex.rest_sec != null && <Badge label={`พัก ${ex.rest_sec}วิ`} bg={c.surfaceAlt} text={c.subtext} />}
+                    </View>
+                  </View>
+                  <Pressable hitSlop={10} onPress={() => removeExercise(dayIdx, exIdx)}>
+                    <X size={16} color={c.muted} />
+                  </Pressable>
+                </View>
+              );
+            })}
+          </View>
+        );
+      })}
 
       <View style={[styles.divider, { backgroundColor: c.line }]} />
 
@@ -122,8 +129,10 @@ const styles = StyleSheet.create({
   eyebrow: { letterSpacing: 0.4 },
   divider: { height: 1 },
   dayHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  dayTypePill: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 3 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  badgeRow: { flexDirection: 'row', gap: 5 },
+  iconBox: { width: 36, height: 36, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
+  badgeRow: { flexDirection: 'row', gap: 5, flexWrap: 'wrap' },
   badge: { borderRadius: radius.badge, paddingHorizontal: 6, paddingVertical: 1 },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   ghost: { borderRadius: radius.iconBox, paddingHorizontal: 16, height: 40, alignItems: 'center', justifyContent: 'center' },
