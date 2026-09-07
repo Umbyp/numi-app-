@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS profile (
   protein_pct REAL NOT NULL DEFAULT 0.30,
   carb_pct REAL NOT NULL DEFAULT 0.40,
   fat_pct REAL NOT NULL DEFAULT 0.30,
-  add_exercise_kcal INTEGER NOT NULL DEFAULT 0
+  add_exercise_kcal INTEGER NOT NULL DEFAULT 0,
+  goal_weight_kg REAL
 );
 
 CREATE TABLE IF NOT EXISTS foods (
@@ -71,6 +72,24 @@ CREATE TABLE IF NOT EXISTS workouts (
 );
 CREATE INDEX IF NOT EXISTS idx_workouts_local_date ON workouts(local_date);
 
+CREATE TABLE IF NOT EXISTS workout_plans (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  rationale TEXT NOT NULL,
+  days TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS workout_plan_completions (
+  id TEXT PRIMARY KEY,
+  plan_id TEXT NOT NULL REFERENCES workout_plans(id),
+  day_index INTEGER NOT NULL,
+  local_date TEXT NOT NULL,
+  workout_id TEXT NOT NULL REFERENCES workouts(id),
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_workout_plan_completions_plan ON workout_plan_completions(plan_id);
+
 CREATE TABLE IF NOT EXISTS weights (
   id TEXT PRIMARY KEY,
   weight_kg REAL NOT NULL,
@@ -89,14 +108,32 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   card_status TEXT,
   created_at INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 `;
+
+// คอลัมน์ที่เพิ่มทีหลัง CREATE_TABLES ตอนแรก — ต้องเผื่อเครื่องที่ลงแอปไปแล้วก่อนหน้านี้
+// ไม่มี migration framework เพราะแอปคนเดียว ใช้วิธีลอง ALTER แล้วเมิน error "duplicate column" พอ
+const COLUMN_MIGRATIONS = [`ALTER TABLE profile ADD COLUMN goal_weight_kg REAL`];
 
 let migrated: Promise<void> | null = null;
 
-/** สร้างตารางถ้ายังไม่มี — เรียกครั้งเดียวตอนแอปเริ่ม ก่อน query ใด ๆ */
+/** สร้างตารางถ้ายังไม่มี + ไล่ ALTER คอลัมน์ใหม่ — เรียกครั้งเดียวตอนแอปเริ่ม ก่อน query ใด ๆ */
 export function migrateDb(): Promise<void> {
   if (!migrated) {
-    migrated = sqliteDb.execAsync(CREATE_TABLES);
+    migrated = (async () => {
+      await sqliteDb.execAsync(CREATE_TABLES);
+      for (const stmt of COLUMN_MIGRATIONS) {
+        try {
+          await sqliteDb.execAsync(stmt);
+        } catch {
+          // คอลัมน์มีอยู่แล้ว (เครื่องที่เคยลงเวอร์ชันก่อนเพิ่มคอลัมน์นี้) — ข้ามได้เลย
+        }
+      }
+    })();
   }
   return migrated;
 }

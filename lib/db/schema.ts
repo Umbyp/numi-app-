@@ -27,6 +27,15 @@ export const profile = sqliteTable('profile', {
   fatPct: real('fat_pct').notNull().default(0.3),
   // หักแคลอรี่ที่ออกกำลังกายออกจากเป้าหมายหรือไม่
   addExerciseKcal: integer('add_exercise_kcal', { mode: 'boolean' }).notNull().default(false),
+  // น้ำหนักเป้าหมาย — แยกจาก manualKcal เพราะเป็นคนละมิติ (น้ำหนักตัว vs แคลอรี่ต่อวัน)
+  goalWeightKg: real('goal_weight_kg'),
+});
+
+// ค่าตั้งค่าระดับแอป (เช่นธีม) แยกจาก profile เพราะต้องใช้ได้ก่อนผู้ใช้กรอกโปรไฟล์ครบด้วย
+// (profile มีคอลัมน์ NOT NULL หลายตัวที่ยังไม่มีค่าตอนเพิ่งเปิดแอปครั้งแรก)
+export const appSettings = sqliteTable('app_settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
 });
 
 // อาหารในคลัง — ทั้งที่มาจาก seed และที่ผู้ใช้สร้างเอง
@@ -86,6 +95,45 @@ export const workouts = sqliteTable('workouts', {
   note: text('note'),
   performedAt: integer('performed_at', { mode: 'timestamp' }).notNull(),
   localDate: text('local_date').notNull(),
+});
+
+export interface WorkoutPlanExercise {
+  name: string;
+  category: 'cardio' | 'strength' | 'flexibility' | 'sport' | 'other';
+  met: number;
+  durationMin: number;
+  sets?: number;
+  reps?: string; // string ไม่ใช่ number — รองรับ "8-12", "ถึงล้า", "30 วินาที" ฯลฯ
+  restSec?: number;
+  note?: string;
+}
+export interface WorkoutPlanDay {
+  label: string;
+  dayType: 'cardio' | 'strength' | 'both';
+  warmup?: string; // ก่อนเล่น
+  duringNote?: string; // ระหว่างเล่น — คำแนะนำภาพรวมของวันนี้ นอกเหนือจาก sets/reps/rest ต่อท่า
+  cooldown?: string; // หลังเล่น
+  exercises: WorkoutPlanExercise[];
+}
+
+// แผนออกกำลังกายที่ AI ออกแบบให้ — คนละมิติกับ workouts (ที่นั่นคือ log ว่าออกไปแล้วจริง ๆ)
+export const workoutPlans = sqliteTable('workout_plans', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  rationale: text('rationale').notNull(),
+  // [{label, exercises:[{name, category, met, durationMin, note?}]}]
+  days: text('days', { mode: 'json' }).$type<WorkoutPlanDay[]>().notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
+// บันทึกว่าวันไหนในแผน ทำไปแล้วเมื่อไหร่ — ผูกกับ workouts แถวจริงที่สร้างตอนกดทำ เพื่อให้ไปนับกิจกรรมวันนั้นด้วย
+export const workoutPlanCompletions = sqliteTable('workout_plan_completions', {
+  id: text('id').primaryKey(),
+  planId: text('plan_id').notNull().references(() => workoutPlans.id),
+  dayIndex: integer('day_index').notNull(),
+  localDate: text('local_date').notNull(),
+  workoutId: text('workout_id').notNull().references(() => workouts.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 
 export const weights = sqliteTable('weights', {

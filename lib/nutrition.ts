@@ -9,6 +9,20 @@ export interface Food {
   fatPer100: number;
 }
 
+export function calcBMI(weightKg: number, heightCm: number): number {
+  const heightM = heightCm / 100;
+  return weightKg / (heightM * heightM);
+}
+
+/** หมวด BMI ตามเกณฑ์ WHO ทั่วไป */
+export function bmiCategory(bmi: number): string {
+  if (bmi < 18.5) return 'ต่ำกว่าเกณฑ์';
+  if (bmi < 23) return 'ปกติ';
+  if (bmi < 25) return 'ท้ายช่วงปกติ';
+  if (bmi < 30) return 'เกินมาตรฐาน';
+  return 'อ้วน';
+}
+
 /** Mifflin-St Jeor — แม่นกว่า Harris-Benedict สำหรับคนยุคปัจจุบัน */
 export function calcBMR(p: {
   sex: Sex;
@@ -77,6 +91,21 @@ export function scaleFood(food: Food, amountG: number) {
 }
 
 /**
+ * แคลอรี่ "ที่ควรได้รับ" วันนี้ = เป้าหมาย − อาหารที่กิน + กิจกรรมที่เผา
+ * ปล่อยให้ติดลบได้ (กินเกินเยอะ) ไม่ clamp ตรงนี้ — clamp เฉพาะตอนวาดวงแหวน
+ */
+export function calcNetRemaining(p: { targetKcal: number; consumedKcal: number; activityKcal: number }): number {
+  return p.targetKcal - p.consumedKcal + p.activityKcal;
+}
+
+/** สัดส่วนที่วงแหวนควรเติม: อาหารที่กินไปแล้วเทียบกับโควตารวมของวันนี้ (เป้าหมาย + กิจกรรม) */
+export function calcRingFraction(p: { targetKcal: number; consumedKcal: number; activityKcal: number }): number {
+  const allowance = p.targetKcal + p.activityKcal;
+  if (allowance <= 0) return 0;
+  return Math.min(1, Math.max(0, p.consumedKcal / allowance));
+}
+
+/**
  * แคลอรี่ที่เผาจากการออกกำลังกาย
  * kcal = MET × 3.5 × น้ำหนัก(kg) / 200 × นาที
  */
@@ -93,6 +122,27 @@ export function movingAverage(values: number[], window = 7): number[] {
     const slice = values.slice(Math.max(0, i - window + 1), i + 1);
     return slice.reduce((a, b) => a + b, 0) / slice.length;
   });
+}
+
+export interface WeightProgress {
+  direction: 'lose' | 'gain' | 'maintain';
+  remainingKg: number;
+  progressPct: number;
+  reachedGoal: boolean;
+}
+
+/**
+ * ความคืบหน้าไปสู่เป้าหมายน้ำหนัก เทียบจากน้ำหนักตอนเริ่มบันทึกครั้งแรกถึงปัจจุบัน
+ * สูตร (start-current)/(start-goal) ใช้ได้ทั้งสองทิศทาง (ลด/เพิ่ม) เพราะเครื่องหมายจะกลับพร้อมกันเอง
+ */
+export function calcWeightProgress(p: { startKg: number; currentKg: number; goalKg: number }): WeightProgress {
+  const totalDelta = p.startKg - p.goalKg;
+  const direction = totalDelta > 0 ? 'lose' : totalDelta < 0 ? 'gain' : 'maintain';
+  const remainingKg = Math.abs(p.currentKg - p.goalKg);
+  const progressPct = totalDelta === 0 ? 100 : Math.min(100, Math.max(0, ((p.startKg - p.currentKg) / totalDelta) * 100));
+  const reachedGoal =
+    direction === 'lose' ? p.currentKg <= p.goalKg : direction === 'gain' ? p.currentKg >= p.goalKg : remainingKg < 0.1;
+  return { direction, remainingKg, progressPct, reachedGoal };
 }
 
 export function localDateString(d = new Date()): string {

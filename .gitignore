@@ -33,8 +33,13 @@ yarn-error.*
 # Claude Code session-local state
 .claude/scheduled_tasks.lock
 
-# local env files
+# local env files (Worker URL + app token — never commit)
+.env
 .env*.local
+
+# Worker (separate deploy target)
+worker/node_modules/
+worker/.wrangler/
 
 # typescript
 *.tsbuildinfo

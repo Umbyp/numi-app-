@@ -1,13 +1,22 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Trash2 } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
+import { type } from '../lib/fonts';
+import { getMealTypeMeta, type MealType } from '../lib/meal-type';
+import { MealTypeIcon } from './icons/meal-type-icons';
+import { radius } from '../lib/theme';
 
 interface Entry {
   id: string;
   name: string;
   amountG: number;
   kcal: number;
+  proteinG: number;
+  carbG: number;
+  fatG: number;
   estimated: boolean | null;
+  mealType: string;
+  loggedAt: Date;
 }
 
 interface Props {
@@ -17,25 +26,47 @@ interface Props {
 
 export function MealRow({ entry, onDelete }: Props) {
   const c = useTheme();
+  const meta = getMealTypeMeta(entry.mealType as MealType);
+  const time = entry.loggedAt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
   return (
-    <View style={[styles.row, { borderBottomColor: c.border }]}>
-      <View style={{ flex: 1 }}>
-        <View style={styles.nameRow}>
-          <Text style={[styles.name, { color: c.text }]} numberOfLines={1}>
-            {entry.name}
-          </Text>
-          {entry.estimated ? (
-            <Text style={[styles.badge, { color: c.subtext, borderColor: c.border }]}>
-              ประมาณ
-            </Text>
-          ) : null}
-        </View>
-        <Text style={[styles.sub, { color: c.subtext }]}>{Math.round(entry.amountG)} g</Text>
+    <View style={[styles.row, { backgroundColor: c.surfaceAlt }]}>
+      <View style={[styles.iconBox, { backgroundColor: c[meta.bgKey] }]}>
+        <MealTypeIcon type={meta.key} color={c[meta.colorKey]} size={20} />
       </View>
-      <Text style={[styles.kcal, { color: c.text }]}>{Math.round(entry.kcal)} kcal</Text>
+
+      <View style={styles.middle}>
+        <Text style={[type.row, { color: c.text }]} numberOfLines={1}>
+          {entry.name}
+        </Text>
+        <View style={styles.badgeRow}>
+          <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>{Math.round(entry.kcal)} kcal</Text>
+          <Badge label={`P${Math.round(entry.proteinG)}`} bg={c.proteinBg} text={c.proteinText} />
+          <Badge label={`C${Math.round(entry.carbG)}`} bg={c.carbBg} text={c.carbText} />
+          <Badge label={`F${Math.round(entry.fatG)}`} bg={c.fatBg} text={c.fatText} />
+          {entry.estimated ? <Badge label="ประมาณ" bg={c.surfaceAlt} text={c.muted} /> : null}
+        </View>
+      </View>
+
+      <View style={styles.right}>
+        <View style={[styles.mealBadge, { backgroundColor: c[meta.bgKey] }]}>
+          <MealTypeIcon type={meta.key} color={c[meta.textKey]} size={10} />
+          <Text style={[type.badge, { color: c[meta.textKey] }]}>{meta.label}</Text>
+        </View>
+        <Text style={[type.label, { color: c.faint, fontSize: 10 }]}>{time}</Text>
+      </View>
+
       <Pressable hitSlop={10} onPress={() => onDelete(entry.id)} style={styles.deleteBtn}>
-        <Trash2 size={16} color={c.subtext} />
+        <Trash2 size={16} color={c.muted} />
       </Pressable>
+    </View>
+  );
+}
+
+function Badge({ label, bg, text }: { label: string; bg: string; text: string }) {
+  return (
+    <View style={[styles.badge, { backgroundColor: bg }]}>
+      <Text style={[type.badge, { color: text }]}>{label}</Text>
     </View>
   );
 }
@@ -44,20 +75,29 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 10,
+    gap: 11,
+    borderRadius: radius.row,
+    padding: 8,
+    paddingHorizontal: 12,
   },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  name: { fontSize: 15, fontWeight: '500', flexShrink: 1 },
-  badge: {
-    fontSize: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
+  iconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.iconBox,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  sub: { fontSize: 12, marginTop: 2 },
-  kcal: { fontSize: 14, fontWeight: '600' },
+  middle: { flex: 1, minWidth: 0, gap: 4 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' },
+  badge: { borderRadius: radius.badge, paddingHorizontal: 6, paddingVertical: 1 },
+  right: { alignItems: 'flex-end', gap: 4 },
+  mealBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: radius.badge,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
   deleteBtn: { padding: 4 },
 });
