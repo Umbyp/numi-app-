@@ -4,6 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { type } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
+import { Mascot } from './mascot';
 
 interface Props {
   visible: boolean;
@@ -61,8 +62,9 @@ export function RestTimerModal({ visible, seconds, onClose }: Props) {
       <Pressable style={styles.backdrop} onPress={onClose} />
       <View style={styles.centerWrap} pointerEvents="box-none">
         <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+          <Mascot size={54} pose={done ? 'goal' : 'rest'} />
           <Text style={[type.label, { color: c.subtext, fontSize: 13 }]}>
-            {done ? 'หมดเวลาพัก ✓' : 'พักระหว่างเซต'}
+            {done ? 'หมดเวลาพัก' : 'พักสักนิด ร่างกายต้องการการเติมพลัง'}
           </Text>
           <Text style={[type.metric, { color: done ? c.brand : c.text, fontSize: 48 }]}>{formatTime(remaining)}</Text>
 
