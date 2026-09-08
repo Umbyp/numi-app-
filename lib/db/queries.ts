@@ -1,4 +1,4 @@
-import { eq, desc, like, or, and, gte, lte, isNotNull } from 'drizzle-orm';
+import { eq, desc, like, or, and, gte, lte, isNotNull, sql } from 'drizzle-orm';
 import { db } from './client';
 import {
   profile,
@@ -91,12 +91,20 @@ export async function getEarliestWeight(): Promise<typeof weights.$inferSelect |
 // ---------- Foods ----------
 
 /** เติมอาหาร seed ครั้งแรกที่เปิดแอป (ถ้ายังไม่มีข้อมูลเลย) */
-export async function seedFoodsIfEmpty() {
-  const rows = await db.select({ id: foods.id }).from(foods).limit(1);
-  if (rows.length > 0) return;
+/**
+ * ซิงก์อาหารตั้งต้นทุกครั้งที่เปิดแอป
+ * เดิมเติมเฉพาะตอนตารางว่าง ทำให้เครื่องที่ติดตั้งไปแล้วไม่เคยได้อาหารที่เพิ่มทีหลังเลย
+ * ตอนนี้ใช้ upsert แทน — id ของ seed ขึ้นต้นด้วย th_ ส่วนอาหารที่ผู้ใช้สร้างเองขึ้นต้นด้วย
+ * user_ หรือ ai_ จึงชนกันไม่ได้ และ createdAt ของแถวเดิมไม่ถูกแตะ
+ */
+export async function syncSeedFoods() {
+  const rows = seedFoods as any[];
+  const now = new Date();
+  // แบ่งเป็นก้อนกัน parameter เกินเพดานของ SQLite เมื่อฐานข้อมูลโตขึ้นอีก
+  const CHUNK = 100;
 
-  await db.insert(foods).values(
-    (seedFoods as any[]).map((f) => ({
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const batch = rows.slice(i, i + CHUNK).map((f) => ({
       id: f.id,
       name: f.name,
       nameEn: f.nameEn ?? null,
@@ -106,9 +114,26 @@ export async function seedFoodsIfEmpty() {
       fatPer100: f.fatPer100 ?? 0,
       servingUnits: f.servingUnits ?? null,
       source: 'seed' as const,
-      createdAt: new Date(),
-    }))
-  );
+      createdAt: now,
+    }));
+
+    await db
+      .insert(foods)
+      .values(batch)
+      .onConflictDoUpdate({
+        target: foods.id,
+        set: {
+          name: sql`excluded.name`,
+          nameEn: sql`excluded.name_en`,
+          kcalPer100: sql`excluded.kcal_per_100`,
+          proteinPer100: sql`excluded.protein_per_100`,
+          carbPer100: sql`excluded.carb_per_100`,
+          fatPer100: sql`excluded.fat_per_100`,
+          servingUnits: sql`excluded.serving_units`,
+          source: sql`excluded.source`,
+        },
+      });
+  }
 }
 
 export async function searchFoods(query: string, limit = 30) {
