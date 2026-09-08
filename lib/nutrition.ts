@@ -9,6 +9,20 @@ export interface Food {
   fatPer100: number;
 }
 
+export function calcBMI(weightKg: number, heightCm: number): number {
+  const heightM = heightCm / 100;
+  return weightKg / (heightM * heightM);
+}
+
+/** หมวด BMI ตามเกณฑ์ WHO ทั่วไป */
+export function bmiCategory(bmi: number): string {
+  if (bmi < 18.5) return 'ต่ำกว่าเกณฑ์';
+  if (bmi < 23) return 'ปกติ';
+  if (bmi < 25) return 'ท้ายช่วงปกติ';
+  if (bmi < 30) return 'เกินมาตรฐาน';
+  return 'อ้วน';
+}
+
 /** Mifflin-St Jeor — แม่นกว่า Harris-Benedict สำหรับคนยุคปัจจุบัน */
 export function calcBMR(p: {
   sex: Sex;
@@ -65,6 +79,28 @@ export function calcMacroTargets(
   };
 }
 
+/**
+ * สัดส่วนสารอาหารที่แนะนำต่อเป้าหมาย (% ของแคลอรี่) — ใช้เป็นค่าเริ่มต้นให้กดใช้ได้ ไม่ได้บังคับ
+ * ลดน้ำหนัก: โปรตีนสูงขึ้นเพื่อรักษามวลกล้ามเนื้อระหว่างที่แคลอรี่ขาด
+ * เพิ่มน้ำหนัก: คาร์บสูงขึ้นเพื่อเป็นพลังงานให้ฝึกหนักและสร้างกล้ามเนื้อ
+ * คงที่: สมดุลกลาง ๆ
+ */
+export const RECOMMENDED_MACRO_PCT: Record<'lose' | 'maintain' | 'gain', { protein: number; carb: number; fat: number }> = {
+  lose: { protein: 35, carb: 35, fat: 30 },
+  maintain: { protein: 30, carb: 40, fat: 30 },
+  gain: { protein: 25, carb: 45, fat: 30 },
+};
+
+/** เหมือน RECOMMENDED_MACRO_PCT แต่เพิ่มโปรตีนอีก 5% (ลดคาร์บลงเท่ากัน) ถ้าเลือกเน้นรักษา/สร้างกล้ามเนื้อ */
+export function recommendedMacroPct(
+  goalType: 'lose' | 'maintain' | 'gain',
+  prioritizeMuscle: boolean
+): { protein: number; carb: number; fat: number } {
+  const base = RECOMMENDED_MACRO_PCT[goalType];
+  if (!prioritizeMuscle) return base;
+  return { protein: Math.min(base.protein + 5, 45), carb: Math.max(base.carb - 5, 20), fat: base.fat };
+}
+
 /** สเกลค่าโภชนาการจากต่อ-100g เป็นปริมาณจริง */
 export function scaleFood(food: Food, amountG: number) {
   const f = amountG / 100;
@@ -74,6 +110,21 @@ export function scaleFood(food: Food, amountG: number) {
     carbG: food.carbPer100 * f,
     fatG: food.fatPer100 * f,
   };
+}
+
+/**
+ * แคลอรี่ "ที่ควรได้รับ" วันนี้ = เป้าหมาย − อาหารที่กิน + กิจกรรมที่เผา
+ * ปล่อยให้ติดลบได้ (กินเกินเยอะ) ไม่ clamp ตรงนี้ — clamp เฉพาะตอนวาดวงแหวน
+ */
+export function calcNetRemaining(p: { targetKcal: number; consumedKcal: number; activityKcal: number }): number {
+  return p.targetKcal - p.consumedKcal + p.activityKcal;
+}
+
+/** สัดส่วนที่วงแหวนควรเติม: อาหารที่กินไปแล้วเทียบกับโควตารวมของวันนี้ (เป้าหมาย + กิจกรรม) */
+export function calcRingFraction(p: { targetKcal: number; consumedKcal: number; activityKcal: number }): number {
+  const allowance = p.targetKcal + p.activityKcal;
+  if (allowance <= 0) return 0;
+  return Math.min(1, Math.max(0, p.consumedKcal / allowance));
 }
 
 /**
@@ -95,6 +146,27 @@ export function movingAverage(values: number[], window = 7): number[] {
   });
 }
 
+export interface WeightProgress {
+  direction: 'lose' | 'gain' | 'maintain';
+  remainingKg: number;
+  progressPct: number;
+  reachedGoal: boolean;
+}
+
+/**
+ * ความคืบหน้าไปสู่เป้าหมายน้ำหนัก เทียบจากน้ำหนักตอนเริ่มบันทึกครั้งแรกถึงปัจจุบัน
+ * สูตร (start-current)/(start-goal) ใช้ได้ทั้งสองทิศทาง (ลด/เพิ่ม) เพราะเครื่องหมายจะกลับพร้อมกันเอง
+ */
+export function calcWeightProgress(p: { startKg: number; currentKg: number; goalKg: number }): WeightProgress {
+  const totalDelta = p.startKg - p.goalKg;
+  const direction = totalDelta > 0 ? 'lose' : totalDelta < 0 ? 'gain' : 'maintain';
+  const remainingKg = Math.abs(p.currentKg - p.goalKg);
+  const progressPct = totalDelta === 0 ? 100 : Math.min(100, Math.max(0, ((p.startKg - p.currentKg) / totalDelta) * 100));
+  const reachedGoal =
+    direction === 'lose' ? p.currentKg <= p.goalKg : direction === 'gain' ? p.currentKg >= p.goalKg : remainingKg < 0.1;
+  return { direction, remainingKg, progressPct, reachedGoal };
+}
+
 export interface SeriesPoint {
   date: string;
   /** ค่าที่บันทึกจริงในวันนั้น — null คือวันที่ไม่ได้บันทึก */
@@ -108,10 +180,7 @@ export interface SeriesPoint {
  * คนไม่ได้ชั่งน้ำหนักทุกวัน แต่ค่าเฉลี่ย 7 วันต้องคิดบนแกนวัน ไม่ใช่แกนจำนวนครั้งที่ชั่ง
  * ไม่งั้นคนที่ชั่งอาทิตย์ละครั้งจะได้ "ค่าเฉลี่ย 7 วัน" ที่กินเวลาจริงเกือบสองเดือน
  */
-export function dailySeries(
-  dates: string[],
-  byDate: Record<string, number>
-): SeriesPoint[] {
+export function dailySeries(dates: string[], byDate: Record<string, number>): SeriesPoint[] {
   let last: number | null = null;
   return dates.map((date) => {
     const raw = date in byDate ? byDate[date] : null;

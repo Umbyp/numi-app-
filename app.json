@@ -24,7 +24,22 @@
     },
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-font",
+      "expo-splash-screen",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Numi ใช้กล้องเพื่อสแกนบาร์โค้ดและถ่ายรูปอาหาร"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }

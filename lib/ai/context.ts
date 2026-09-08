@@ -1,85 +1,78 @@
-import {
-  getProfile,
-  getLatestWeight,
-  getMealEntriesForDate,
-  getWorkoutsForDate,
-} from '../db/queries';
-import {
-  calcBMR,
-  calcTDEE,
-  calcCalorieTarget,
-  calcMacroTargets,
-  localDateString,
-} from '../nutrition';
-import type { UserContext } from './prompt';
+import { getProfile, getLatestWeight, getMealEntriesForDate, getWorkoutsForDate } from '../db/queries';
+import { sumTotals } from '../store';
+import { computeGoals, DEFAULT_GOALS } from '../goals';
+import { localDateString, ACTIVITY_LEVELS } from '../nutrition';
 
-/**
- * ดึงบริบทของผู้ใช้มาแปะใน system prompt ตั้งแต่แรก
- * ข้อมูลชุดนี้เล็กและเกือบทุกคำถามต้องใช้ ดึงมาก่อนจึงคุ้มกว่าให้ AI เรียก tool ไปถามอีกรอบ
- */
+const GOAL_TYPE_LABEL: Record<'lose' | 'maintain' | 'gain', string> = {
+  lose: 'ลดน้ำหนัก',
+  maintain: 'คงน้ำหนัก',
+  gain: 'เพิ่มน้ำหนัก',
+};
+
+export interface UserContext {
+  today: string;
+  targetKcal: number;
+  targetProtein: number;
+  targetCarb: number;
+  targetFat: number;
+  consumedKcal: number;
+  consumedProtein: number;
+  consumedCarb: number;
+  consumedFat: number;
+  latestWeight: number | null;
+  workoutsToday: string;
+  calorieFloor: number;
+  age: number | null;
+  heightCm: number | null;
+  sexLabel: string;
+  activityLevelLabel: string;
+  goalTypeLabel: string;
+  bmr: number;
+  tdee: number;
+  prioritizeMuscle: boolean;
+}
+
+/** ดึงบริบทผู้ใช้ปัจจุบันมาแปะใน system prompt ตรง ๆ แทนที่จะให้ AI เรียก tool ไปดึงเอง (ประหยัด round trip) */
 export async function buildUserContext(): Promise<UserContext> {
   const today = localDateString();
-  const [profile, weight, entries, sessions] = await Promise.all([
+  const [profile, weight, entries, workouts] = await Promise.all([
     getProfile(),
     getLatestWeight(),
     getMealEntriesForDate(today),
     getWorkoutsForDate(today),
   ]);
 
-  const consumed = entries.reduce(
-    (acc, r) => ({
-      kcal: acc.kcal + r.kcal,
-      proteinG: acc.proteinG + r.proteinG,
-      carbG: acc.carbG + r.carbG,
-      fatG: acc.fatG + r.fatG,
-    }),
-    { kcal: 0, proteinG: 0, carbG: 0, fatG: 0 }
-  );
-
-  const burnedKcal = sessions.reduce((s, w) => s + w.kcalBurned, 0);
   const weightKg = weight?.weightKg ?? 70;
+  const goals = profile ? computeGoals(profile, weightKg) : DEFAULT_GOALS;
+  const consumed = sumTotals(entries);
+  const calorieFloor = profile?.sex === 'male' ? 1500 : 1200;
 
-  // ไม่มีโปรไฟล์ก็ยังคุยได้ ใช้ค่ากลาง ๆ ไปก่อน แต่ยังคงพื้นแคลอรี่ขั้นต่ำไว้
-  if (!profile) {
-    return {
-      today,
-      targetKcal: 2000,
-      targetProtein: 150,
-      targetCarb: 200,
-      targetFat: 67,
-      consumed,
-      burnedKcal,
-      latestWeightKg: weight?.weightKg ?? null,
-      calorieFloor: 1200,
-      addExerciseKcal: false,
-    };
-  }
-
-  const age = new Date().getFullYear() - profile.birthYear;
-  const bmr = calcBMR({ sex: profile.sex, weightKg, heightCm: profile.heightCm, age });
-  const tdee = calcTDEE(bmr, profile.activityLevel);
-  const { target, floor } = calcCalorieTarget({
-    tdee,
-    weeklyRateKg: profile.weeklyRateKg,
-    sex: profile.sex,
-  });
-  const targetKcal = profile.manualKcal ?? target;
-  const macros = calcMacroTargets(targetKcal, {
-    protein: profile.proteinPct,
-    carb: profile.carbPct,
-    fat: profile.fatPct,
-  });
+  const activityLevel = ACTIVITY_LEVELS.reduce((closest, level) =>
+    profile && Math.abs(level.value - profile.activityLevel) < Math.abs(closest.value - profile.activityLevel)
+      ? level
+      : closest
+  );
 
   return {
     today,
-    targetKcal,
-    targetProtein: macros.proteinG,
-    targetCarb: macros.carbG,
-    targetFat: macros.fatG,
-    consumed,
-    burnedKcal,
-    latestWeightKg: weight?.weightKg ?? null,
-    calorieFloor: floor,
-    addExerciseKcal: !!profile.addExerciseKcal,
+    targetKcal: goals.kcalTarget,
+    targetProtein: goals.proteinG,
+    targetCarb: goals.carbG,
+    targetFat: goals.fatG,
+    consumedKcal: Math.round(consumed.kcal),
+    consumedProtein: Math.round(consumed.proteinG),
+    consumedCarb: Math.round(consumed.carbG),
+    consumedFat: Math.round(consumed.fatG),
+    latestWeight: weight?.weightKg ?? null,
+    workoutsToday: workouts.map((w) => `${w.name} ${w.durationMin}นาที (-${Math.round(w.kcalBurned)}kcal)`).join(', '),
+    calorieFloor,
+    age: profile ? new Date().getFullYear() - profile.birthYear : null,
+    heightCm: profile?.heightCm ?? null,
+    sexLabel: profile ? (profile.sex === 'male' ? 'ชาย' : 'หญิง') : 'ไม่ทราบ',
+    activityLevelLabel: profile ? activityLevel.label : 'ไม่ทราบ',
+    goalTypeLabel: profile ? GOAL_TYPE_LABEL[profile.goalType] : 'ไม่ทราบ',
+    bmr: goals.bmr,
+    tdee: goals.tdee,
+    prioritizeMuscle: profile?.prioritizeMuscle ?? false,
   };
 }

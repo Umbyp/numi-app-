@@ -1,316 +1,186 @@
-import { useCallback, useEffect, useState } from 'react';
-import { chat, AiNotConfiguredError, AiRequestError } from '../ai/client';
-import { buildUserContext } from '../ai/context';
+import { useEffect, useRef, useState } from 'react';
+import { chat } from '../ai/client';
 import { buildSystemPrompt } from '../ai/prompt';
-import { executeToolCall } from '../ai/execute';
-import { TOOLS, needsConfirmation } from '../ai/tools';
-import { VALIDATORS, describeIssues } from '../ai/validators';
-import { HISTORY_LIMIT, MAX_TURN_DEPTH } from '../ai/config';
-import {
-  saveChatMessage,
-  getRecentChatMessages,
-  updateChatCardStatus,
-  clearChatMessages,
-} from '../db/queries';
-import { useNumiStore } from '../store';
-import type { Message, PendingCard, ToolCall } from '../ai/types';
+import { buildUserContext, type UserContext } from '../ai/context';
+import { executeToolCall, needsConfirmation } from '../ai/execute';
+import { VALIDATORS } from '../ai/validators';
+import { TOOLS } from '../ai/tools';
+import { getChatMessages, saveChatMessage, clearChatHistory } from '../db/queries';
+import type { Message } from '../ai/types';
 
-export interface Bubble {
-  key: string;
-  kind: 'text' | 'card';
-  role?: 'user' | 'assistant';
-  content?: string;
-  card?: PendingCard;
+export interface PendingCard {
+  id: string;
+  tool: string;
+  args: any;
+  status: 'pending' | 'confirmed' | 'dismissed';
+  photoUri?: string | null;
 }
 
-interface Card extends PendingCard {
-  /** การ์ดที่โหลดกลับมาจากฐานข้อมูลจะไม่มีบทสนทนารองรับอยู่ในหน่วยความจำแล้ว */
-  live: boolean;
+const MAX_TOOL_HOPS = 5;
+const VISION_PROMPT =
+  'ดูรูปนี้แล้วบอกว่ามีอาหารอะไรบ้าง ประมาณปริมาณเป็นกรัมจากสิ่งที่เห็นในรูป แล้วค้น search_food ก่อนเสนอ add_meal เสมอ';
+
+/** แปลงแถวจาก DB กลับเป็น Message — content อาจเป็น JSON string ของ array (ข้อความรูป) หรือ string ธรรมดา */
+function rowToMessage(row: { role: string; content: string; toolCalls: unknown; toolCallId: string | null }): Message {
+  let content: Message['content'] = row.content;
+  try {
+    const parsed = JSON.parse(row.content);
+    if (Array.isArray(parsed)) content = parsed;
+  } catch {
+    // ไม่ใช่ JSON ก็ปล่อยเป็น string เดิม
+  }
+  return {
+    role: row.role as Message['role'],
+    content,
+    tool_calls: (row.toolCalls as Message['tool_calls']) ?? undefined,
+    tool_call_id: row.toolCallId ?? undefined,
+  };
 }
 
 export function useChat() {
-  const refresh = useNumiStore((s) => s.refresh);
-
   const [messages, setMessages] = useState<Message[]>([]);
-  const [bubbles, setBubbles] = useState<Bubble[]>([]);
-  const [cards, setCards] = useState<Card[]>([]);
+  const [pendingCards, setPendingCards] = useState<PendingCard[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const messagesRef = useRef<Message[]>([]);
+  messagesRef.current = messages;
+  // จำรูปล่าสุดที่ส่งให้ AI ดู ไว้แนบกับ add_meal การ์ดที่เกิดขึ้นทันทีหลังจากนั้น (ถ้ามี)
+  const pendingPhotoUriRef = useRef<string | null>(null);
 
-  // โหลดบทสนทนาเก่ามาแสดง แต่ไม่เอาเข้า messages ที่ส่งให้ AI
-  // เพราะ tool_call กับ tool result ต้องจับคู่กันครบ ไม่งั้น API ปฏิเสธทั้งคำขอ
   useEffect(() => {
-    (async () => {
-      const rows = await getRecentChatMessages();
-      const restoredBubbles: Bubble[] = [];
-      const restoredCards: Card[] = [];
-
-      for (const r of rows) {
-        if (r.cardStatus && r.toolCallId) {
-          const calls = (r.toolCalls ?? []) as ToolCall[];
-          const call = calls[0];
-          if (!call) continue;
-          let args: unknown = {};
-          try {
-            args = JSON.parse(call.function.arguments);
-          } catch {
-            continue;
-          }
-          const card: Card = {
-            id: r.toolCallId,
-            tool: call.function.name,
-            args,
-            status: r.cardStatus,
-            live: false,
-          };
-          restoredCards.push(card);
-          restoredBubbles.push({ key: r.id, kind: 'card', card });
-          continue;
-        }
-        if (r.role === 'user' || r.role === 'assistant') {
-          if (!r.content.trim()) continue;
-          restoredBubbles.push({
-            key: r.id,
-            kind: 'text',
-            role: r.role,
-            content: r.content,
-          });
-        }
-      }
-
-      setBubbles(restoredBubbles);
-      setCards(restoredCards);
-    })();
+    getChatMessages(100).then((rows) => {
+      setMessages(rows.map(rowToMessage));
+      setHistoryLoaded(true);
+    });
   }, []);
 
-  const pushText = useCallback((role: 'user' | 'assistant', content: string) => {
-    setBubbles((b) => [
-      ...b,
-      { key: `${role}_${Date.now()}_${b.length}`, kind: 'text', role, content },
-    ]);
-  }, []);
+  function persist(msg: Message) {
+    saveChatMessage({
+      role: msg.role as 'user' | 'assistant' | 'tool',
+      content: msg.content,
+      toolCalls: msg.tool_calls,
+      toolCallId: msg.tool_call_id,
+    }).catch(() => {});
+  }
 
-  /**
-   * หนึ่งรอบของบทสนทนา
-   * read tool รันทันทีแล้ววนกลับไปให้ AI คิดต่อ ส่วน write tool ค้างไว้เป็นการ์ดรอผู้ใช้กด
-   */
-  const runTurn = useCallback(
-    async (history: Message[], depth = 0): Promise<void> => {
-      if (depth > MAX_TURN_DEPTH) return;
+  function appendMessage(msg: Message) {
+    setMessages((m) => [...m, msg]);
+    persist(msg);
+  }
 
+  async function sendMessage(userMsg: Message) {
+    const next = [...messagesRef.current, userMsg];
+    appendMessage(userMsg);
+    setLoading(true);
+    try {
       const ctx = await buildUserContext();
-      const reply = await chat({
-        messages: [
-          { role: 'system', content: buildSystemPrompt(ctx) },
-          ...history.slice(-HISTORY_LIMIT),
-        ],
-        tools: TOOLS,
-      });
+      await runTurn(next, ctx);
+    } catch (e) {
+      appendMessage({ role: 'assistant', content: 'ขออภัย เชื่อมต่อ AI ไม่ได้ ลองใหม่อีกครั้งนะครับ' });
+    } finally {
+      setLoading(false);
+    }
+  }
 
-      const withReply = [...history, reply];
-      setMessages(withReply);
+  async function send(text: string) {
+    await sendMessage({ role: 'user', content: text });
+  }
 
-      if (reply.content && reply.content.trim()) {
-        pushText('assistant', reply.content);
-        await saveChatMessage({ role: 'assistant', content: reply.content });
-      }
+  /** ส่งรูปอาหารให้ AI ดู (vision) — base64DataUrl คือ "data:image/jpeg;base64,...." ที่ย่อ/บีบอัดมาแล้ว */
+  async function sendImage(base64DataUrl: string, caption?: string) {
+    pendingPhotoUriRef.current = base64DataUrl;
+    await sendMessage({
+      role: 'user',
+      content: [
+        { type: 'image_url', image_url: { url: base64DataUrl } },
+        { type: 'text', text: caption?.trim() ? caption.trim() : VISION_PROMPT },
+      ],
+    });
+  }
 
-      const calls = reply.tool_calls ?? [];
-      if (calls.length === 0) return;
+  async function runTurn(history: Message[], ctx: UserContext, depth = 0) {
+    if (depth > MAX_TOOL_HOPS) return;
 
-      const readCalls = calls.filter((c) => !needsConfirmation(c.function.name));
-      const writeCalls = calls.filter((c) => needsConfirmation(c.function.name));
+    const reply = await chat({
+      messages: [{ role: 'system', content: buildSystemPrompt(ctx) }, ...history.slice(-15)],
+      tools: TOOLS,
+    });
 
-      const toolResults: Message[] = [];
+    appendMessage(reply);
+    if (!reply.tool_calls?.length) return;
 
-      for (const call of readCalls) {
-        let content: string;
-        try {
-          content = await executeToolCall(call.function.name, JSON.parse(call.function.arguments));
-        } catch (e) {
-          content = `เรียก ${call.function.name} ไม่สำเร็จ: ${(e as Error).message}`;
-        }
-        toolResults.push({ role: 'tool', tool_call_id: call.id, content });
-      }
+    const readCalls = reply.tool_calls.filter((c) => !needsConfirmation(c.function.name));
+    const writeCalls = reply.tool_calls.filter((c) => needsConfirmation(c.function.name));
 
-      for (const call of writeCalls) {
-        const validator = VALIDATORS[call.function.name as keyof typeof VALIDATORS];
-        let parsedArgs: unknown;
-        try {
-          parsedArgs = JSON.parse(call.function.arguments);
-        } catch {
-          toolResults.push({
-            role: 'tool',
-            tool_call_id: call.id,
-            content: 'arguments ไม่ใช่ JSON ที่ถูกต้อง กรุณาส่งใหม่',
-          });
-          continue;
-        }
-
-        const result = validator?.safeParse(parsedArgs);
-        if (!result?.success) {
-          // ส่ง error กลับให้ AI แก้เอง ดีกว่าเงียบหายแล้วผู้ใช้งง
-          const detail = result ? describeIssues(result.error) : 'ไม่รู้จัก tool นี้';
-          toolResults.push({
-            role: 'tool',
-            tool_call_id: call.id,
-            content: `ข้อมูลไม่ผ่านการตรวจสอบ: ${detail} กรุณาส่งใหม่ให้ถูกต้อง`,
-          });
-          continue;
-        }
-
-        const card: Card = {
-          id: call.id,
-          tool: call.function.name,
-          args: result.data,
-          status: 'pending',
-          live: true,
-        };
-        setCards((c) => [...c, card]);
-        setBubbles((b) => [...b, { key: call.id, kind: 'card', card }]);
-        await saveChatMessage({
-          role: 'assistant',
-          content: '',
-          toolCalls: [call],
-          toolCallId: call.id,
-          cardStatus: 'pending',
-        });
-      }
-
-      // มีผลจาก read tool หรือมี error ที่ต้องให้ AI แก้ ก็วนต่ออีกรอบ
-      if (toolResults.length > 0) {
-        const updated = [...withReply, ...toolResults];
-        setMessages(updated);
-        return runTurn(updated, depth + 1);
-      }
-    },
-    [pushText]
-  );
-
-  const send = useCallback(
-    async (text: string) => {
-      const trimmed = text.trim();
-      if (!trimmed || loading) return;
-
-      setError(null);
-      setLoading(true);
-      pushText('user', trimmed);
-      await saveChatMessage({ role: 'user', content: trimmed });
-
-      const userMsg: Message = { role: 'user', content: trimmed };
-      const next = [...messages, userMsg];
-      setMessages(next);
-
-      try {
-        await runTurn(next);
-      } catch (e) {
-        if (e instanceof AiNotConfiguredError) {
-          setError('ยังไม่ได้ตั้งค่า Worker สำหรับ AI — ดูวิธีตั้งค่าใน worker/README.md');
-        } else if (e instanceof AiRequestError) {
-          setError(
-            e.status === 429
-              ? 'ใช้โควตาของวันนี้ครบแล้ว ลองใหม่พรุ่งนี้'
-              : `เชื่อมต่อ AI ไม่สำเร็จ (${e.status})`
-          );
-        } else {
-          setError('เชื่อมต่อ AI ไม่สำเร็จ ลองใหม่อีกครั้ง');
-        }
-      } finally {
-        setLoading(false);
-      }
-    },
-    [loading, messages, pushText, runTurn]
-  );
-
-  const updateCardArgs = useCallback((cardId: string, args: unknown) => {
-    setCards((cs) => cs.map((c) => (c.id === cardId ? { ...c, args } : c)));
-    setBubbles((bs) =>
-      bs.map((b) =>
-        b.kind === 'card' && b.card?.id === cardId
-          ? { ...b, card: { ...(b.card as Card), args } }
-          : b
-      )
-    );
-  }, []);
-
-  const setCardState = useCallback(
-    (cardId: string, patch: Partial<Card>) => {
-      setCards((cs) => cs.map((c) => (c.id === cardId ? { ...c, ...patch } : c)));
-      setBubbles((bs) =>
-        bs.map((b) =>
-          b.kind === 'card' && b.card?.id === cardId
-            ? { ...b, card: { ...(b.card as Card), ...patch } }
-            : b
-        )
+    if (readCalls.length) {
+      const results: Message[] = await Promise.all(
+        readCalls.map(async (c) => ({
+          role: 'tool' as const,
+          tool_call_id: c.id,
+          content: await executeToolCall(c.function.name, JSON.parse(c.function.arguments)),
+        }))
       );
-    },
-    []
-  );
+      const updated = [...history, reply, ...results];
+      for (const r of results) appendMessage(r);
+      return runTurn(updated, ctx, depth + 1);
+    }
 
-  const confirmCard = useCallback(
-    async (cardId: string) => {
-      const card = cards.find((c) => c.id === cardId);
-      if (!card || card.status !== 'pending') return;
-
-      setLoading(true);
-      setError(null);
+    for (const call of writeCalls) {
+      const validator = VALIDATORS[call.function.name as keyof typeof VALIDATORS];
+      let parsedArgs: unknown;
       try {
-        const result = await executeToolCall(card.tool, card.args);
-        setCardState(cardId, { status: 'confirmed', result });
-        await updateChatCardStatus(cardId, 'confirmed');
-        await refresh();
-
-        // การ์ดที่โหลดกลับมาจาก DB ไม่มี tool_call คู่กันในบทสนทนาแล้ว
-        // ส่งผลกลับไปจะทำให้ API ปฏิเสธทั้งคำขอ จึงจบแค่บันทึกอย่างเดียว
-        if (card.live) {
-          const updated: Message[] = [
-            ...messages,
-            { role: 'tool', tool_call_id: cardId, content: result },
-          ];
-          setMessages(updated);
-          await runTurn(updated);
-        }
-      } catch (e) {
-        setError(`บันทึกไม่สำเร็จ: ${(e as Error).message}`);
-      } finally {
-        setLoading(false);
+        parsedArgs = JSON.parse(call.function.arguments);
+      } catch {
+        parsedArgs = {};
       }
-    },
-    [cards, messages, refresh, runTurn, setCardState]
-  );
-
-  const dismissCard = useCallback(
-    async (cardId: string) => {
-      const card = cards.find((c) => c.id === cardId);
-      if (!card || card.status !== 'pending') return;
-      setCardState(cardId, { status: 'dismissed' });
-      await updateChatCardStatus(cardId, 'dismissed');
-      if (card.live) {
-        setMessages((m) => [
-          ...m,
-          { role: 'tool', tool_call_id: cardId, content: 'ผู้ใช้ยกเลิกการบันทึกนี้' },
-        ]);
+      const parsed = validator?.safeParse(parsedArgs);
+      if (!parsed?.success) {
+        const errMsg: Message = {
+          role: 'tool',
+          tool_call_id: call.id,
+          content: `ข้อมูลไม่ถูกต้อง: ${parsed?.error.message}. กรุณาส่งใหม่`,
+        };
+        appendMessage(errMsg);
+        return runTurn([...history, reply, errMsg], ctx, depth + 1);
       }
-    },
-    [cards, setCardState]
-  );
+      let photoUri: string | null = null;
+      if (call.function.name === 'add_meal') {
+        photoUri = pendingPhotoUriRef.current;
+        pendingPhotoUriRef.current = null;
+      }
+      setPendingCards((p) => [...p, { id: call.id, tool: call.function.name, args: parsed.data, status: 'pending', photoUri }]);
+    }
+  }
 
-  const clear = useCallback(async () => {
-    await clearChatMessages();
+  async function confirmCard(cardId: string, editedArgs?: unknown) {
+    const card = pendingCards.find((c) => c.id === cardId);
+    if (!card) return;
+
+    const result = await executeToolCall(card.tool, editedArgs ?? card.args, { photoUri: card.photoUri });
+    setPendingCards((p) => p.map((c) => (c.id === cardId ? { ...c, status: 'confirmed' } : c)));
+
+    const toolMsg: Message = { role: 'tool', tool_call_id: cardId, content: result };
+    const updated = [...messagesRef.current, toolMsg];
+    appendMessage(toolMsg);
+    setLoading(true);
+    try {
+      const ctx = await buildUserContext();
+      await runTurn(updated, ctx);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function dismissCard(cardId: string) {
+    setPendingCards((p) => p.map((c) => (c.id === cardId ? { ...c, status: 'dismissed' } : c)));
+    appendMessage({ role: 'tool', tool_call_id: cardId, content: 'ผู้ใช้ยกเลิกการบันทึกนี้' });
+  }
+
+  async function clearHistory() {
+    await clearChatHistory();
     setMessages([]);
-    setBubbles([]);
-    setCards([]);
-    setError(null);
-  }, []);
+    setPendingCards([]);
+  }
 
-  return {
-    bubbles,
-    loading,
-    error,
-    send,
-    confirmCard,
-    dismissCard,
-    updateCardArgs,
-    clear,
-  };
+  return { messages, pendingCards, loading, historyLoaded, send, sendImage, confirmCard, dismissCard, clearHistory };
 }

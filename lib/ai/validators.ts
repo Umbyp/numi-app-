@@ -1,5 +1,3 @@
-// ตรวจ argument ที่ AI ส่งมาก่อนเอาไป render การ์ดเสมอ
-// AI ส่งค่าประหลาดมาได้ ทั้งติดลบ ทั้งเกินจริง ถ้าไม่กันไว้ข้อมูลเสียจะเข้า DB
 import { z } from 'zod';
 
 const mealItemSchema = z.object({
@@ -15,43 +13,43 @@ const mealItemSchema = z.object({
 
 export const addMealSchema = z.object({
   meal_type: z.enum(['breakfast', 'lunch', 'dinner', 'snack']),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   items: z.array(mealItemSchema).min(1).max(20),
   note: z.string().max(500).optional(),
 });
 
-export const logWorkoutSchema = z.object({
+export type AddMealArgs = z.infer<typeof addMealSchema>;
+
+const workoutPlanExerciseSchema = z.object({
   name: z.string().min(1).max(120),
-  met_key: z.string().max(60).optional(),
-  duration_min: z.number().positive().max(600),
-  kcal_burned: z.number().min(0).max(5000).optional(),
-  distance_km: z.number().min(0).max(500).optional(),
-  note: z.string().max(500).optional(),
+  category: z.enum(['cardio', 'strength', 'flexibility', 'sport', 'other']),
+  met: z.number().positive().max(20),
+  duration_min: z.number().positive().max(180),
+  sets: z.number().int().positive().max(20).optional(),
+  reps: z.string().max(30).optional(),
+  rest_sec: z.number().int().min(0).max(600).optional(),
+  muscle_group: z.enum(['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes', 'core', 'full_body', 'cardio']).optional(),
+  note: z.string().max(300).optional(),
 });
 
-export const logWeightSchema = z.object({
-  weight_kg: z.number().min(20).max(400),
-  body_fat_pct: z.number().min(1).max(70).optional(),
+const workoutPlanDaySchema = z.object({
+  label: z.string().min(1).max(120),
+  day_type: z.enum(['cardio', 'strength', 'both']),
+  warmup: z.string().max(500).optional(),
+  during_note: z.string().max(500).optional(),
+  cooldown: z.string().max(500).optional(),
+  exercises: z.array(workoutPlanExerciseSchema).min(1).max(15),
 });
 
-export const searchFoodSchema = z.object({
-  queries: z.array(z.string().min(1).max(100)).min(1).max(10),
+export const workoutPlanSchema = z.object({
+  title: z.string().min(1).max(120),
+  rationale: z.string().min(1).max(1000),
+  days: z.array(workoutPlanDaySchema).min(1).max(14),
 });
+
+export type WorkoutPlanArgs = z.infer<typeof workoutPlanSchema>;
 
 export const VALIDATORS = {
-  search_food: searchFoodSchema,
   add_meal: addMealSchema,
-  log_workout: logWorkoutSchema,
-  log_weight: logWeightSchema,
+  propose_workout_plan: workoutPlanSchema,
 } as const;
-
-export type AddMealArgs = z.infer<typeof addMealSchema>;
-export type LogWorkoutArgs = z.infer<typeof logWorkoutSchema>;
-export type LogWeightArgs = z.infer<typeof logWeightSchema>;
-
-/** ข้อความสั้น ๆ ที่ส่งกลับให้ AI แก้ ไม่ใช่ dump ทั้ง stack */
-export function describeIssues(error: z.ZodError): string {
-  return error.issues
-    .slice(0, 5)
-    .map((i) => `${i.path.join('.') || 'root'}: ${i.message}`)
-    .join('; ');
-}

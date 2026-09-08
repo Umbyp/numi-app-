@@ -1,53 +1,27 @@
+import { useState } from 'react';
+import { View } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Utensils, Sparkles, Dumbbell, TrendingUp, UserRound } from 'lucide-react-native';
-import { useTheme } from '../../lib/hooks/use-theme';
+import { CustomTabBar } from '../../components/custom-tab-bar';
+import { FloatingAIButton } from '../../components/floating-ai-button';
+import { FloatingQuickAddButton } from '../../components/floating-quickadd-button';
+import { QuickAddSheet } from '../../components/quick-add-sheet';
 
 export default function TabsLayout() {
-  const c = useTheme();
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: c.primary,
-        tabBarInactiveTintColor: c.subtext,
-        tabBarStyle: { backgroundColor: c.card, borderTopColor: c.border },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'วันนี้',
-          tabBarIcon: ({ color, size }) => <Utensils color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="chat"
-        options={{
-          title: 'ผู้ช่วย',
-          tabBarIcon: ({ color, size }) => <Sparkles color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="workout"
-        options={{
-          title: 'ออกกำลังกาย',
-          tabBarIcon: ({ color, size }) => <Dumbbell color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: 'ประวัติ',
-          tabBarIcon: ({ color, size }) => <TrendingUp color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'โปรไฟล์',
-          tabBarIcon: ({ color, size }) => <UserRound color={color} size={size} />,
-        }}
-      />
-    </Tabs>
+    <View style={{ flex: 1 }}>
+      <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} />}>
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="diary" />
+        <Tabs.Screen name="workout-plan" />
+        <Tabs.Screen name="insights" />
+        <Tabs.Screen name="account" />
+      </Tabs>
+
+      <FloatingAIButton />
+      <FloatingQuickAddButton onPress={() => setSheetOpen(true)} />
+      <QuickAddSheet visible={sheetOpen} onClose={() => setSheetOpen(false)} />
+    </View>
   );
 }

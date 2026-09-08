@@ -1,91 +1,95 @@
-import {
-  searchFoods,
-  addMealEntries,
-  addWorkout,
-  addOrUpdateWeightToday,
-  getMealEntriesForDate,
-  type MealType,
-} from '../db/queries';
-import { calcKcalBurned, localDateString } from '../nutrition';
-import { findActivity } from '../mets';
-import { getLatestWeight } from '../db/queries';
-import {
-  addMealSchema,
-  logWorkoutSchema,
-  logWeightSchema,
-  searchFoodSchema,
-} from './validators';
+import { searchFoods, addMealEntry, getMealEntriesForDate, getProfile, getLatestWeight, addWorkoutPlan } from '../db/queries';
+import { sumTotals } from '../store';
+import { computeGoals, DEFAULT_GOALS } from '../goals';
+import { localDateString } from '../nutrition';
+import { READ_ONLY_TOOLS } from './tools';
+import { addMealSchema, workoutPlanSchema } from './validators';
 
-/**
- * ตัวเดียวที่เขียน DB จริง — AI ไม่เคยแตะฐานข้อมูลเอง มันแค่เสนอ argument มา
- * ทุกเคส parse ซ้ำอีกรอบตรงนี้ด้วย เพราะผู้ใช้แก้ค่าในการ์ดได้ก่อนกดยืนยัน
- */
-export async function executeToolCall(name: string, args: unknown): Promise<string> {
+export const needsConfirmation = (name: string) => !READ_ONLY_TOOLS.has(name);
+
+async function getRemainingKcal(localDate: string): Promise<number> {
+  const [profile, weight, entries] = await Promise.all([
+    getProfile(),
+    getLatestWeight(),
+    getMealEntriesForDate(localDate),
+  ]);
+  const goals = profile ? computeGoals(profile, weight?.weightKg ?? 70) : DEFAULT_GOALS;
+  const consumed = sumTotals(entries);
+  return Math.round(goals.kcalTarget - consumed.kcal);
+}
+
+/** รันจริงหลังผู้ใช้กดยืนยันการ์ด (หรือทันทีสำหรับ read-only tool) — จุดเดียวที่เขียนลง DB */
+export async function executeToolCall(
+  name: string,
+  args: unknown,
+  opts?: { photoUri?: string | null }
+): Promise<string> {
   switch (name) {
     case 'search_food': {
-      const { queries } = searchFoodSchema.parse(args);
+      const { queries } = args as { queries: string[] };
       const results = await Promise.all(queries.map((q) => searchFoods(q, 8)));
-      const flat = results.flat().slice(0, 20).map((f) => ({
-        food_id: f.id,
-        name: f.name,
-        kcal_per_100g: f.kcalPer100,
-        protein_per_100g: f.proteinPer100,
-        carb_per_100g: f.carbPer100,
-        fat_per_100g: f.fatPer100,
-        serving_units: f.servingUnits,
-      }));
-      if (flat.length === 0) return 'ไม่พบอาหารที่ค้นในฐานข้อมูล ให้ประมาณค่าแล้วตั้ง estimated: true';
-      return JSON.stringify(flat);
+      const flat = results.flat().slice(0, 15);
+      return JSON.stringify(
+        flat.map((f) => ({
+          id: f.id,
+          name: f.name,
+          kcal_per_100: f.kcalPer100,
+          protein_per_100: f.proteinPer100,
+          carb_per_100: f.carbPer100,
+          fat_per_100: f.fatPer100,
+          serving_units: f.servingUnits,
+        }))
+      );
     }
 
     case 'add_meal': {
       const data = addMealSchema.parse(args);
-      await addMealEntries(
-        data.items.map((it) => ({
-          foodId: it.food_id ?? null,
-          name: it.name,
-          mealType: data.meal_type as MealType,
-          amountG: it.amount_g,
-          kcal: it.kcal,
-          proteinG: it.protein_g,
-          carbG: it.carb_g,
-          fatG: it.fat_g,
-          estimated: it.estimated,
+      const date = data.date ?? localDateString();
+      for (const item of data.items) {
+        await addMealEntry({
+          foodId: item.food_id ?? null,
+          name: item.name,
+          mealType: data.meal_type,
+          amountG: item.amount_g,
+          kcal: item.kcal,
+          proteinG: item.protein_g,
+          carbG: item.carb_g,
+          fatG: item.fat_g,
+          estimated: item.estimated,
           note: data.note,
-        }))
-      );
+          photoUri: opts?.photoUri ?? null,
+        });
+      }
       const total = data.items.reduce((s, i) => s + i.kcal, 0);
-      const todayEntries = await getMealEntriesForDate(localDateString());
-      const consumed = todayEntries.reduce((s, r) => s + r.kcal, 0);
-      return `บันทึกแล้ว ${data.items.length} รายการ รวม ${Math.round(total)} kcal วันนี้กินไปทั้งหมด ${Math.round(consumed)} kcal`;
+      const remaining = await getRemainingKcal(date);
+      return `บันทึกสำเร็จ รวม ${Math.round(total)} kcal เหลือวันนี้ ${remaining} kcal`;
     }
 
-    case 'log_workout': {
-      const data = logWorkoutSchema.parse(args);
-      const weight = await getLatestWeight();
-      const weightKg = weight?.weightKg ?? 70;
-      const activity = data.met_key ? findActivity(data.met_key) : undefined;
-      const met = activity?.met;
-      const kcal =
-        data.kcal_burned ??
-        (met ? calcKcalBurned(met, weightKg, data.duration_min) : 0);
-
-      await addWorkout({
-        name: data.name,
-        category: activity?.category ?? 'other',
-        met: met ?? null,
-        durationMin: data.duration_min,
-        kcalBurned: kcal,
-        distanceKm: data.distance_km ?? null,
-        note: data.note ?? null,
+    case 'propose_workout_plan': {
+      const data = workoutPlanSchema.parse(args);
+      await addWorkoutPlan({
+        title: data.title,
+        rationale: data.rationale,
+        days: data.days.map((d) => ({
+          label: d.label,
+          dayType: d.day_type,
+          warmup: d.warmup,
+          duringNote: d.during_note,
+          cooldown: d.cooldown,
+          exercises: d.exercises.map((e) => ({
+            name: e.name,
+            category: e.category,
+            met: e.met,
+            durationMin: e.duration_min,
+            sets: e.sets,
+            reps: e.reps,
+            restSec: e.rest_sec,
+            muscleGroup: e.muscle_group,
+            note: e.note,
+          })),
+        })),
       });
-      return `บันทึกแล้ว ${data.name} ${data.duration_min} นาที เผาไป ${Math.round(kcal)} kcal`;
-    }
-
-    case 'log_weight': {
-      const data = logWeightSchema.parse(args);
-      await addOrUpdateWeightToday(data.weight_kg, undefined, data.body_fat_pct ?? null);
-      return `บันทึกน้ำหนัก ${data.weight_kg} kg แล้ว`;
+      return `บันทึกแผนแล้ว ดูได้ที่แท็บ "ออกกำลังกาย"`;
     }
 
     default:

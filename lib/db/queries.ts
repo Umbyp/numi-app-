@@ -1,17 +1,21 @@
-import { eq, desc, asc, like, or, gte, sql } from 'drizzle-orm';
+import { eq, desc, like, or, and, gte, lte, isNotNull, sql } from 'drizzle-orm';
 import { db } from './client';
+import type { ExerciseSet, TemplateItem } from './schema';
 import {
   profile,
   foods,
   mealEntries,
   weights,
-  measurements,
   workouts,
-  mealTemplates,
+  workoutPlans,
+  workoutPlanCompletions,
+  appSettings,
   chatMessages,
+  measurements,
+  mealTemplates,
+  type WorkoutPlanDay,
 } from './schema';
 import { localDateString } from '../nutrition';
-import type { ExerciseSet, TemplateItem } from './schema';
 import seedFoods from '../../data/foods-th.json';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -30,6 +34,23 @@ export async function saveProfile(p: Omit<typeof profile.$inferInsert, 'id'>) {
     .onConflictDoUpdate({ target: profile.id, set: p });
 }
 
+// ---------- App settings (key-value, ใช้ได้ก่อนตั้งโปรไฟล์ครบ) ----------
+
+export type ThemePreference = 'system' | 'light' | 'dark';
+
+export async function getThemePreference(): Promise<ThemePreference> {
+  const rows = await db.select().from(appSettings).where(eq(appSettings.key, 'theme_preference'));
+  const value = rows[0]?.value;
+  return value === 'light' || value === 'dark' ? value : 'system';
+}
+
+export async function setThemePreference(pref: ThemePreference) {
+  await db
+    .insert(appSettings)
+    .values({ key: 'theme_preference', value: pref })
+    .onConflictDoUpdate({ target: appSettings.key, set: { value: pref } });
+}
+
 // ---------- Weights ----------
 
 export async function getLatestWeight() {
@@ -41,81 +62,38 @@ export async function getLatestWeight() {
   return rows[0] ?? null;
 }
 
-export async function addOrUpdateWeightToday(
-  weightKg: number,
-  note?: string,
-  bodyFatPct?: number | null
-) {
-  const localDate = localDateString();
-  const id = `w_${localDate}`;
-  const now = new Date();
-  await db
-    .insert(weights)
-    .values({ id, weightKg, bodyFatPct: bodyFatPct ?? null, note, localDate, recordedAt: now })
-    .onConflictDoUpdate({
-      target: weights.localDate,
-      set: { weightKg, bodyFatPct: bodyFatPct ?? null, note, recordedAt: now },
-    });
-}
-
-/** น้ำหนักทั้งหมดตั้งแต่วันที่กำหนด เรียงจากเก่าไปใหม่ตามแกนกราฟ */
-export async function getWeightsSince(fromLocalDate: string) {
-  return db
-    .select()
-    .from(weights)
-    .where(gte(weights.localDate, fromLocalDate))
-    .orderBy(asc(weights.localDate));
-}
-
-// ---------- Measurements ----------
-
-export interface MeasurementInput {
-  waistCm?: number | null;
-  chestCm?: number | null;
-  hipCm?: number | null;
-  armCm?: number | null;
-  thighCm?: number | null;
-}
-
-export async function getLatestMeasurement() {
-  const rows = await db
-    .select()
-    .from(measurements)
-    .orderBy(desc(measurements.localDate))
-    .limit(1);
+/** น้ำหนักของวันที่ระบุเป๊ะ ๆ (ไม่ใช่ล่าสุด) — ใช้ตอนดู Diary ย้อนหลัง */
+export async function getWeightForDate(localDate: string) {
+  const rows = await db.select().from(weights).where(eq(weights.localDate, localDate));
   return rows[0] ?? null;
 }
 
-export async function getMeasurementsSince(fromLocalDate: string) {
-  return db
-    .select()
-    .from(measurements)
-    .where(gte(measurements.localDate, fromLocalDate))
-    .orderBy(asc(measurements.localDate));
+export async function addOrUpdateWeightToday(weightKg: number, note?: string) {
+  const localDate = localDateString();
+  const id = `w_${localDate}`;
+  await db
+    .insert(weights)
+    .values({ id, weightKg, note, localDate, recordedAt: new Date() })
+    .onConflictDoUpdate({
+      target: weights.localDate,
+      set: { weightKg, note, recordedAt: new Date() },
+    });
 }
 
-export async function addOrUpdateMeasurementToday(input: MeasurementInput) {
-  const localDate = localDateString();
-  const id = `m_${localDate}`;
-  const now = new Date();
-  const values = {
-    waistCm: input.waistCm ?? null,
-    chestCm: input.chestCm ?? null,
-    hipCm: input.hipCm ?? null,
-    armCm: input.armCm ?? null,
-    thighCm: input.thighCm ?? null,
-  };
-  await db
-    .insert(measurements)
-    .values({ id, ...values, localDate, recordedAt: now })
-    .onConflictDoUpdate({
-      target: measurements.localDate,
-      set: { ...values, recordedAt: now },
-    });
+export async function getWeightHistory(days = 60) {
+  const cutoff = localDateString(new Date(Date.now() - days * 86400000));
+  return db.select().from(weights).where(gte(weights.localDate, cutoff)).orderBy(weights.localDate);
+}
+
+/** น้ำหนักครั้งแรกที่เคยบันทึกไว้ (ทั้งหมด ไม่จำกัดช่วงเวลา) — ใช้เป็นจุดเริ่มต้นคำนวณความคืบหน้าสู่เป้าหมาย */
+export async function getEarliestWeight(): Promise<typeof weights.$inferSelect | null> {
+  const rows = await db.select().from(weights).orderBy(weights.localDate).limit(1);
+  return rows[0] ?? null;
 }
 
 // ---------- Foods ----------
 
+/** เติมอาหาร seed ครั้งแรกที่เปิดแอป (ถ้ายังไม่มีข้อมูลเลย) */
 /**
  * ซิงก์อาหารตั้งต้นทุกครั้งที่เปิดแอป
  * เดิมเติมเฉพาะตอนตารางว่าง ทำให้เครื่องที่ติดตั้งไปแล้วไม่เคยได้อาหารที่เพิ่มทีหลังเลย
@@ -194,6 +172,49 @@ export async function createUserFood(input: {
   return id;
 }
 
+export interface FrequentFood {
+  foodId: string;
+  name: string;
+  kcal: number;
+  amountG: number;
+  proteinG: number;
+  carbG: number;
+  fatG: number;
+  count: number;
+}
+
+/** อาหารที่กินบ่อย ใช้ค่าจากครั้งล่าสุดที่กิน (แตะซ้ำแล้วได้ปริมาณเดิม) เรียงตามจำนวนครั้ง */
+export async function getFrequentFoods(limit = 4): Promise<FrequentFood[]> {
+  const rows = await db
+    .select()
+    .from(mealEntries)
+    .where(isNotNull(mealEntries.foodId))
+    .orderBy(desc(mealEntries.loggedAt))
+    .limit(500);
+
+  const byFood = new Map<string, FrequentFood>();
+  for (const r of rows) {
+    const foodId = r.foodId!;
+    const existing = byFood.get(foodId);
+    if (existing) {
+      existing.count++;
+    } else {
+      byFood.set(foodId, {
+        foodId,
+        name: r.name,
+        kcal: r.kcal,
+        amountG: r.amountG,
+        proteinG: r.proteinG,
+        carbG: r.carbG,
+        fatG: r.fatG,
+        count: 1,
+      });
+    }
+  }
+
+  return [...byFood.values()].sort((a, b) => b.count - a.count).slice(0, limit);
+}
+
 // ---------- Meal entries ----------
 
 export interface NewMealEntry {
@@ -207,6 +228,7 @@ export interface NewMealEntry {
   fatG: number;
   estimated?: boolean;
   note?: string;
+  photoUri?: string | null;
 }
 
 export async function addMealEntry(entry: NewMealEntry) {
@@ -224,6 +246,7 @@ export async function addMealEntry(entry: NewMealEntry) {
     fatG: entry.fatG,
     estimated: entry.estimated ?? false,
     note: entry.note,
+    photoUri: entry.photoUri ?? null,
     loggedAt: now,
     localDate: localDateString(now),
   });
@@ -249,6 +272,118 @@ export interface DayTotals {
   fatG: number;
 }
 
+export async function getWorkoutsForDate(localDate: string) {
+  return db.select().from(workouts).where(eq(workouts.localDate, localDate)).orderBy(desc(workouts.performedAt));
+}
+
+export interface NewWorkout {
+  name: string;
+  category: 'cardio' | 'strength' | 'flexibility' | 'sport' | 'other';
+  met?: number;
+  durationMin: number;
+  kcalBurned: number;
+  /** สำหรับเวทเทรนนิ่ง: [{"exercise":"Bench","sets":[{"kg":60,"reps":8}]}] */
+  sets?: ExerciseSet[] | null;
+  note?: string;
+}
+
+export async function addWorkout(entry: NewWorkout) {
+  const id = `workout_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
+  const now = new Date();
+  await db.insert(workouts).values({
+    id,
+    name: entry.name,
+    category: entry.category,
+    met: entry.met,
+    durationMin: entry.durationMin,
+    kcalBurned: entry.kcalBurned,
+    sets: entry.sets ?? null,
+    note: entry.note,
+    performedAt: now,
+    localDate: localDateString(now),
+  });
+  return id;
+}
+
+export async function deleteWorkout(id: string) {
+  await db.delete(workouts).where(eq(workouts.id, id));
+}
+
+export async function getWorkoutHistory(days = 90) {
+  const cutoff = localDateString(new Date(Date.now() - days * 86400000));
+  return db.select().from(workouts).where(gte(workouts.localDate, cutoff)).orderBy(desc(workouts.performedAt));
+}
+
+// ---------- Workout plans (AI ออกแบบให้) ----------
+
+export interface NewWorkoutPlan {
+  title: string;
+  rationale: string;
+  days: WorkoutPlanDay[];
+}
+
+export async function addWorkoutPlan(entry: NewWorkoutPlan) {
+  const id = `plan_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
+  await db.insert(workoutPlans).values({
+    id,
+    title: entry.title,
+    rationale: entry.rationale,
+    days: entry.days,
+    createdAt: new Date(),
+  });
+  return id;
+}
+
+export async function getWorkoutPlans() {
+  return db.select().from(workoutPlans).orderBy(desc(workoutPlans.createdAt));
+}
+
+export async function getWorkoutPlan(id: string): Promise<typeof workoutPlans.$inferSelect | null> {
+  const rows = await db.select().from(workoutPlans).where(eq(workoutPlans.id, id));
+  return rows[0] ?? null;
+}
+
+export async function updateWorkoutPlan(
+  id: string,
+  entry: { title: string; rationale: string; days: WorkoutPlanDay[] }
+) {
+  await db.update(workoutPlans).set(entry).where(eq(workoutPlans.id, id));
+}
+
+export async function deleteWorkoutPlan(id: string) {
+  await db.delete(workoutPlanCompletions).where(eq(workoutPlanCompletions.planId, id));
+  await db.delete(workoutPlans).where(eq(workoutPlans.id, id));
+}
+
+export interface NewWorkoutPlanCompletion {
+  planId: string;
+  dayIndex: number;
+  localDate: string;
+  workoutId: string;
+}
+
+export async function addWorkoutPlanCompletion(entry: NewWorkoutPlanCompletion) {
+  const id = `plancomp_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
+  await db.insert(workoutPlanCompletions).values({ id, ...entry, createdAt: new Date() });
+  return id;
+}
+
+export async function getWorkoutPlanCompletions(planId: string) {
+  return db
+    .select()
+    .from(workoutPlanCompletions)
+    .where(eq(workoutPlanCompletions.planId, planId))
+    .orderBy(workoutPlanCompletions.localDate);
+}
+
+/** completion ของทุกแผนในช่วงวันที่กำหนด — ใช้สรุปความสมดุลกล้ามเนื้อรายสัปดาห์ (ไม่จำกัดแผนเดียวเหมือน getWorkoutPlanCompletions) */
+export async function getWorkoutPlanCompletionsInRange(startDate: string, endDate: string) {
+  return db
+    .select()
+    .from(workoutPlanCompletions)
+    .where(and(gte(workoutPlanCompletions.localDate, startDate), lte(workoutPlanCompletions.localDate, endDate)));
+}
+
 export async function getTodayTotals(localDate: string): Promise<DayTotals> {
   const rows = await getMealEntriesForDate(localDate);
   return rows.reduce<DayTotals>(
@@ -262,111 +397,95 @@ export async function getTodayTotals(localDate: string): Promise<DayTotals> {
   );
 }
 
-export interface DaySummary extends DayTotals {
+export interface DayTotalsWithDate extends DayTotals {
   localDate: string;
-  entryCount: number;
 }
 
-/**
- * รวมยอดของแต่ละวันในหนึ่งครั้ง — ให้ SQLite เป็นคนรวมแทนที่จะดึงทุกแถวมารวมใน JS
- * เรียงจากใหม่ไปเก่าเพราะรายการในหน้าประวัติเริ่มจากวันล่าสุด
- */
-export async function getDaySummariesSince(fromLocalDate: string): Promise<DaySummary[]> {
+/** ผลรวมโภชนาการต่อวันในช่วงที่กำหนด เติมวันที่ไม่มีข้อมูลด้วยค่า 0 ให้กราฟยังมีครบทุกแท่ง */
+export async function getMealTotalsByDateRange(startDate: string, endDate: string): Promise<DayTotalsWithDate[]> {
   const rows = await db
-    .select({
-      localDate: mealEntries.localDate,
-      kcal: sql<number>`sum(${mealEntries.kcal})`,
-      proteinG: sql<number>`sum(${mealEntries.proteinG})`,
-      carbG: sql<number>`sum(${mealEntries.carbG})`,
-      fatG: sql<number>`sum(${mealEntries.fatG})`,
-      entryCount: sql<number>`count(*)`,
-    })
+    .select()
     .from(mealEntries)
-    .where(gte(mealEntries.localDate, fromLocalDate))
-    .groupBy(mealEntries.localDate)
-    .orderBy(desc(mealEntries.localDate));
+    .where(and(gte(mealEntries.localDate, startDate), lte(mealEntries.localDate, endDate)));
 
-  return rows.map((r) => ({
-    localDate: r.localDate,
-    kcal: Number(r.kcal ?? 0),
-    proteinG: Number(r.proteinG ?? 0),
-    carbG: Number(r.carbG ?? 0),
-    fatG: Number(r.fatG ?? 0),
-    entryCount: Number(r.entryCount ?? 0),
-  }));
+  const byDate = new Map<string, DayTotals>();
+  for (const r of rows) {
+    const cur = byDate.get(r.localDate) ?? { kcal: 0, proteinG: 0, carbG: 0, fatG: 0 };
+    cur.kcal += r.kcal;
+    cur.proteinG += r.proteinG;
+    cur.carbG += r.carbG;
+    cur.fatG += r.fatG;
+    byDate.set(r.localDate, cur);
+  }
+
+  const result: DayTotalsWithDate[] = [];
+  let cursor = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  while (cursor <= end) {
+    const ds = localDateString(cursor);
+    result.push({ localDate: ds, ...(byDate.get(ds) ?? { kcal: 0, proteinG: 0, carbG: 0, fatG: 0 }) });
+    cursor = new Date(cursor.getTime() + 86400000);
+  }
+  return result;
 }
 
-// ---------- Workouts ----------
+// ---------- Chat history ----------
+// เก็บแค่บทสนทนาจริง (user/assistant/tool) ไว้ต่อบริบทข้ามการเปิดแอปใหม่
+// การ์ดคำสั่งที่ยังไม่กดยืนยัน "ไม่" เก็บ — หายไปตอนปิดแชท ต้องถามใหม่ (ตัดความซับซ้อนเรื่อง tool_call ค้าง)
 
-export type WorkoutCategory = 'cardio' | 'strength' | 'flexibility' | 'sport' | 'other';
-
-export interface NewWorkout {
-  name: string;
-  category: WorkoutCategory;
-  met?: number | null;
-  durationMin: number;
-  kcalBurned: number;
-  sets?: ExerciseSet[] | null;
-  distanceKm?: number | null;
-  avgHr?: number | null;
-  note?: string | null;
+export interface NewChatMessage {
+  role: 'user' | 'assistant' | 'tool';
+  content: string | unknown[] | null;
+  toolCalls?: unknown;
+  toolCallId?: string;
 }
 
-export async function addWorkout(input: NewWorkout) {
-  const id = `wo_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
-  const now = new Date();
-  await db.insert(workouts).values({
+export async function saveChatMessage(msg: NewChatMessage) {
+  const id = `chat_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
+  const content = typeof msg.content === 'string' ? msg.content : msg.content == null ? '' : JSON.stringify(msg.content);
+  await db.insert(chatMessages).values({
     id,
-    name: input.name,
-    category: input.category,
-    met: input.met ?? null,
-    durationMin: input.durationMin,
-    kcalBurned: input.kcalBurned,
-    sets: input.sets ?? null,
-    distanceKm: input.distanceKm ?? null,
-    avgHr: input.avgHr ?? null,
-    note: input.note ?? null,
-    performedAt: now,
-    localDate: localDateString(now),
+    role: msg.role,
+    content,
+    toolCalls: (msg.toolCalls ?? null) as any,
+    toolCallId: msg.toolCallId ?? null,
+    createdAt: new Date(),
   });
-  return id;
 }
 
-export async function deleteWorkout(id: string) {
-  await db.delete(workouts).where(eq(workouts.id, id));
+export async function getChatMessages(limit = 100) {
+  const rows = await db.select().from(chatMessages).orderBy(desc(chatMessages.createdAt)).limit(limit);
+  return rows.reverse();
 }
 
-export async function getWorkoutsForDate(localDate: string) {
-  return db
-    .select()
-    .from(workouts)
-    .where(eq(workouts.localDate, localDate))
-    .orderBy(workouts.performedAt);
+export async function clearChatHistory() {
+  await db.delete(chatMessages);
 }
 
-export async function getWorkoutsSince(fromLocalDate: string) {
-  return db
-    .select()
-    .from(workouts)
-    .where(gte(workouts.localDate, fromLocalDate))
-    .orderBy(desc(workouts.performedAt));
-}
+// ---------- สถิติเวท ----------
 
 /**
- * เซ็ตล่าสุดของท่านั้น ๆ ไว้เติมให้อัตโนมัติตอนบันทึกครั้งถัดไป
- * เก็บหลายท่าไว้ในแถวเดียวเป็น JSON จึงต้องดึงเซสชันเวทมาไล่หาใน JS
- * ดึงแค่ 40 เซสชันล่าสุดก็พอ ถ้าไม่เจอในนั้นแปลว่านานเกินกว่าจะเอามาเติมให้
+ * เซสชันเวทย้อนหลังสำหรับคำนวณสถิติส่วนตัว
+ * จำกัดจำนวนเพราะสถิติคำนวณใน JS ทุกครั้งที่เปิดหน้า
+ * 200 เซสชันคือประมาณสองปีถ้าเล่นสัปดาห์ละสองครั้ง
  */
-export async function getLastSetsForExercise(exercise: string) {
-  const key = exercise.trim().toLowerCase();
-  if (!key) return null;
-  const rows = await db
+export async function getStrengthSessions(limit = 200) {
+  return db
     .select()
     .from(workouts)
     .where(eq(workouts.category, 'strength'))
     .orderBy(desc(workouts.performedAt))
-    .limit(40);
+    .limit(limit);
+}
 
+/**
+ * เซ็ตล่าสุดของท่านั้น ๆ ไว้เติมให้อัตโนมัติตอนบันทึกครั้งถัดไป
+ * เก็บหลายท่าไว้ในแถวเดียวเป็น JSON จึงต้องดึงเซสชันมาไล่หาใน JS
+ */
+export async function getLastSetsForExercise(exercise: string) {
+  const key = exercise.trim().toLowerCase();
+  if (!key) return null;
+  const rows = await getStrengthSessions(40);
   for (const row of rows) {
     const found = (row.sets ?? []).find((e) => e.exercise.trim().toLowerCase() === key);
     if (found && found.sets.length > 0) {
@@ -378,13 +497,7 @@ export async function getLastSetsForExercise(exercise: string) {
 
 /** ชื่อท่าที่เคยบันทึก เรียงจากที่ใช้ล่าสุด ใช้เป็นตัวช่วยเลือกตอนพิมพ์ */
 export async function getRecentExerciseNames(limit = 20) {
-  const rows = await db
-    .select({ sets: workouts.sets })
-    .from(workouts)
-    .where(eq(workouts.category, 'strength'))
-    .orderBy(desc(workouts.performedAt))
-    .limit(60);
-
+  const rows = await getStrengthSessions(60);
   const seen = new Set<string>();
   const out: string[] = [];
   for (const row of rows) {
@@ -400,7 +513,59 @@ export async function getRecentExerciseNames(limit = 20) {
   return out;
 }
 
-// ---------- กินซ้ำ / รายการล่าสุด / มื้อชุด ----------
+// ---------- น้ำหนักและสัดส่วนสำหรับกราฟเทรนด์ ----------
+
+/** น้ำหนักตั้งแต่วันที่กำหนด เรียงเก่าไปใหม่ตามแกนกราฟ */
+export async function getWeightsSince(fromLocalDate: string) {
+  return db
+    .select()
+    .from(weights)
+    .where(gte(weights.localDate, fromLocalDate))
+    .orderBy(weights.localDate);
+}
+
+export interface MeasurementInput {
+  waistCm?: number | null;
+  chestCm?: number | null;
+  hipCm?: number | null;
+  armCm?: number | null;
+  thighCm?: number | null;
+}
+
+export async function getLatestMeasurement() {
+  const rows = await db.select().from(measurements).orderBy(desc(measurements.localDate)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getMeasurementsSince(fromLocalDate: string) {
+  return db
+    .select()
+    .from(measurements)
+    .where(gte(measurements.localDate, fromLocalDate))
+    .orderBy(measurements.localDate);
+}
+
+export async function addOrUpdateMeasurementToday(input: MeasurementInput) {
+  const localDate = localDateString();
+  const id = `m_${localDate}`;
+  const now = new Date();
+  const values = {
+    waistCm: input.waistCm ?? null,
+    chestCm: input.chestCm ?? null,
+    hipCm: input.hipCm ?? null,
+    armCm: input.armCm ?? null,
+    thighCm: input.thighCm ?? null,
+  };
+  await db
+    .insert(measurements)
+    .values({ id, ...values, localDate, recordedAt: now })
+    .onConflictDoUpdate({
+      target: measurements.localDate,
+      set: { ...values, recordedAt: now },
+    });
+}
+
+// ---------- ซ้ำทั้งมื้อ และมื้อชุด ----------
 
 /** ใส่หลายรายการในครั้งเดียว — index อยู่ใน id ด้วยเพื่อไม่ให้ชนกันภายในชุดเดียว */
 export async function addMealEntries(entries: NewMealEntry[]) {
@@ -421,6 +586,7 @@ export async function addMealEntries(entries: NewMealEntry[]) {
       fatG: entry.fatG,
       estimated: entry.estimated ?? false,
       note: entry.note,
+      photoUri: entry.photoUri ?? null,
       loggedAt: now,
       localDate,
     }))
@@ -432,18 +598,14 @@ export async function addMealEntries(entries: NewMealEntry[]) {
  * คัดลอกมื้อจากวันก่อนมาลงวันนี้
  * คัดลอกค่าที่คำนวณไว้แล้วตรง ๆ ไม่คำนวณใหม่จาก foods เพราะปริมาณที่กินจริงอยู่ในแถวเดิม
  */
-export async function repeatMealsFrom(
-  fromLocalDate: string,
-  mealType: MealType,
-  toMealType: MealType = mealType
-) {
+export async function repeatMealsFrom(fromLocalDate: string, mealType: MealType) {
   const rows = await getMealEntriesForDate(fromLocalDate);
   const source = rows.filter((r) => r.mealType === mealType);
   return addMealEntries(
     source.map((r) => ({
       foodId: r.foodId,
       name: r.name,
-      mealType: toMealType,
+      mealType,
       amountG: r.amountG,
       kcal: r.kcal,
       proteinG: r.proteinG,
@@ -455,52 +617,6 @@ export async function repeatMealsFrom(
   );
 }
 
-export interface RecentFood {
-  foodId: string | null;
-  name: string;
-  amountG: number;
-  kcal: number;
-  proteinG: number;
-  carbG: number;
-  fatG: number;
-  estimated: boolean;
-  lastMealType: MealType;
-}
-
-/**
- * อาหารที่เพิ่งกิน เก็บปริมาณครั้งล่าสุดไว้ด้วย จะได้กดครั้งเดียวแล้วบันทึกได้เลย
- * ดึงมา 150 แถวแล้วตัดชื่อซ้ำใน JS แทนการ group by ใน SQL
- * เพราะ SQLite ต้องพึ่งพฤติกรรม bare column กับ max() ซึ่งอ่านยากและพลาดง่าย
- */
-export async function getRecentFoods(limit = 20): Promise<RecentFood[]> {
-  const rows = await db
-    .select()
-    .from(mealEntries)
-    .orderBy(desc(mealEntries.loggedAt))
-    .limit(150);
-
-  const seen = new Set<string>();
-  const out: RecentFood[] = [];
-  for (const r of rows) {
-    const key = `${r.foodId ?? ''}|${r.name.trim().toLowerCase()}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push({
-      foodId: r.foodId,
-      name: r.name,
-      amountG: r.amountG,
-      kcal: r.kcal,
-      proteinG: r.proteinG,
-      carbG: r.carbG,
-      fatG: r.fatG,
-      estimated: !!r.estimated,
-      lastMealType: r.mealType as MealType,
-    });
-    if (out.length >= limit) break;
-  }
-  return out;
-}
-
 export async function getMealTemplates() {
   return db
     .select()
@@ -508,29 +624,8 @@ export async function getMealTemplates() {
     .orderBy(desc(mealTemplates.useCount), desc(mealTemplates.createdAt));
 }
 
-export async function createMealTemplate(input: {
-  name: string;
-  mealType: MealType | null;
-  items: TemplateItem[];
-}) {
-  const id = `tpl_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
-  await db.insert(mealTemplates).values({
-    id,
-    name: input.name,
-    mealType: input.mealType,
-    items: input.items,
-    useCount: 0,
-    createdAt: new Date(),
-  });
-  return id;
-}
-
 /** สร้างมื้อชุดจากมื้อที่บันทึกไว้แล้วของวันหนึ่ง */
-export async function createTemplateFromMeal(
-  name: string,
-  localDate: string,
-  mealType: MealType
-) {
+export async function createTemplateFromMeal(name: string, localDate: string, mealType: MealType) {
   const rows = await getMealEntriesForDate(localDate);
   const items: TemplateItem[] = rows
     .filter((r) => r.mealType === mealType)
@@ -544,7 +639,17 @@ export async function createTemplateFromMeal(
       fatG: r.fatG,
     }));
   if (items.length === 0) return null;
-  return createMealTemplate({ name, mealType, items });
+
+  const id = `tpl_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
+  await db.insert(mealTemplates).values({
+    id,
+    name,
+    mealType,
+    items,
+    useCount: 0,
+    createdAt: new Date(),
+  });
+  return id;
 }
 
 export async function applyMealTemplate(id: string, mealType: MealType) {
@@ -575,65 +680,4 @@ export async function applyMealTemplate(id: string, mealType: MealType) {
 
 export async function deleteMealTemplate(id: string) {
   await db.delete(mealTemplates).where(eq(mealTemplates.id, id));
-}
-
-/**
- * เซสชันเวทย้อนหลังสำหรับคำนวณสถิติส่วนตัว
- * จำกัดจำนวนไว้เพราะสถิติคำนวณใน JS ทุกครั้งที่เปิดหน้า
- * 200 เซสชันคือประมาณสองปีถ้าเล่นสัปดาห์ละสองครั้ง
- */
-export async function getStrengthSessions(limit = 200) {
-  return db
-    .select()
-    .from(workouts)
-    .where(eq(workouts.category, 'strength'))
-    .orderBy(desc(workouts.performedAt))
-    .limit(limit);
-}
-
-// ---------- ประวัติแชต ----------
-
-export type ChatCardStatus = 'pending' | 'confirmed' | 'dismissed';
-
-export interface NewChatMessage {
-  role: 'user' | 'assistant' | 'tool';
-  content: string;
-  toolCalls?: unknown;
-  toolCallId?: string | null;
-  cardStatus?: ChatCardStatus | null;
-}
-
-export async function saveChatMessage(msg: NewChatMessage) {
-  const id = `chat_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
-  await db.insert(chatMessages).values({
-    id,
-    role: msg.role,
-    content: msg.content,
-    toolCalls: msg.toolCalls ?? null,
-    toolCallId: msg.toolCallId ?? null,
-    cardStatus: msg.cardStatus ?? null,
-    createdAt: new Date(),
-  });
-  return id;
-}
-
-/** ดึงมาแสดงย้อนหลัง แล้วกลับด้านให้เรียงจากเก่าไปใหม่ตามลำดับบทสนทนา */
-export async function getRecentChatMessages(limit = 60) {
-  const rows = await db
-    .select()
-    .from(chatMessages)
-    .orderBy(desc(chatMessages.createdAt))
-    .limit(limit);
-  return rows.reverse();
-}
-
-export async function updateChatCardStatus(toolCallId: string, status: ChatCardStatus) {
-  await db
-    .update(chatMessages)
-    .set({ cardStatus: status })
-    .where(eq(chatMessages.toolCallId, toolCallId));
-}
-
-export async function clearChatMessages() {
-  await db.delete(chatMessages);
 }
