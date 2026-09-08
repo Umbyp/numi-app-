@@ -7,10 +7,17 @@ import { MacroBar } from '../../components/macro-bar';
 import { WaterCard } from '../../components/water-card';
 import { GoalIcon, FoodIcon, ActivityIcon } from '../../components/icons/nav-icons';
 import { DayTypeIcon, dayTypeTint } from '../../components/icons/workout-icons';
-import { Mascot } from '../../components/mascot';
+import { MascotGreeting } from '../../components/mascot-greeting';
+import { CalorieCardSkeleton } from '../../components/skeleton';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { useNumiStore, sumTotals } from '../../lib/store';
-import { getWorkoutsForDate, getWorkoutPlans, getWorkoutPlanCompletions } from '../../lib/db/queries';
+import {
+  getWorkoutsForDate,
+  getWorkoutPlans,
+  getWorkoutPlanCompletions,
+  getAppSetting,
+  setAppSetting,
+} from '../../lib/db/queries';
 import type { WorkoutPlanDay } from '../../lib/db/schema';
 import { localDateString, calcBMI, bmiCategory } from '../../lib/nutrition';
 import { type } from '../../lib/fonts';
@@ -29,8 +36,10 @@ export default function DashboardScreen() {
   const c = useTheme();
   const scheme = useScheme();
   const router = useRouter();
-  const { profile, latestWeightKg, todayEntries, goals, refresh } = useNumiStore();
+  const { loaded, profile, latestWeightKg, todayEntries, goals, refresh } = useNumiStore();
   const [activityKcal, setActivityKcal] = useState(0);
+  /** วันที่ที่ฉลองเข้าเป้าไปแล้ว กันแอนิเมชันเด้งซ้ำทุกครั้งที่กลับมาหน้านี้ */
+  const [celebratedDate, setCelebratedDate] = useState<string | null>(null);
   const [suggestedWorkout, setSuggestedWorkout] = useState<{
     planId: string;
     planTitle: string;
@@ -43,6 +52,7 @@ export default function DashboardScreen() {
       getWorkoutsForDate(localDateString()).then((rows) => {
         setActivityKcal(rows.reduce((s, w) => s + w.kcalBurned, 0));
       });
+      getAppSetting('celebrated_date').then(setCelebratedDate);
       getWorkoutPlans().then(async (plans) => {
         if (plans.length === 0) {
           setSuggestedWorkout(null);
@@ -75,8 +85,22 @@ export default function DashboardScreen() {
             <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>{thaiDate()}</Text>
             <Text style={[type.greeting, { color: c.text, fontSize: 24 }]}>แดชบอร์ด</Text>
           </View>
-          <Mascot size={44} />
         </View>
+
+        {loaded && (
+          <MascotGreeting
+            hasAnyLog={todayEntries.length > 0 || activityKcal > 0}
+            consumedKcal={totals.kcal}
+            targetKcal={targetKcal}
+            allowCelebrate={celebratedDate !== localDateString()}
+            onCelebrated={() => {
+              const today = localDateString();
+              setCelebratedDate(today);
+              setAppSetting('celebrated_date', today);
+            }}
+            onPress={() => router.push('/chat')}
+          />
+        )}
 
         {!profile && (
           <Pressable
@@ -91,10 +115,16 @@ export default function DashboardScreen() {
         )}
 
         <View style={cardStyle}>
+          {!loaded ? (
+            <CalorieCardSkeleton />
+          ) : (
+          <>
           <View style={styles.cardHeaderRow}>
             <View style={{ flex: 1 }}>
               <Text style={[type.cardTitle, { color: c.text, fontSize: 17 }]}>แคลอรี่</Text>
-              <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>ที่ควรได้รับ = เป้าหมาย − อาหาร + กิจกรรม</Text>
+              <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>
+                รวมแคลอรี่ที่ออกกำลังกายเผาไปแล้ว
+              </Text>
             </View>
           </View>
 
@@ -113,6 +143,8 @@ export default function DashboardScreen() {
             <MacroBar label="คาร์บ" colorKey="carb" currentG={totals.carbG} targetG={goals?.carbG ?? 0} compact />
             <MacroBar label="ไขมัน" colorKey="fat" currentG={totals.fatG} targetG={goals?.fatG ?? 0} compact />
           </View>
+          </>
+          )}
         </View>
 
         <WaterCard />

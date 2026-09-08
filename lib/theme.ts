@@ -17,9 +17,10 @@ export const colors = {
     protein: '#F2545B',
     proteinBg: 'rgba(242,84,91,0.12)',
     proteinText: '#CE454C',
-    carb: '#2E7DF7',
-    carbBg: 'rgba(46,125,247,0.12)',
-    carbText: '#2E7DF7',
+    // คาร์บต้องไม่ใช่สีเดียวกับ brand ไม่งั้นแถบข้อมูลกับปุ่มที่กดได้จะแยกไม่ออก
+    carb: '#12A594',
+    carbBg: 'rgba(18,165,148,0.12)',
+    carbText: '#0E8577',
     fat: '#F5B93C',
     fatBg: 'rgba(245,185,60,0.18)',
     fatText: '#B3801F',
@@ -50,9 +51,9 @@ export const colors = {
     protein: '#FF6B72',
     proteinBg: 'rgba(255,107,114,0.18)',
     proteinText: '#FF8B91',
-    carb: '#5C9BFF',
-    carbBg: 'rgba(92,155,255,0.18)',
-    carbText: '#7FB1FF',
+    carb: '#2DD4BF',
+    carbBg: 'rgba(45,212,191,0.18)',
+    carbText: '#5EEAD4',
     fat: '#FFC85C',
     fatBg: 'rgba(255,200,92,0.18)',
     fatText: '#FFD180',
@@ -79,9 +80,14 @@ export const radius = {
   pill: 18,
   row: 18,
   iconBox: 14,
+  /** การ์ดที่ซ้อนอยู่ในการ์ด — เดิมกระจายเป็น radius.card - 6 / - 8 คิดเลขหน้างานจนไม่ตรงกันข้ามหน้า */
+  cardInner: 18,
   card: 26,
   fab: 30,
 } as const;
+
+/** เป้ากดขั้นต่ำตามเกณฑ์ iOS (44) และ Android (48) — ใช้กับปุ่มไอคอนทุกตัว */
+export const MIN_TOUCH = 44;
 
 // spacing scale 4 · 6 · 8 · 12 · 16 · 24 · 32
 export const space = [4, 6, 8, 12, 16, 24, 32] as const;

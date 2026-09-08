@@ -1,18 +1,20 @@
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, FlatList, StyleSheet } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { View, Text, Pressable, FlatList, StyleSheet, Alert } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X } from 'lucide-react-native';
+import { Trash2 } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
 import { getWorkoutHistory, deleteWorkout, getStrengthSessions } from '../lib/db/queries';
 import { buildRecords, type ExerciseRecord, type SessionLike } from '../lib/strength';
 import { type } from '../lib/fonts';
-import { radius } from '../lib/theme';
+import { radius, MIN_TOUCH } from '../lib/theme';
+import { EmptyState } from '../components/empty-state';
 
 const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
 export default function ActivityHistoryScreen() {
   const c = useTheme();
+  const router = useRouter();
   const [history, setHistory] = useState<Awaited<ReturnType<typeof getWorkoutHistory>>>([]);
   const [records, setRecords] = useState<ExerciseRecord[]>([]);
 
@@ -30,9 +32,18 @@ export default function ActivityHistoryScreen() {
 
   useFocusEffect(load);
 
-  async function handleDelete(id: string) {
-    await deleteWorkout(id);
-    load();
+  function handleDelete(id: string, name: string) {
+    Alert.alert('ลบรายการนี้', `ลบ "${name}" ออกจากประวัติ? แคลอรี่ของวันนั้นจะถูกคำนวณใหม่`, [
+      { text: 'ยกเลิก', style: 'cancel' },
+      {
+        text: 'ลบ',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteWorkout(id);
+          load();
+        },
+      },
+    ]);
   }
 
   return (
@@ -71,7 +82,12 @@ export default function ActivityHistoryScreen() {
           )
         }
         ListEmptyComponent={
-          <Text style={[type.label, { color: c.subtext, textAlign: 'center', marginTop: 24 }]}>ยังไม่มีประวัติการออกกำลังกาย</Text>
+          <EmptyState
+            title="ยังไม่มีประวัติการออกกำลังกาย"
+            description="บันทึกครั้งแรกแล้วหน้านี้จะเริ่มเก็บสถิติ 1RM กับน้ำหนักสูงสุดของแต่ละท่าให้"
+            actionLabel="บันทึกการออกกำลังกาย"
+            onAction={() => router.push('/log-workout')}
+          />
         }
         renderItem={({ item }) => {
           const d = new Date(`${item.localDate}T00:00:00`);
@@ -85,8 +101,8 @@ export default function ActivityHistoryScreen() {
                 </Text>
               </View>
               <Text style={[type.cardTitle, { color: c.dinner, fontSize: 15 }]}>-{Math.round(item.kcalBurned)}</Text>
-              <Pressable hitSlop={10} onPress={() => handleDelete(item.id)}>
-                <X size={16} color={c.faint} />
+              <Pressable style={styles.deleteBtn} onPress={() => handleDelete(item.id, item.name)}>
+                <Trash2 size={15} color={c.faint} />
               </Pressable>
             </View>
           );
@@ -100,6 +116,7 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: 18, paddingTop: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   iconDot: { width: 10, height: 10, borderRadius: radius.badge / 2 },
+  deleteBtn: { width: MIN_TOUCH, height: MIN_TOUCH, alignItems: 'center', justifyContent: 'center' },
   records: { gap: 6, paddingBottom: 14 },
   recordRow: {
     flexDirection: 'row',

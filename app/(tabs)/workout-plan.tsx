@@ -1,19 +1,19 @@
 import { useCallback, useMemo, useState } from 'react';
-import { View, Text, Pressable, FlatList, StyleSheet } from 'react-native';
+import { View, Text, Pressable, FlatList, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X } from 'lucide-react-native';
+import { Trash2 } from 'lucide-react-native';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { getWorkoutPlans, deleteWorkoutPlan, getWorkoutHistory, getWorkoutPlanCompletionsInRange } from '../../lib/db/queries';
 import type { WorkoutPlanDay } from '../../lib/db/schema';
 import { DayTypeIcon, dayTypeTint } from '../../components/icons/workout-icons';
 import { WorkoutHistoryStrip } from '../../components/workout-history-strip';
-import { Mascot } from '../../components/mascot';
+import { EmptyState } from '../../components/empty-state';
 import { localDateString } from '../../lib/nutrition';
 import { calcStreak, calcWeekCompletionCount, calcMuscleBalance } from '../../lib/workout-stats';
 import { MUSCLE_GROUPS } from '../../lib/met';
 import { type } from '../../lib/fonts';
-import { radius, cardShadow } from '../../lib/theme';
+import { radius, cardShadow, MIN_TOUCH } from '../../lib/theme';
 
 const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
@@ -72,9 +72,19 @@ export default function WorkoutPlanScreen() {
   const streak = useMemo(() => calcStreak(workoutDates), [workoutDates]);
   const weekCount = useMemo(() => calcWeekCompletionCount(workoutDates, thisWeekDates()), [workoutDates]);
 
-  async function handleDelete(id: string) {
-    await deleteWorkoutPlan(id);
-    load();
+  /** ถามก่อนลบ — ปุ่มอยู่ติดพื้นที่กดเข้าดูรายละเอียด กดพลาดแล้วแผนทั้งแผนหายกู้ไม่ได้ */
+  function handleDelete(id: string, title: string) {
+    Alert.alert('ลบแผนนี้', `ลบ "${title}" ทิ้ง? ประวัติที่เคยทำตามแผนจะยังอยู่`, [
+      { text: 'ยกเลิก', style: 'cancel' },
+      {
+        text: 'ลบ',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteWorkoutPlan(id);
+          load();
+        },
+      },
+    ]);
   }
 
   return (
@@ -123,13 +133,12 @@ export default function WorkoutPlanScreen() {
           </>
         }
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Mascot size={56} />
-            <Text style={[type.cardTitle, { color: c.text, textAlign: 'center' }]}>ยังไม่มีแผนออกกำลังกาย</Text>
-            <Text style={[type.label, { color: c.subtext, textAlign: 'center' }]}>
-              ลองขอให้ Numi ในแชทออกแบบให้เหมาะกับตัวคุณดูสิ
-            </Text>
-          </View>
+          <EmptyState
+            title="ยังไม่มีแผนออกกำลังกาย"
+            description="บอก Numi ว่าอยากเล่นกี่วันต่อสัปดาห์ มีอุปกรณ์อะไร แล้วให้มันจัดตารางให้"
+            actionLabel="ให้ Numi จัดแผนให้"
+            onAction={() => router.push('/chat')}
+          />
         }
         renderItem={({ item }) => {
           const d = new Date(item.createdAt);
@@ -154,8 +163,11 @@ export default function WorkoutPlanScreen() {
                     </Text>
                   </View>
                 </Pressable>
-                <Pressable hitSlop={10} style={[styles.deleteBtn, { backgroundColor: c.surfaceAlt }]} onPress={() => handleDelete(item.id)}>
-                  <X size={15} color={c.faint} />
+                <Pressable
+                  style={[styles.deleteBtn, { backgroundColor: c.surfaceAlt }]}
+                  onPress={() => handleDelete(item.id, item.title)}
+                >
+                  <Trash2 size={15} color={c.faint} />
                 </Pressable>
               </View>
             </View>
@@ -173,7 +185,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14 },
   rowMain: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconBox: { width: 44, height: 44, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
-  deleteBtn: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  deleteBtn: { width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: MIN_TOUCH / 2, alignItems: 'center', justifyContent: 'center' },
   emptyState: { alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 60, paddingHorizontal: 32 },
   statsCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 12, marginBottom: 14 },
   statsRow: { flexDirection: 'row', gap: 24 },

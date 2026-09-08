@@ -24,7 +24,7 @@ interface TabBarProps {
   navigation: any;
 }
 
-/** แถบแท็บล่างแบบกำหนดเอง 5 ช่องเท่ากันหมด — ปุ่มเพิ่มด่วน/AI ลอยแยกอยู่นอกแถบ (ดู floating-quickadd-button.tsx, floating-ai-button.tsx) เพื่อให้แถบสมดุล ไม่มีช่องพิเศษมาเบียดซ้าย-ขวา */
+/** แถบแท็บล่างแบบกำหนดเอง 5 ช่องเท่ากันหมด — ปุ่มเพิ่มด่วนลอยอยู่นอกแถบ (ดู floating-quickadd-button.tsx) เพื่อให้แถบสมดุล ไม่มีช่องพิเศษมาเบียดซ้าย-ขวา */
 export function CustomTabBar({ state, navigation }: TabBarProps) {
   const c = useTheme();
   const insets = useSafeAreaInsets();

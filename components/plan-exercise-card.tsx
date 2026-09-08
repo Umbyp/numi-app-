@@ -125,7 +125,7 @@ export function PlanExerciseCard({ exercise, done, onToggleSet, onRest, onEdit }
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: radius.card - 8, padding: 12, gap: 9 },
+  card: { borderRadius: radius.cardInner, padding: 12, gap: 9 },
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   iconBox: { width: 34, height: 34, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
   // minWidth 0 จำเป็นกับ flex child ที่มีข้อความยาว ไม่งั้นมันไม่ยอมหดแล้วดันตัวอื่นล้น

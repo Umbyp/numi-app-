@@ -222,10 +222,10 @@ const styles = StyleSheet.create({
   askBtn: { height: 36, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   grid: { flexDirection: 'row', gap: 8 },
   gridBtn: { flex: 1, alignItems: 'center', gap: 8 },
-  gridIcon: { width: '100%', height: 70, borderRadius: radius.card - 6, alignItems: 'center', justifyContent: 'center' },
+  gridIcon: { width: '100%', height: 70, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   frequentRow: { flexDirection: 'row', gap: 8 },
-  frequentCard: { flex: 1, height: 56, borderRadius: radius.card - 8, padding: 12, justifyContent: 'center', gap: 4 },
+  frequentCard: { flex: 1, height: 56, borderRadius: radius.cardInner, padding: 12, justifyContent: 'center', gap: 4 },
   frequentTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   footerRow: { flexDirection: 'row', gap: 8 },
-  footerBtn: { flex: 1, height: 52, borderRadius: radius.card - 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+  footerBtn: { flex: 1, height: 52, borderRadius: radius.cardInner, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
 });

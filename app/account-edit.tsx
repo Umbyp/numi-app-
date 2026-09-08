@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
   radio: { width: 16, height: 16, borderRadius: 8, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   radioDot: { width: 8, height: 8, borderRadius: 4 },
   rateRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  choiceCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card - 6, padding: 14, gap: 4 },
+  choiceCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.cardInner, padding: 14, gap: 4 },
   macroRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   recommendBtn: {
     flexDirection: 'row',

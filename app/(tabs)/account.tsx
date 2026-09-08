@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   headerCard: { flexDirection: 'row', alignItems: 'center', gap: 13, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16 },
   editPill: { height: 34, paddingHorizontal: 13, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   statRow: { flexDirection: 'row', gap: 9 },
-  statCard: { flex: 1, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card - 6, padding: 13, gap: 2 },
+  statCard: { flex: 1, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.cardInner, padding: 13, gap: 2 },
   listCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 52, paddingHorizontal: 16 },
   rowIcon: { width: 30, height: 30, borderRadius: 11 },

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
@@ -16,6 +16,7 @@ import { dateAxis } from '../lib/dates';
 import { TrendChart } from '../components/trend-chart';
 import { type } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
+import { EmptyState } from '../components/empty-state';
 
 const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 const RANGES = [30, 90, 180] as const;
@@ -34,6 +35,7 @@ type MeasureKey = (typeof MEASURE_FIELDS)[number][0];
 export default function WeightHistoryScreen() {
   const c = useTheme();
   const scheme = useScheme();
+  const router = useRouter();
 
   const [history, setHistory] = useState<Awaited<ReturnType<typeof getWeightHistory>>>([]);
   const [weightRows, setWeightRows] = useState<{ localDate: string; weightKg: number }[]>([]);
@@ -130,7 +132,12 @@ export default function WeightHistoryScreen() {
           keyboardShouldPersistTaps="handled"
           ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: c.line }} />}
           ListEmptyComponent={
-            <Text style={[type.label, { color: c.subtext, textAlign: 'center', marginTop: 24 }]}>ยังไม่มีประวัติน้ำหนัก</Text>
+            <EmptyState
+              title="ยังไม่มีประวัติน้ำหนัก"
+              description="ชั่งเวลาเดิมทุกวันสัก 2 สัปดาห์ แล้วเส้นค่าเฉลี่ยจะเริ่มบอกเทรนด์จริงได้"
+              actionLabel="บันทึกน้ำหนักวันนี้"
+              onAction={() => router.push('/account-edit')}
+            />
           }
           ListHeaderComponent={
             <View style={styles.header}>

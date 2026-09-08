@@ -10,6 +10,7 @@ import { localDateString, calcWeightProgress } from '../../lib/nutrition';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
 import { Mascot } from '../../components/mascot';
+import { EmptyState } from '../../components/empty-state';
 
 const DAY_LETTERS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 const PERIODS = [
@@ -53,6 +54,7 @@ export default function InsightsScreen() {
   }, [days]);
 
   const maxKcal = Math.max(2000, ...days.map((d) => d.kcal), 1);
+  const hasMealData = days.some((d) => d.kcal > 0);
 
   const insightText = useMemo(() => {
     const target = goals?.proteinG ?? 0;
@@ -95,6 +97,16 @@ export default function InsightsScreen() {
         </ScrollView>
 
         <View style={cardStyle}>
+          {!hasMealData ? (
+            <EmptyState
+              title="ยังไม่มีข้อมูลของช่วงนี้"
+              description="บันทึกอาหารสัก 2-3 วัน แล้วกราฟกับข้อสังเกตจะเริ่มมีความหมาย"
+              actionLabel="ไปบันทึกอาหาร"
+              onAction={() => router.push('/add-food')}
+              mascotSize={48}
+            />
+          ) : (
+          <>
           <View style={styles.rowBetween}>
             <View>
               <Text style={[type.cardTitle, { color: c.text, fontSize: 14 }]}>แคลอรี่ที่ได้รับ</Text>
@@ -133,6 +145,8 @@ export default function InsightsScreen() {
             <Mascot size={40} />
             <Text style={[type.row, { color: c.text, fontSize: 12, flex: 1, lineHeight: 18 }]}>{insightText}</Text>
           </View>
+          </>
+          )}
         </View>
 
         <View style={cardStyle}>
@@ -157,7 +171,7 @@ export default function InsightsScreen() {
               <View style={styles.rowBetween}>
                 <Text style={[type.label, { color: c.subtext, fontSize: 12 }]}>
                   {weightProgress.reachedGoal
-                    ? 'ถึงเป้าหมายแล้ว 🎉'
+                    ? 'ถึงเป้าหมายแล้ว'
                     : `เหลืออีก ${weightProgress.remainingKg.toFixed(1)} กก. ถึงเป้าหมาย ${goalWeight!.toFixed(1)} กก.`}
                 </Text>
                 <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>{Math.round(weightProgress.progressPct)}%</Text>
@@ -225,7 +239,7 @@ const styles = StyleSheet.create({
   chartRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 140 },
   barCol: { flex: 1, alignItems: 'center', gap: 6 },
   barStack: { width: '100%', flexDirection: 'column-reverse', borderRadius: 6, overflow: 'hidden' },
-  calloutRow: { flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: radius.card - 8, padding: 12 },
+  calloutRow: { flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: radius.cardInner, padding: 12 },
   progressTrack: { height: 8, borderRadius: radius.pill, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: radius.pill },
 });

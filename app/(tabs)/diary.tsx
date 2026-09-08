@@ -24,7 +24,7 @@ import { FadeInView } from '../../components/fade-in';
 import { DatePickerModal } from '../../components/date-picker-modal';
 import { MealTemplateSheet } from '../../components/meal-template-sheet';
 import { type } from '../../lib/fonts';
-import { radius, cardShadow } from '../../lib/theme';
+import { radius, cardShadow, MIN_TOUCH } from '../../lib/theme';
 
 const DAY_LABELS = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
 
@@ -191,8 +191,8 @@ export default function DiaryScreen() {
                       </Text>
                       <Text style={[type.row, { color: c.subtext, fontSize: 12 }]}>{Math.round(e.kcal)}</Text>
                       {isToday && (
-                        <Pressable hitSlop={8} onPress={() => handleDeleteEntry(e.id)}>
-                          <X size={14} color={c.faint} />
+                        <Pressable style={styles.rowDeleteBtn} onPress={() => handleDeleteEntry(e.id)}>
+                          <X size={15} color={c.faint} />
                         </Pressable>
                       )}
                     </FadeInView>
@@ -290,19 +290,21 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   datePill: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40, paddingHorizontal: 14, borderRadius: radius.pill },
   weekRow: { flexDirection: 'row', gap: 2 },
-  dayCol: { flex: 1, height: 70, borderRadius: radius.card - 6, alignItems: 'center', justifyContent: 'center', gap: 5 },
+  dayCol: { flex: 1, height: 70, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center', gap: 5 },
   dayCircle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 10 },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  mealCard: { borderRadius: radius.card - 6, padding: 12, gap: 9 },
+  mealCard: { borderRadius: radius.cardInner, padding: 12, gap: 9 },
   mealHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   mealIcon: { width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   addPill: { height: 28, paddingHorizontal: 11, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  mealFoodRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  mealFoodRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // เป้ากดตามเกณฑ์ขั้นต่ำ ของเดิมไอคอน 14px + hitSlop 8 ได้แค่ 30px
+  rowDeleteBtn: { width: MIN_TOUCH, height: MIN_TOUCH, alignItems: 'center', justifyContent: 'center' },
   shortcutRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', paddingLeft: 35 },
   shortcutPill: { height: 26, paddingHorizontal: 10, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   divider: { height: 1, marginVertical: 2 },
   statRow: { flexDirection: 'row', gap: 8 },
-  statCard: { flex: 1, borderRadius: radius.card - 6, padding: 12, gap: 3 },
+  statCard: { flex: 1, borderRadius: radius.cardInner, padding: 12, gap: 3 },
   statLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

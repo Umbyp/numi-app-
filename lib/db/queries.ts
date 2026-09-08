@@ -752,3 +752,16 @@ export async function saveReminderSetting(key: string, setting: ReminderSetting)
       set: { value: JSON.stringify(setting) },
     });
 }
+
+/** ค่าตั้งทั่วไปใน app_settings — ใช้จำว่าฉลองของวันไหนไปแล้ว ฯลฯ */
+export async function getAppSetting(key: string): Promise<string | null> {
+  const rows = await db.select().from(appSettings).where(eq(appSettings.key, key));
+  return rows[0]?.value ?? null;
+}
+
+export async function setAppSetting(key: string, value: string) {
+  await db
+    .insert(appSettings)
+    .values({ key, value })
+    .onConflictDoUpdate({ target: appSettings.key, set: { value } });
+}
