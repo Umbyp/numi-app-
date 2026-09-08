@@ -8,6 +8,7 @@ import {
   measurements,
   workouts,
   mealTemplates,
+  chatMessages,
 } from './schema';
 import { localDateString } from '../nutrition';
 import type { ExerciseSet, TemplateItem } from './schema';
@@ -574,4 +575,65 @@ export async function applyMealTemplate(id: string, mealType: MealType) {
 
 export async function deleteMealTemplate(id: string) {
   await db.delete(mealTemplates).where(eq(mealTemplates.id, id));
+}
+
+/**
+ * เซสชันเวทย้อนหลังสำหรับคำนวณสถิติส่วนตัว
+ * จำกัดจำนวนไว้เพราะสถิติคำนวณใน JS ทุกครั้งที่เปิดหน้า
+ * 200 เซสชันคือประมาณสองปีถ้าเล่นสัปดาห์ละสองครั้ง
+ */
+export async function getStrengthSessions(limit = 200) {
+  return db
+    .select()
+    .from(workouts)
+    .where(eq(workouts.category, 'strength'))
+    .orderBy(desc(workouts.performedAt))
+    .limit(limit);
+}
+
+// ---------- ประวัติแชต ----------
+
+export type ChatCardStatus = 'pending' | 'confirmed' | 'dismissed';
+
+export interface NewChatMessage {
+  role: 'user' | 'assistant' | 'tool';
+  content: string;
+  toolCalls?: unknown;
+  toolCallId?: string | null;
+  cardStatus?: ChatCardStatus | null;
+}
+
+export async function saveChatMessage(msg: NewChatMessage) {
+  const id = `chat_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
+  await db.insert(chatMessages).values({
+    id,
+    role: msg.role,
+    content: msg.content,
+    toolCalls: msg.toolCalls ?? null,
+    toolCallId: msg.toolCallId ?? null,
+    cardStatus: msg.cardStatus ?? null,
+    createdAt: new Date(),
+  });
+  return id;
+}
+
+/** ดึงมาแสดงย้อนหลัง แล้วกลับด้านให้เรียงจากเก่าไปใหม่ตามลำดับบทสนทนา */
+export async function getRecentChatMessages(limit = 60) {
+  const rows = await db
+    .select()
+    .from(chatMessages)
+    .orderBy(desc(chatMessages.createdAt))
+    .limit(limit);
+  return rows.reverse();
+}
+
+export async function updateChatCardStatus(toolCallId: string, status: ChatCardStatus) {
+  await db
+    .update(chatMessages)
+    .set({ cardStatus: status })
+    .where(eq(chatMessages.toolCallId, toolCallId));
+}
+
+export async function clearChatMessages() {
+  await db.delete(chatMessages);
 }

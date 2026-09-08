@@ -37,6 +37,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="add-food" options={{ presentation: 'modal', headerShown: true, title: 'เพิ่มอาหาร' }} />
         <Stack.Screen name="day/[date]" options={{ headerShown: true, title: 'รายละเอียดวัน' }} />
+        <Stack.Screen name="exercise/[name]" options={{ headerShown: true, title: 'สถิติท่าเวท' }} />
         <Stack.Screen
           name="save-template"
           options={{ presentation: 'modal', headerShown: true, title: 'บันทึกเป็นมื้อชุด' }}

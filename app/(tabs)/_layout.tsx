@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Utensils, Dumbbell, TrendingUp, UserRound } from 'lucide-react-native';
+import { Utensils, Sparkles, Dumbbell, TrendingUp, UserRound } from 'lucide-react-native';
 import { useTheme } from '../../lib/hooks/use-theme';
 
 export default function TabsLayout() {
@@ -18,6 +18,13 @@ export default function TabsLayout() {
         options={{
           title: 'วันนี้',
           tabBarIcon: ({ color, size }) => <Utensils color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: 'ผู้ช่วย',
+          tabBarIcon: ({ color, size }) => <Sparkles color={color} size={size} />,
         }}
       />
       <Tabs.Screen

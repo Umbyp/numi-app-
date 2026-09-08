@@ -15,9 +15,23 @@ import { Plus, X } from 'lucide-react-native';
 import { RestTimer } from '../components/rest-timer';
 import { useTheme } from '../lib/hooks/use-theme';
 import { useNumiStore } from '../lib/store';
-import { addWorkout, getLastSetsForExercise, getRecentExerciseNames } from '../lib/db/queries';
+import {
+  addWorkout,
+  getLastSetsForExercise,
+  getRecentExerciseNames,
+  getStrengthSessions,
+} from '../lib/db/queries';
 import { calcKcalBurned } from '../lib/nutrition';
 import { findActivity } from '../lib/mets';
+import {
+  bestSetBy1RM,
+  exerciseVolume,
+  findNewRecords,
+  is1RMReliable,
+  RECORD_LABELS,
+  RELIABLE_REPS,
+  type SessionLike,
+} from '../lib/strength';
 import { formatDayRelative } from '../lib/dates';
 import type { ExerciseSet } from '../lib/db/schema';
 
@@ -146,6 +160,15 @@ export default function LogStrengthScreen() {
     }
     setSaving(true);
     try {
+      // ต้องอ่านประวัติก่อนบันทึก ไม่งั้นเซสชันนี้จะกลายเป็นคู่เทียบของตัวเอง
+      const history = await getStrengthSessions();
+      const asLike: SessionLike[] = history.map((h) => ({
+        id: h.id,
+        localDate: h.localDate,
+        sets: h.sets ?? null,
+      }));
+      const records = findNewRecords(cleaned, asLike);
+
       await addWorkout({
         name: 'เวทเทรนนิ่ง',
         category: 'strength',
@@ -155,7 +178,19 @@ export default function LogStrengthScreen() {
         sets: cleaned,
       });
       await refresh();
-      router.back();
+
+      if (records.length > 0) {
+        const lines = records.map((r) => {
+          const value = r.kind === 'volume' ? Math.round(r.value).toLocaleString() : r.value.toFixed(1);
+          const from = r.previous > 0
+            ? ` (เดิม ${r.kind === 'volume' ? Math.round(r.previous).toLocaleString() : r.previous.toFixed(1)})`
+            : ' (ครั้งแรก)';
+          return `${r.exercise} · ${RECORD_LABELS[r.kind]} ${value} kg${from}`;
+        });
+        Alert.alert('สถิติใหม่', lines.join('\n'), [{ text: 'เยี่ยม', onPress: () => router.back() }]);
+      } else {
+        router.back();
+      }
     } finally {
       setSaving(false);
     }
@@ -226,6 +261,24 @@ export default function LogStrengthScreen() {
             {ex.lastHint && (
               <Text style={{ color: c.subtext, fontSize: 11.5 }}>{ex.lastHint}</Text>
             )}
+
+            {(() => {
+              const parsed = cleaned.find(
+                (x) => x.exercise.toLowerCase() === ex.exercise.toLowerCase()
+              );
+              const best = parsed ? bestSetBy1RM(parsed.sets) : null;
+              if (!best) return null;
+              return (
+                <Text style={{ color: c.primary, fontSize: 11.5 }}>
+                  1RM ประมาณ {best.oneRm.toFixed(1)} kg (จาก {best.set.kg}×{best.set.reps})
+                  {is1RMReliable(best.set.reps)
+                    ? ''
+                    : ` · เกิน ${RELIABLE_REPS} ครั้ง ค่าประมาณจะเพี้ยนมาก`}
+                  {' · ยกรวม '}
+                  {Math.round(exerciseVolume(parsed!.sets)).toLocaleString()} kg
+                </Text>
+              );
+            })()}
 
             <View style={styles.setHeader}>
               <Text style={[styles.setCol, styles.colIdx, { color: c.subtext }]}>เซ็ต</Text>

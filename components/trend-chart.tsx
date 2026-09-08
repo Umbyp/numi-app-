@@ -11,6 +11,8 @@ interface Props {
   average: (number | null)[];
   unit: string;
   emptyText: string;
+  /** ข้อความกำกับเส้นในคำอธิบายกราฟ */
+  lineLabel?: string;
   height?: number;
 }
 
@@ -20,7 +22,14 @@ const PAD = { left: 42, right: 12, top: 12, bottom: 22 };
  * กราฟเส้นค่าเฉลี่ยเคลื่อนที่ พร้อมจุดของค่าที่ชั่งจริง
  * เส้นหนา = เทรนด์จริง, จุดจาง = ค่ารายวันที่แกว่งจากน้ำในร่างกาย ±1-2 kg
  */
-export function TrendChart({ series, average, unit, emptyText, height = 180 }: Props) {
+export function TrendChart({
+  series,
+  average,
+  unit,
+  emptyText,
+  lineLabel = 'เฉลี่ย 7 วัน',
+  height = 180,
+}: Props) {
   const c = useTheme();
   const [width, setWidth] = useState(0);
 
@@ -129,7 +138,9 @@ export function TrendChart({ series, average, unit, emptyText, height = 180 }: P
         <View style={styles.legend}>
           <View style={styles.legendItem}>
             <View style={[styles.legendLine, { backgroundColor: c.primary }]} />
-            <Text style={[styles.legendText, { color: c.subtext }]}>เฉลี่ย 7 วัน ({unit})</Text>
+            <Text style={[styles.legendText, { color: c.subtext }]}>
+              {lineLabel} ({unit})
+            </Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: c.subtext }]} />

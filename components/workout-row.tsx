@@ -2,6 +2,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Trash2 } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
 import { CATEGORY_LABELS, type WorkoutCategory } from '../lib/mets';
+import { sessionVolume } from '../lib/strength';
 import type { ExerciseSet } from '../lib/db/schema';
 
 interface Session {
@@ -19,15 +20,6 @@ interface Props {
   onDelete?: (id: string) => void;
 }
 
-/** ยอดน้ำหนักรวมที่ยกได้ในเซสชัน = ผลรวมของ kg × reps ทุกเซ็ต */
-export function totalVolume(sets: ExerciseSet[] | null): number {
-  if (!sets) return 0;
-  return sets.reduce(
-    (sum, e) => sum + e.sets.reduce((s, x) => s + x.kg * x.reps, 0),
-    0
-  );
-}
-
 export function WorkoutRow({ session, onDelete }: Props) {
   const c = useTheme();
 
@@ -36,7 +28,7 @@ export function WorkoutRow({ session, onDelete }: Props) {
   if (session.sets?.length) {
     const setCount = session.sets.reduce((s, e) => s + e.sets.length, 0);
     detail.push(`${session.sets.length} ท่า · ${setCount} เซ็ต`);
-    const vol = totalVolume(session.sets);
+    const vol = sessionVolume(session.sets);
     if (vol > 0) detail.push(`รวม ${Math.round(vol).toLocaleString()} kg`);
   }
 
