@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Utensils, UserRound } from 'lucide-react-native';
+import { Utensils, Dumbbell, TrendingUp, UserRound } from 'lucide-react-native';
 import { useTheme } from '../../lib/hooks/use-theme';
 
 export default function TabsLayout() {
@@ -18,6 +18,20 @@ export default function TabsLayout() {
         options={{
           title: 'วันนี้',
           tabBarIcon: ({ color, size }) => <Utensils color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="workout"
+        options={{
+          title: 'ออกกำลังกาย',
+          tabBarIcon: ({ color, size }) => <Dumbbell color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'ประวัติ',
+          tabBarIcon: ({ color, size }) => <TrendingUp color={color} size={size} />,
         }}
       />
       <Tabs.Screen

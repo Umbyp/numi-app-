@@ -6,20 +6,33 @@ import {
   FlatList,
   Pressable,
   StyleSheet,
+  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Search, X } from 'lucide-react-native';
+import { Search, X, Trash2 } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
 import { AmountStepper } from '../components/amount-stepper';
-import { searchFoods, addMealEntry, createUserFood, type MealType } from '../lib/db/queries';
+import {
+  searchFoods,
+  addMealEntry,
+  createUserFood,
+  getRecentFoods,
+  getMealTemplates,
+  applyMealTemplate,
+  deleteMealTemplate,
+  type MealType,
+  type RecentFood,
+} from '../lib/db/queries';
 import { scaleFood } from '../lib/nutrition';
-import type { foods as foodsTable } from '../lib/db/schema';
+import type { foods as foodsTable, mealTemplates as templatesTable } from '../lib/db/schema';
 
 type Food = typeof foodsTable.$inferSelect;
+type Template = typeof templatesTable.$inferSelect;
+type Mode = 'recent' | 'search' | 'template';
 
 const MEAL_OPTIONS: { key: MealType; label: string }[] = [
   { key: 'breakfast', label: 'เช้า' },
@@ -28,14 +41,23 @@ const MEAL_OPTIONS: { key: MealType; label: string }[] = [
   { key: 'snack', label: 'ของว่าง' },
 ];
 
+const MODES: { key: Mode; label: string }[] = [
+  { key: 'recent', label: 'ล่าสุด' },
+  { key: 'search', label: 'ค้นหา' },
+  { key: 'template', label: 'มื้อชุด' },
+];
+
 export default function AddFoodScreen() {
   const c = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ mealType?: MealType }>();
 
   const [mealType, setMealType] = useState<MealType>(params.mealType ?? 'lunch');
+  const [mode, setMode] = useState<Mode>('search');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Food[]>([]);
+  const [recents, setRecents] = useState<RecentFood[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [selected, setSelected] = useState<Food | null>(null);
   const [amountG, setAmountG] = useState(100);
   const [showManual, setShowManual] = useState(false);
@@ -51,6 +73,16 @@ export default function AddFoodScreen() {
   useEffect(() => {
     searchFoods(query).then(setResults);
   }, [query]);
+
+  // เปิดมาที่ "ล่าสุด" ถ้าเคยบันทึกอะไรไว้แล้ว เพราะส่วนใหญ่คนกินซ้ำของเดิม
+  useEffect(() => {
+    (async () => {
+      const [r, t] = await Promise.all([getRecentFoods(), getMealTemplates()]);
+      setRecents(r);
+      setTemplates(t);
+      if (r.length > 0) setMode('recent');
+    })();
+  }, []);
 
   function pickFood(food: Food) {
     setSelected(food);
@@ -79,6 +111,53 @@ export default function AddFoodScreen() {
     } finally {
       setSaving(false);
     }
+  }
+
+  /** กดครั้งเดียวบันทึกเลย ใช้ปริมาณเท่าครั้งล่าสุด */
+  async function handleQuickAdd(item: RecentFood) {
+    setSaving(true);
+    try {
+      await addMealEntry({
+        foodId: item.foodId,
+        name: item.name,
+        mealType,
+        amountG: item.amountG,
+        kcal: item.kcal,
+        proteinG: item.proteinG,
+        carbG: item.carbG,
+        fatG: item.fatG,
+        estimated: item.estimated,
+      });
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      router.back();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleUseTemplate(tpl: Template) {
+    setSaving(true);
+    try {
+      await applyMealTemplate(tpl.id, mealType);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      router.back();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleDeleteTemplate(tpl: Template) {
+    Alert.alert('ลบมื้อชุด', `ลบ "${tpl.name}" ออกจากรายการ?`, [
+      { text: 'ยกเลิก', style: 'cancel' },
+      {
+        text: 'ลบ',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteMealTemplate(tpl.id);
+          setTemplates(await getMealTemplates());
+        },
+      },
+    ]);
   }
 
   async function handleConfirmManual() {
@@ -137,7 +216,122 @@ export default function AddFoodScreen() {
           })}
         </View>
 
-        {!showManual ? (
+        {!showManual && (
+          <View style={[styles.modeRow, { borderColor: c.border }]}>
+            {MODES.map((m) => {
+              const active = m.key === mode;
+              return (
+                <Pressable
+                  key={m.key}
+                  onPress={() => {
+                    setMode(m.key);
+                    setSelected(null);
+                  }}
+                  style={[styles.modeTab, active && { backgroundColor: c.ghostBg }]}
+                >
+                  <Text
+                    style={{
+                      color: active ? c.text : c.subtext,
+                      fontSize: 13,
+                      fontWeight: active ? '600' : '400',
+                    }}
+                  >
+                    {m.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+
+        {showManual ? (
+          <View style={styles.manualForm}>
+            <ManualInput label="ชื่ออาหาร" value={manualName} onChange={setManualName} c={c} />
+            <ManualInput label="แคลอรี่ต่อ 100g" value={manualKcal} onChange={setManualKcal} c={c} numeric />
+            <ManualInput label="โปรตีน (g/100g)" value={manualProtein} onChange={setManualProtein} c={c} numeric />
+            <ManualInput label="คาร์บ (g/100g)" value={manualCarb} onChange={setManualCarb} c={c} numeric />
+            <ManualInput label="ไขมัน (g/100g)" value={manualFat} onChange={setManualFat} c={c} numeric />
+
+            <View style={styles.amountRow}>
+              <Text style={{ color: c.subtext, fontSize: 13 }}>ปริมาณที่กิน</Text>
+              <AmountStepper value={amountG} onChange={setAmountG} />
+            </View>
+
+            <Pressable
+              style={[styles.saveBtn, { backgroundColor: c.primary }, saving && { opacity: 0.6 }]}
+              disabled={saving || !manualName.trim() || !manualKcal}
+              onPress={handleConfirmManual}
+            >
+              <Text style={styles.saveBtnText}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
+            </Pressable>
+
+            <Pressable onPress={() => setShowManual(false)} style={{ marginTop: 12, alignItems: 'center' }}>
+              <Text style={{ color: c.subtext }}>กลับไปค้นหา</Text>
+            </Pressable>
+          </View>
+        ) : mode === 'recent' ? (
+          <FlatList
+            data={recents}
+            keyExtractor={(item) => `${item.foodId ?? 'x'}|${item.name}`}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item }) => (
+              <Pressable
+                style={[styles.resultRow, { borderBottomColor: c.border }]}
+                disabled={saving}
+                onPress={() => handleQuickAdd(item)}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: c.text, fontSize: 15 }} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Text style={{ color: c.subtext, fontSize: 12, marginTop: 2 }}>
+                    {Math.round(item.amountG)} g · {Math.round(item.kcal)} kcal
+                  </Text>
+                </View>
+                <Text style={{ color: c.primary, fontSize: 13, fontWeight: '600' }}>+ เพิ่ม</Text>
+              </Pressable>
+            )}
+            ListEmptyComponent={
+              <Text style={[styles.emptyText, { color: c.subtext }]}>
+                ยังไม่มีรายการล่าสุด บันทึกอาหารสักครั้งแล้วครั้งต่อไปจะกดเพิ่มได้ทันที
+              </Text>
+            }
+          />
+        ) : mode === 'template' ? (
+          <FlatList
+            data={templates}
+            keyExtractor={(item) => item.id}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item }) => {
+              const kcal = item.items.reduce((s, x) => s + x.kcal, 0);
+              return (
+                <View style={[styles.resultRow, { borderBottomColor: c.border }]}>
+                  <Pressable
+                    style={{ flex: 1 }}
+                    disabled={saving}
+                    onPress={() => handleUseTemplate(item)}
+                  >
+                    <Text style={{ color: c.text, fontSize: 15 }} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    <Text style={{ color: c.subtext, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
+                      {item.items.length} รายการ · {Math.round(kcal)} kcal
+                      {item.useCount > 0 ? ` · ใช้ไป ${item.useCount} ครั้ง` : ''}
+                    </Text>
+                  </Pressable>
+                  <Pressable hitSlop={10} onPress={() => handleDeleteTemplate(item)} style={{ padding: 4 }}>
+                    <Trash2 size={16} color={c.subtext} />
+                  </Pressable>
+                </View>
+              );
+            }}
+            ListEmptyComponent={
+              <Text style={[styles.emptyText, { color: c.subtext }]}>
+                ยังไม่มีมื้อชุด — บันทึกมื้อในหน้า “วันนี้” แล้วกด “บันทึกเป็นมื้อชุด” เพื่อเก็บไว้ใช้ซ้ำ
+              </Text>
+            }
+          />
+        ) : (
           <>
             <View style={[styles.searchBox, { borderColor: c.border, backgroundColor: c.card }]}>
               <Search size={16} color={c.subtext} />
@@ -211,7 +405,7 @@ export default function AddFoodScreen() {
                   </Pressable>
                 )}
                 ListEmptyComponent={
-                  <Text style={{ color: c.subtext, textAlign: 'center', marginTop: 20 }}>
+                  <Text style={[styles.emptyText, { color: c.subtext }]}>
                     ไม่พบอาหาร ลองพิมพ์คำอื่น หรือเพิ่มเอง
                   </Text>
                 }
@@ -224,31 +418,6 @@ export default function AddFoodScreen() {
               </Pressable>
             )}
           </>
-        ) : (
-          <View style={styles.manualForm}>
-            <ManualInput label="ชื่ออาหาร" value={manualName} onChange={setManualName} c={c} />
-            <ManualInput label="แคลอรี่ต่อ 100g" value={manualKcal} onChange={setManualKcal} c={c} numeric />
-            <ManualInput label="โปรตีน (g/100g)" value={manualProtein} onChange={setManualProtein} c={c} numeric />
-            <ManualInput label="คาร์บ (g/100g)" value={manualCarb} onChange={setManualCarb} c={c} numeric />
-            <ManualInput label="ไขมัน (g/100g)" value={manualFat} onChange={setManualFat} c={c} numeric />
-
-            <View style={styles.amountRow}>
-              <Text style={{ color: c.subtext, fontSize: 13 }}>ปริมาณที่กิน</Text>
-              <AmountStepper value={amountG} onChange={setAmountG} />
-            </View>
-
-            <Pressable
-              style={[styles.saveBtn, { backgroundColor: c.primary }, saving && { opacity: 0.6 }]}
-              disabled={saving || !manualName.trim() || !manualKcal}
-              onPress={handleConfirmManual}
-            >
-              <Text style={styles.saveBtnText}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
-            </Pressable>
-
-            <Pressable onPress={() => setShowManual(false)} style={{ marginTop: 12, alignItems: 'center' }}>
-              <Text style={{ color: c.subtext }}>กลับไปค้นหา</Text>
-            </Pressable>
-          </View>
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -284,6 +453,15 @@ function ManualInput({
 const styles = StyleSheet.create({
   mealRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
   mealPill: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
+  modeRow: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  modeTab: { flex: 1, alignItems: 'center', paddingVertical: 8 },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -302,7 +480,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
   },
+  emptyText: { textAlign: 'center', marginTop: 20, paddingHorizontal: 32, fontSize: 13, lineHeight: 20 },
   manualLink: { alignItems: 'center', paddingVertical: 14 },
   selectedCard: { margin: 16, padding: 14, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth },
   selectedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
