@@ -80,6 +80,28 @@ CREATE TABLE IF NOT EXISTS weights (
   recorded_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS measurements (
+  id TEXT PRIMARY KEY,
+  waist_cm REAL,
+  chest_cm REAL,
+  hip_cm REAL,
+  arm_cm REAL,
+  thigh_cm REAL,
+  note TEXT,
+  local_date TEXT NOT NULL UNIQUE,
+  recorded_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS meal_templates (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  meal_type TEXT,
+  items TEXT NOT NULL,
+  use_count INTEGER NOT NULL DEFAULT 0,
+  last_used_at INTEGER,
+  created_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS chat_messages (
   id TEXT PRIMARY KEY,
   role TEXT NOT NULL,

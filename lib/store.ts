@@ -3,6 +3,7 @@ import {
   getProfile,
   getLatestWeight,
   getMealEntriesForDate,
+  getWorkoutsForDate,
   type DayTotals,
 } from './db/queries';
 import {
@@ -12,10 +13,15 @@ import {
   calcMacroTargets,
   localDateString,
 } from './nutrition';
-import type { profile as profileTable, mealEntries as mealEntriesTable } from './db/schema';
+import type {
+  profile as profileTable,
+  mealEntries as mealEntriesTable,
+  workouts as workoutsTable,
+} from './db/schema';
 
 type Profile = typeof profileTable.$inferSelect;
 type MealEntry = typeof mealEntriesTable.$inferSelect;
+type Workout = typeof workoutsTable.$inferSelect;
 
 interface Goals {
   kcalTarget: number;
@@ -30,6 +36,7 @@ interface NumiState {
   profile: Profile | null;
   latestWeightKg: number | null;
   todayEntries: MealEntry[];
+  todayWorkouts: Workout[];
   goals: Goals | null;
   refresh: () => Promise<void>;
 }
@@ -62,12 +69,15 @@ export const useNumiStore = create<NumiState>((set) => ({
   profile: null,
   latestWeightKg: null,
   todayEntries: [],
+  todayWorkouts: [],
   goals: null,
   refresh: async () => {
-    const [p, w, entries] = await Promise.all([
+    const today = localDateString();
+    const [p, w, entries, sessions] = await Promise.all([
       getProfile(),
       getLatestWeight(),
-      getMealEntriesForDate(localDateString()),
+      getMealEntriesForDate(today),
+      getWorkoutsForDate(today),
     ]);
     const weightKg = w?.weightKg ?? 70;
     const goals = p ? computeGoals(p, weightKg) : DEFAULT_GOALS;
@@ -76,6 +86,7 @@ export const useNumiStore = create<NumiState>((set) => ({
       profile: p,
       latestWeightKg: w?.weightKg ?? null,
       todayEntries: entries,
+      todayWorkouts: sessions,
       goals,
     });
   },
@@ -91,4 +102,21 @@ export function sumTotals(entries: MealEntry[]): DayTotals {
     }),
     { kcal: 0, proteinG: 0, carbG: 0, fatG: 0 }
   );
+}
+
+export function sumBurned(sessions: { kcalBurned: number }[]): number {
+  return sessions.reduce((s, w) => s + w.kcalBurned, 0);
+}
+
+/**
+ * เป้าหมายที่ใช้จริงในหน้า Today
+ * การบวกแคลอรี่ที่เผากลับเข้าไปเป็นเรื่องที่คนเถียงกัน (เครื่องวัดมักประเมินสูงเกินจริง)
+ * จึงทำเป็นตัวเลือกใน profile.addExerciseKcal และปิดไว้เป็นค่าเริ่มต้น
+ */
+export function targetWithExercise(
+  kcalTarget: number,
+  burnedKcal: number,
+  addExerciseKcal: boolean | null | undefined
+): number {
+  return addExerciseKcal ? Math.round(kcalTarget + burnedKcal) : kcalTarget;
 }

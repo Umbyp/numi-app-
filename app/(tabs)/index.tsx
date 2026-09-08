@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Plus } from 'lucide-react-native';
@@ -7,8 +7,13 @@ import { CalorieRing } from '../../components/calorie-ring';
 import { MacroBar } from '../../components/macro-bar';
 import { MealRow } from '../../components/meal-row';
 import { useTheme } from '../../lib/hooks/use-theme';
-import { useNumiStore, sumTotals } from '../../lib/store';
-import { deleteMealEntry } from '../../lib/db/queries';
+import { useNumiStore, sumTotals, sumBurned, targetWithExercise } from '../../lib/store';
+import {
+  deleteMealEntry,
+  getMealEntriesForDate,
+  repeatMealsFrom,
+} from '../../lib/db/queries';
+import { addDays, localDateString } from '../../lib/dates';
 import type { MealType } from '../../lib/db/queries';
 
 const MEAL_TYPES: { key: MealType; label: string; emoji: string }[] = [
@@ -21,15 +26,38 @@ const MEAL_TYPES: { key: MealType; label: string; emoji: string }[] = [
 export default function TodayScreen() {
   const c = useTheme();
   const router = useRouter();
-  const { profile, todayEntries, goals, refresh } = useNumiStore();
+  const { profile, todayEntries, todayWorkouts, goals, refresh } = useNumiStore();
+
+  const yesterday = addDays(localDateString(), -1);
+  const [yesterdayKcal, setYesterdayKcal] = useState<Partial<Record<MealType, number>>>({});
 
   useFocusEffect(
     useCallback(() => {
       refresh();
-    }, [])
+      // ดูว่าเมื่อวานกินมื้อไหนไว้บ้าง จะได้เสนอปุ่มกินซ้ำเฉพาะมื้อที่มีของจริง
+      getMealEntriesForDate(yesterday).then((rows) => {
+        const map: Partial<Record<MealType, number>> = {};
+        for (const r of rows) {
+          const k = r.mealType as MealType;
+          map[k] = (map[k] ?? 0) + r.kcal;
+        }
+        setYesterdayKcal(map);
+      });
+    }, [yesterday])
   );
 
+  async function handleRepeat(mealType: MealType) {
+    await repeatMealsFrom(yesterday, mealType);
+    refresh();
+  }
+
   const totals = useMemo(() => sumTotals(todayEntries), [todayEntries]);
+  const burned = useMemo(() => sumBurned(todayWorkouts), [todayWorkouts]);
+  const target = targetWithExercise(
+    goals?.kcalTarget ?? 2000,
+    burned,
+    profile?.addExerciseKcal
+  );
   const grouped = useMemo(() => {
     const map: Record<MealType, typeof todayEntries> = {
       breakfast: [],
@@ -64,7 +92,13 @@ export default function TodayScreen() {
         )}
 
         <View style={styles.ringWrap}>
-          <CalorieRing consumed={totals.kcal} target={goals?.kcalTarget ?? 2000} />
+          <CalorieRing consumed={totals.kcal} target={target} />
+          {burned > 0 && (
+            <Text style={{ color: c.subtext, fontSize: 12, marginTop: 6 }}>
+              ออกกำลังกาย {Math.round(burned)} kcal
+              {profile?.addExerciseKcal ? ' · รวมในเป้าแล้ว' : ' · ยังไม่รวมในเป้า'}
+            </Text>
+          )}
         </View>
 
         <View style={[styles.macroCard, { backgroundColor: c.card, borderColor: c.border }]}>
@@ -87,13 +121,34 @@ export default function TodayScreen() {
                 </Text>
               </View>
               {entries.length === 0 ? (
-                <Pressable onPress={() => router.push({ pathname: '/add-food', params: { mealType: key } })}>
-                  <Text style={[styles.addLink, { color: c.primary }]}>+ เพิ่มรายการ</Text>
-                </Pressable>
+                <View style={styles.emptyMealRow}>
+                  <Pressable onPress={() => router.push({ pathname: '/add-food', params: { mealType: key } })}>
+                    <Text style={[styles.addLink, { color: c.primary }]}>+ เพิ่มรายการ</Text>
+                  </Pressable>
+                  {yesterdayKcal[key] ? (
+                    <Pressable onPress={() => handleRepeat(key)}>
+                      <Text style={[styles.addLink, { color: c.subtext }]}>
+                        ↻ ซ้ำจากเมื่อวาน · {Math.round(yesterdayKcal[key] as number)} kcal
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
               ) : (
-                entries.map((entry) => (
-                  <MealRow key={entry.id} entry={entry} onDelete={handleDelete} />
-                ))
+                <>
+                  {entries.map((entry) => (
+                    <MealRow key={entry.id} entry={entry} onDelete={handleDelete} />
+                  ))}
+                  <Pressable
+                    onPress={() =>
+                      router.push({
+                        pathname: '/save-template',
+                        params: { date: localDateString(), mealType: key },
+                      })
+                    }
+                  >
+                    <Text style={[styles.addLink, { color: c.subtext }]}>+ บันทึกเป็นมื้อชุด</Text>
+                  </Pressable>
+                </>
               )}
             </View>
           );
@@ -122,6 +177,7 @@ const styles = StyleSheet.create({
   mealHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   mealTitle: { fontSize: 15, fontWeight: '600' },
   addLink: { fontSize: 14, fontWeight: '500', paddingVertical: 6 },
+  emptyMealRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   fab: {
     position: 'absolute',
     right: 20,

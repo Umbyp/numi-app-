@@ -37,6 +37,7 @@ export default function ProfileScreen() {
   const [activityLevel, setActivityLevel] = useState(1.375);
   const [goalType, setGoalType] = useState<GoalType>('lose');
   const [weeklyRateKg, setWeeklyRateKg] = useState(-0.5);
+  const [addExerciseKcal, setAddExerciseKcal] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export default function ProfileScreen() {
       setActivityLevel(profile.activityLevel);
       setGoalType(profile.goalType as GoalType);
       setWeeklyRateKg(profile.weeklyRateKg);
+      setAddExerciseKcal(!!profile.addExerciseKcal);
     }
     if (latestWeightKg) setWeightKg(String(latestWeightKg));
   }, [profile, latestWeightKg]);
@@ -101,7 +103,7 @@ export default function ProfileScreen() {
         proteinPct: 0.3,
         carbPct: 0.4,
         fatPct: 0.3,
-        addExerciseKcal: false,
+        addExerciseKcal,
       });
       await refresh();
       Alert.alert('บันทึกแล้ว', 'อัปเดตเป้าหมายแคลอรี่เรียบร้อย');
@@ -203,6 +205,21 @@ export default function ProfileScreen() {
               )}
             </Field>
           )}
+
+          <Field label="แคลอรี่จากการออกกำลังกาย" color={c.text}>
+            <Segmented
+              options={[
+                { key: 'no', label: 'ไม่บวกกลับ' },
+                { key: 'yes', label: 'บวกกลับเข้าเป้า' },
+              ]}
+              value={addExerciseKcal ? 'yes' : 'no'}
+              onChange={(v) => setAddExerciseKcal(v === 'yes')}
+              c={c}
+            />
+            <Text style={{ color: c.subtext, fontSize: 12, marginTop: 6 }}>
+              ตาราง MET เป็นค่าประมาณและมักสูงกว่าที่เผาจริง การไม่บวกกลับจึงปลอดภัยกว่า
+            </Text>
+          </Field>
 
           {preview && (
             <View style={[styles.previewCard, { backgroundColor: c.card, borderColor: c.border }]}>
