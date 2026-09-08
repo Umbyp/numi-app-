@@ -1,5 +1,6 @@
 import { eq, desc, like, or, and, gte, lte, isNotNull, sql } from 'drizzle-orm';
 import { db } from './client';
+import type { ExerciseSet } from './schema';
 import {
   profile,
   foods,
@@ -279,6 +280,8 @@ export interface NewWorkout {
   met?: number;
   durationMin: number;
   kcalBurned: number;
+  /** สำหรับเวทเทรนนิ่ง: [{"exercise":"Bench","sets":[{"kg":60,"reps":8}]}] */
+  sets?: ExerciseSet[] | null;
   note?: string;
 }
 
@@ -292,6 +295,7 @@ export async function addWorkout(entry: NewWorkout) {
     met: entry.met,
     durationMin: entry.durationMin,
     kcalBurned: entry.kcalBurned,
+    sets: entry.sets ?? null,
     note: entry.note,
     performedAt: now,
     localDate: localDateString(now),
@@ -454,4 +458,55 @@ export async function getChatMessages(limit = 100) {
 
 export async function clearChatHistory() {
   await db.delete(chatMessages);
+}
+
+// ---------- สถิติเวท ----------
+
+/**
+ * เซสชันเวทย้อนหลังสำหรับคำนวณสถิติส่วนตัว
+ * จำกัดจำนวนเพราะสถิติคำนวณใน JS ทุกครั้งที่เปิดหน้า
+ * 200 เซสชันคือประมาณสองปีถ้าเล่นสัปดาห์ละสองครั้ง
+ */
+export async function getStrengthSessions(limit = 200) {
+  return db
+    .select()
+    .from(workouts)
+    .where(eq(workouts.category, 'strength'))
+    .orderBy(desc(workouts.performedAt))
+    .limit(limit);
+}
+
+/**
+ * เซ็ตล่าสุดของท่านั้น ๆ ไว้เติมให้อัตโนมัติตอนบันทึกครั้งถัดไป
+ * เก็บหลายท่าไว้ในแถวเดียวเป็น JSON จึงต้องดึงเซสชันมาไล่หาใน JS
+ */
+export async function getLastSetsForExercise(exercise: string) {
+  const key = exercise.trim().toLowerCase();
+  if (!key) return null;
+  const rows = await getStrengthSessions(40);
+  for (const row of rows) {
+    const found = (row.sets ?? []).find((e) => e.exercise.trim().toLowerCase() === key);
+    if (found && found.sets.length > 0) {
+      return { localDate: row.localDate, sets: found.sets };
+    }
+  }
+  return null;
+}
+
+/** ชื่อท่าที่เคยบันทึก เรียงจากที่ใช้ล่าสุด ใช้เป็นตัวช่วยเลือกตอนพิมพ์ */
+export async function getRecentExerciseNames(limit = 20) {
+  const rows = await getStrengthSessions(60);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const row of rows) {
+    for (const e of row.sets ?? []) {
+      const name = e.exercise.trim();
+      const key = name.toLowerCase();
+      if (!name || seen.has(key)) continue;
+      seen.add(key);
+      out.push(name);
+      if (out.length >= limit) return out;
+    }
+  }
+  return out;
 }

@@ -4,7 +4,8 @@ import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
-import { getWorkoutHistory, deleteWorkout } from '../lib/db/queries';
+import { getWorkoutHistory, deleteWorkout, getStrengthSessions } from '../lib/db/queries';
+import { buildRecords, type ExerciseRecord, type SessionLike } from '../lib/strength';
 import { type } from '../lib/fonts';
 import { radius } from '../lib/theme';
 
@@ -13,9 +14,18 @@ const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.',
 export default function ActivityHistoryScreen() {
   const c = useTheme();
   const [history, setHistory] = useState<Awaited<ReturnType<typeof getWorkoutHistory>>>([]);
+  const [records, setRecords] = useState<ExerciseRecord[]>([]);
 
   const load = useCallback(() => {
     getWorkoutHistory(365).then(setHistory);
+    getStrengthSessions().then((rows) => {
+      const asLike: SessionLike[] = rows.map((r) => ({
+        id: r.id,
+        localDate: r.localDate,
+        sets: r.sets ?? null,
+      }));
+      setRecords(buildRecords(asLike));
+    });
   }, []);
 
   useFocusEffect(load);
@@ -32,6 +42,34 @@ export default function ActivityHistoryScreen() {
         keyExtractor={(r) => r.id}
         contentContainerStyle={styles.list}
         ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: c.line }} />}
+        ListHeaderComponent={
+          records.length === 0 ? null : (
+            <View style={styles.records}>
+              <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>สถิติส่วนตัว</Text>
+              {records.slice(0, 6).map((r) => (
+                <View key={r.exercise} style={[styles.recordRow, { backgroundColor: c.surfaceAlt }]}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={[type.row, { color: c.text, fontSize: 14 }]} numberOfLines={1}>
+                      {r.exercise}
+                    </Text>
+                    <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>
+                      หนักสุด {r.bestWeightKg} kg · {r.sessionCount} ครั้ง
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[type.cardTitle, { color: c.brand, fontSize: 15 }]}>
+                      {r.best1RM.toFixed(1)}
+                    </Text>
+                    <Text style={[type.label, { color: c.faint, fontSize: 10 }]}>1RM ประมาณ</Text>
+                  </View>
+                </View>
+              ))}
+              <Text style={[type.label, { color: c.faint, fontSize: 10.5 }]}>
+                1RM คำนวณด้วยสูตร Epley จากเซตที่ดีที่สุด เป็นค่าประมาณ ไม่ใช่ค่าที่วัดจริง
+              </Text>
+            </View>
+          )
+        }
         ListEmptyComponent={
           <Text style={[type.label, { color: c.subtext, textAlign: 'center', marginTop: 24 }]}>ยังไม่มีประวัติการออกกำลังกาย</Text>
         }
@@ -62,4 +100,13 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: 18, paddingTop: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   iconDot: { width: 10, height: 10, borderRadius: radius.badge / 2 },
+  records: { gap: 6, paddingBottom: 14 },
+  recordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: radius.row,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
 });
