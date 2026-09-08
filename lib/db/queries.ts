@@ -575,3 +575,17 @@ export async function applyMealTemplate(id: string, mealType: MealType) {
 export async function deleteMealTemplate(id: string) {
   await db.delete(mealTemplates).where(eq(mealTemplates.id, id));
 }
+
+/**
+ * เซสชันเวทย้อนหลังสำหรับคำนวณสถิติส่วนตัว
+ * จำกัดจำนวนไว้เพราะสถิติคำนวณใน JS ทุกครั้งที่เปิดหน้า
+ * 200 เซสชันคือประมาณสองปีถ้าเล่นสัปดาห์ละสองครั้ง
+ */
+export async function getStrengthSessions(limit = 200) {
+  return db
+    .select()
+    .from(workouts)
+    .where(eq(workouts.category, 'strength'))
+    .orderBy(desc(workouts.performedAt))
+    .limit(limit);
+}

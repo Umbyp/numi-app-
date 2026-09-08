@@ -2,11 +2,12 @@ import { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Dumbbell, HeartPulse } from 'lucide-react-native';
+import { Dumbbell, HeartPulse, ChevronRight } from 'lucide-react-native';
 import { WorkoutRow } from '../../components/workout-row';
 import { useTheme } from '../../lib/hooks/use-theme';
 import { useNumiStore, sumBurned } from '../../lib/store';
-import { getWorkoutsSince, deleteWorkout } from '../../lib/db/queries';
+import { getWorkoutsSince, getStrengthSessions, deleteWorkout } from '../../lib/db/queries';
+import { buildRecords, type ExerciseRecord, type SessionLike } from '../../lib/strength';
 import { addDays, localDateString, formatDayRelative } from '../../lib/dates';
 import type { workouts as workoutsTable } from '../../lib/db/schema';
 
@@ -19,10 +20,21 @@ export default function WorkoutScreen() {
   const router = useRouter();
   const { todayWorkouts, profile, refresh } = useNumiStore();
   const [recent, setRecent] = useState<Session[]>([]);
+  const [records, setRecords] = useState<ExerciseRecord[]>([]);
 
   const load = useCallback(async () => {
     const from = addDays(localDateString(), -(RECENT_DAYS - 1));
-    setRecent(await getWorkoutsSince(from));
+    const [sessions, strength] = await Promise.all([
+      getWorkoutsSince(from),
+      getStrengthSessions(),
+    ]);
+    setRecent(sessions);
+    const asLike: SessionLike[] = strength.map((s) => ({
+      id: s.id,
+      localDate: s.localDate,
+      sets: s.sets ?? null,
+    }));
+    setRecords(buildRecords(asLike));
   }, []);
 
   useFocusEffect(
@@ -102,6 +114,38 @@ export default function WorkoutScreen() {
           </Pressable>
         </View>
 
+        {records.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { color: c.text }]}>สถิติส่วนตัว</Text>
+            <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
+              {records.slice(0, 6).map((r) => (
+                <Pressable
+                  key={r.exercise}
+                  onPress={() => router.push(`/exercise/${encodeURIComponent(r.exercise)}`)}
+                  style={({ pressed }) => [
+                    styles.recordRow,
+                    { borderBottomColor: c.border },
+                    pressed && { opacity: 0.6 },
+                  ]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: c.text, fontSize: 14, fontWeight: '600' }} numberOfLines={1}>
+                      {r.exercise}
+                    </Text>
+                    <Text style={{ color: c.subtext, fontSize: 11.5, marginTop: 2 }}>
+                      หนักสุด {r.bestWeightKg} kg · {r.sessionCount} ครั้ง
+                    </Text>
+                  </View>
+                  <Text style={{ color: c.text, fontSize: 13, fontWeight: '600' }}>
+                    1RM {r.best1RM.toFixed(1)}
+                  </Text>
+                  <ChevronRight size={15} color={c.subtext} />
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
+
         <Text style={[styles.sectionTitle, { color: c.text }]}>วันนี้</Text>
         <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
           {todayWorkouts.length === 0 ? (
@@ -154,4 +198,11 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', marginTop: 4 },
   card: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 6 },
   dayLabel: { fontSize: 12, fontWeight: '600', marginTop: 8 },
+  recordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
 });
