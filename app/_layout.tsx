@@ -12,7 +12,7 @@ import {
   NotoSansThai_800ExtraBold,
 } from '@expo-google-fonts/noto-sans-thai';
 import { migrateDb } from '../lib/db/client';
-import { seedFoodsIfEmpty } from '../lib/db/queries';
+import { syncSeedFoods } from '../lib/db/queries';
 import { useNumiStore } from '../lib/store';
 import { useScheme } from '../lib/hooks/use-theme';
 import { colors } from '../lib/theme';
@@ -46,7 +46,7 @@ function RootLayoutInner() {
   useEffect(() => {
     (async () => {
       await migrateDb();
-      await seedFoodsIfEmpty();
+      await syncSeedFoods();
       await refresh();
       setDbReady(true);
     })();

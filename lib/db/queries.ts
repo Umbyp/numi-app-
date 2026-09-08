@@ -1,5 +1,6 @@
-import { eq, desc, like, or, and, gte, lte, isNotNull } from 'drizzle-orm';
+import { eq, desc, like, or, and, gte, lte, isNotNull, sql } from 'drizzle-orm';
 import { db } from './client';
+import type { ExerciseSet, TemplateItem } from './schema';
 import {
   profile,
   foods,
@@ -10,6 +11,8 @@ import {
   workoutPlanCompletions,
   appSettings,
   chatMessages,
+  measurements,
+  mealTemplates,
   type WorkoutPlanDay,
 } from './schema';
 import { localDateString } from '../nutrition';
@@ -91,12 +94,20 @@ export async function getEarliestWeight(): Promise<typeof weights.$inferSelect |
 // ---------- Foods ----------
 
 /** เติมอาหาร seed ครั้งแรกที่เปิดแอป (ถ้ายังไม่มีข้อมูลเลย) */
-export async function seedFoodsIfEmpty() {
-  const rows = await db.select({ id: foods.id }).from(foods).limit(1);
-  if (rows.length > 0) return;
+/**
+ * ซิงก์อาหารตั้งต้นทุกครั้งที่เปิดแอป
+ * เดิมเติมเฉพาะตอนตารางว่าง ทำให้เครื่องที่ติดตั้งไปแล้วไม่เคยได้อาหารที่เพิ่มทีหลังเลย
+ * ตอนนี้ใช้ upsert แทน — id ของ seed ขึ้นต้นด้วย th_ ส่วนอาหารที่ผู้ใช้สร้างเองขึ้นต้นด้วย
+ * user_ หรือ ai_ จึงชนกันไม่ได้ และ createdAt ของแถวเดิมไม่ถูกแตะ
+ */
+export async function syncSeedFoods() {
+  const rows = seedFoods as any[];
+  const now = new Date();
+  // แบ่งเป็นก้อนกัน parameter เกินเพดานของ SQLite เมื่อฐานข้อมูลโตขึ้นอีก
+  const CHUNK = 100;
 
-  await db.insert(foods).values(
-    (seedFoods as any[]).map((f) => ({
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const batch = rows.slice(i, i + CHUNK).map((f) => ({
       id: f.id,
       name: f.name,
       nameEn: f.nameEn ?? null,
@@ -106,9 +117,26 @@ export async function seedFoodsIfEmpty() {
       fatPer100: f.fatPer100 ?? 0,
       servingUnits: f.servingUnits ?? null,
       source: 'seed' as const,
-      createdAt: new Date(),
-    }))
-  );
+      createdAt: now,
+    }));
+
+    await db
+      .insert(foods)
+      .values(batch)
+      .onConflictDoUpdate({
+        target: foods.id,
+        set: {
+          name: sql`excluded.name`,
+          nameEn: sql`excluded.name_en`,
+          kcalPer100: sql`excluded.kcal_per_100`,
+          proteinPer100: sql`excluded.protein_per_100`,
+          carbPer100: sql`excluded.carb_per_100`,
+          fatPer100: sql`excluded.fat_per_100`,
+          servingUnits: sql`excluded.serving_units`,
+          source: sql`excluded.source`,
+        },
+      });
+  }
 }
 
 export async function searchFoods(query: string, limit = 30) {
@@ -254,6 +282,8 @@ export interface NewWorkout {
   met?: number;
   durationMin: number;
   kcalBurned: number;
+  /** สำหรับเวทเทรนนิ่ง: [{"exercise":"Bench","sets":[{"kg":60,"reps":8}]}] */
+  sets?: ExerciseSet[] | null;
   note?: string;
 }
 
@@ -267,6 +297,7 @@ export async function addWorkout(entry: NewWorkout) {
     met: entry.met,
     durationMin: entry.durationMin,
     kcalBurned: entry.kcalBurned,
+    sets: entry.sets ?? null,
     note: entry.note,
     performedAt: now,
     localDate: localDateString(now),
@@ -429,4 +460,224 @@ export async function getChatMessages(limit = 100) {
 
 export async function clearChatHistory() {
   await db.delete(chatMessages);
+}
+
+// ---------- สถิติเวท ----------
+
+/**
+ * เซสชันเวทย้อนหลังสำหรับคำนวณสถิติส่วนตัว
+ * จำกัดจำนวนเพราะสถิติคำนวณใน JS ทุกครั้งที่เปิดหน้า
+ * 200 เซสชันคือประมาณสองปีถ้าเล่นสัปดาห์ละสองครั้ง
+ */
+export async function getStrengthSessions(limit = 200) {
+  return db
+    .select()
+    .from(workouts)
+    .where(eq(workouts.category, 'strength'))
+    .orderBy(desc(workouts.performedAt))
+    .limit(limit);
+}
+
+/**
+ * เซ็ตล่าสุดของท่านั้น ๆ ไว้เติมให้อัตโนมัติตอนบันทึกครั้งถัดไป
+ * เก็บหลายท่าไว้ในแถวเดียวเป็น JSON จึงต้องดึงเซสชันมาไล่หาใน JS
+ */
+export async function getLastSetsForExercise(exercise: string) {
+  const key = exercise.trim().toLowerCase();
+  if (!key) return null;
+  const rows = await getStrengthSessions(40);
+  for (const row of rows) {
+    const found = (row.sets ?? []).find((e) => e.exercise.trim().toLowerCase() === key);
+    if (found && found.sets.length > 0) {
+      return { localDate: row.localDate, sets: found.sets };
+    }
+  }
+  return null;
+}
+
+/** ชื่อท่าที่เคยบันทึก เรียงจากที่ใช้ล่าสุด ใช้เป็นตัวช่วยเลือกตอนพิมพ์ */
+export async function getRecentExerciseNames(limit = 20) {
+  const rows = await getStrengthSessions(60);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const row of rows) {
+    for (const e of row.sets ?? []) {
+      const name = e.exercise.trim();
+      const key = name.toLowerCase();
+      if (!name || seen.has(key)) continue;
+      seen.add(key);
+      out.push(name);
+      if (out.length >= limit) return out;
+    }
+  }
+  return out;
+}
+
+// ---------- น้ำหนักและสัดส่วนสำหรับกราฟเทรนด์ ----------
+
+/** น้ำหนักตั้งแต่วันที่กำหนด เรียงเก่าไปใหม่ตามแกนกราฟ */
+export async function getWeightsSince(fromLocalDate: string) {
+  return db
+    .select()
+    .from(weights)
+    .where(gte(weights.localDate, fromLocalDate))
+    .orderBy(weights.localDate);
+}
+
+export interface MeasurementInput {
+  waistCm?: number | null;
+  chestCm?: number | null;
+  hipCm?: number | null;
+  armCm?: number | null;
+  thighCm?: number | null;
+}
+
+export async function getLatestMeasurement() {
+  const rows = await db.select().from(measurements).orderBy(desc(measurements.localDate)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getMeasurementsSince(fromLocalDate: string) {
+  return db
+    .select()
+    .from(measurements)
+    .where(gte(measurements.localDate, fromLocalDate))
+    .orderBy(measurements.localDate);
+}
+
+export async function addOrUpdateMeasurementToday(input: MeasurementInput) {
+  const localDate = localDateString();
+  const id = `m_${localDate}`;
+  const now = new Date();
+  const values = {
+    waistCm: input.waistCm ?? null,
+    chestCm: input.chestCm ?? null,
+    hipCm: input.hipCm ?? null,
+    armCm: input.armCm ?? null,
+    thighCm: input.thighCm ?? null,
+  };
+  await db
+    .insert(measurements)
+    .values({ id, ...values, localDate, recordedAt: now })
+    .onConflictDoUpdate({
+      target: measurements.localDate,
+      set: { ...values, recordedAt: now },
+    });
+}
+
+// ---------- ซ้ำทั้งมื้อ และมื้อชุด ----------
+
+/** ใส่หลายรายการในครั้งเดียว — index อยู่ใน id ด้วยเพื่อไม่ให้ชนกันภายในชุดเดียว */
+export async function addMealEntries(entries: NewMealEntry[]) {
+  if (entries.length === 0) return 0;
+  const now = new Date();
+  const localDate = localDateString(now);
+  const stamp = Date.now();
+  await db.insert(mealEntries).values(
+    entries.map((entry, i) => ({
+      id: `meal_${stamp}_${i}_${Math.round(Math.random() * 1e6)}`,
+      foodId: entry.foodId ?? null,
+      name: entry.name,
+      mealType: entry.mealType,
+      amountG: entry.amountG,
+      kcal: entry.kcal,
+      proteinG: entry.proteinG,
+      carbG: entry.carbG,
+      fatG: entry.fatG,
+      estimated: entry.estimated ?? false,
+      note: entry.note,
+      photoUri: entry.photoUri ?? null,
+      loggedAt: now,
+      localDate,
+    }))
+  );
+  return entries.length;
+}
+
+/**
+ * คัดลอกมื้อจากวันก่อนมาลงวันนี้
+ * คัดลอกค่าที่คำนวณไว้แล้วตรง ๆ ไม่คำนวณใหม่จาก foods เพราะปริมาณที่กินจริงอยู่ในแถวเดิม
+ */
+export async function repeatMealsFrom(fromLocalDate: string, mealType: MealType) {
+  const rows = await getMealEntriesForDate(fromLocalDate);
+  const source = rows.filter((r) => r.mealType === mealType);
+  return addMealEntries(
+    source.map((r) => ({
+      foodId: r.foodId,
+      name: r.name,
+      mealType,
+      amountG: r.amountG,
+      kcal: r.kcal,
+      proteinG: r.proteinG,
+      carbG: r.carbG,
+      fatG: r.fatG,
+      estimated: !!r.estimated,
+      note: r.note ?? undefined,
+    }))
+  );
+}
+
+export async function getMealTemplates() {
+  return db
+    .select()
+    .from(mealTemplates)
+    .orderBy(desc(mealTemplates.useCount), desc(mealTemplates.createdAt));
+}
+
+/** สร้างมื้อชุดจากมื้อที่บันทึกไว้แล้วของวันหนึ่ง */
+export async function createTemplateFromMeal(name: string, localDate: string, mealType: MealType) {
+  const rows = await getMealEntriesForDate(localDate);
+  const items: TemplateItem[] = rows
+    .filter((r) => r.mealType === mealType)
+    .map((r) => ({
+      foodId: r.foodId,
+      name: r.name,
+      amountG: r.amountG,
+      kcal: r.kcal,
+      proteinG: r.proteinG,
+      carbG: r.carbG,
+      fatG: r.fatG,
+    }));
+  if (items.length === 0) return null;
+
+  const id = `tpl_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
+  await db.insert(mealTemplates).values({
+    id,
+    name,
+    mealType,
+    items,
+    useCount: 0,
+    createdAt: new Date(),
+  });
+  return id;
+}
+
+export async function applyMealTemplate(id: string, mealType: MealType) {
+  const rows = await db.select().from(mealTemplates).where(eq(mealTemplates.id, id));
+  const tpl = rows[0];
+  if (!tpl) return 0;
+
+  const count = await addMealEntries(
+    tpl.items.map((it) => ({
+      foodId: it.foodId,
+      name: it.name,
+      mealType,
+      amountG: it.amountG,
+      kcal: it.kcal,
+      proteinG: it.proteinG,
+      carbG: it.carbG,
+      fatG: it.fatG,
+    }))
+  );
+
+  await db
+    .update(mealTemplates)
+    .set({ useCount: tpl.useCount + 1, lastUsedAt: new Date() })
+    .where(eq(mealTemplates.id, id));
+
+  return count;
+}
+
+export async function deleteMealTemplate(id: string) {
+  await db.delete(mealTemplates).where(eq(mealTemplates.id, id));
 }
