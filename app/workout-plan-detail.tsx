@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 32, paddingHorizontal: 12, borderRadius: radius.pill, justifyContent: 'center' },
   muscleChip: { height: 26, paddingHorizontal: 9, borderRadius: radius.badge, alignItems: 'center', justifyContent: 'center' },
-  exerciseEditCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card - 8, padding: 10, gap: 8 },
+  exerciseEditCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.cardInner, padding: 10, gap: 8 },
   exerciseEditHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stepperRow: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' },
   exerciseOption: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, paddingHorizontal: 10, borderRadius: radius.iconBox },

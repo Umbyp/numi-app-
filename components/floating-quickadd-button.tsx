@@ -3,7 +3,12 @@ import { Plus } from 'lucide-react-native';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { fabShadow } from '../lib/theme';
 
-/** ปุ่มเพิ่มด่วนลอยมุมซ้ายล่าง สมมาตรกับปุ่ม AI (FloatingAIButton) ฝั่งขวา — เดิมเคยเป็นช่องกลางแถบแท็บ ย้ายออกมาลอยแทนเพื่อให้แถบแท็บสมดุล */
+/**
+ * ปุ่มเพิ่มด่วน — ปุ่มลอยเดียวของแอป
+ * เดิมมีปุ่ม AI ลอยคู่กันอีกฝั่ง สองปุ่มขนาดเท่ากันจึงไม่มีอันไหนเป็น primary
+ * และรวมกับ 5 แท็บทำให้โซนล่างมีเป้ากดเจ็ดอัน ตอนนี้ทางเข้าแชทอยู่หัวแดชบอร์ดกับใน sheet นี้แทน
+ * วางมุมขวาล่างตามที่นิ้วโป้งเอื้อมถึงและตามที่คนคาดหวังบนมือถือ
+ */
 export function FloatingQuickAddButton({ onPress, bottomOffset = 100 }: { onPress: () => void; bottomOffset?: number }) {
   const c = useTheme();
   const scheme = useScheme();
@@ -22,7 +27,7 @@ export function FloatingQuickAddButton({ onPress, bottomOffset = 100 }: { onPres
 const styles = StyleSheet.create({
   btn: {
     position: 'absolute',
-    left: 16,
+    right: 16,
     width: 56,
     height: 56,
     borderRadius: 28,

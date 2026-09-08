@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  estimateCard: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.card - 6, padding: 14 },
+  estimateCard: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.cardInner, padding: 14 },
   saveBtn: { borderRadius: radius.iconBox, paddingVertical: 14, alignItems: 'center' },
   cancelBtn: { alignItems: 'center', paddingVertical: 6 },
 });

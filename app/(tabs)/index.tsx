@@ -7,7 +7,8 @@ import { MacroBar } from '../../components/macro-bar';
 import { WaterCard } from '../../components/water-card';
 import { GoalIcon, FoodIcon, ActivityIcon } from '../../components/icons/nav-icons';
 import { DayTypeIcon, dayTypeTint } from '../../components/icons/workout-icons';
-import { Mascot } from '../../components/mascot';
+import { AskNumiButton } from '../../components/ask-numi-button';
+import { CalorieCardSkeleton } from '../../components/skeleton';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { useNumiStore, sumTotals } from '../../lib/store';
 import { getWorkoutsForDate, getWorkoutPlans, getWorkoutPlanCompletions } from '../../lib/db/queries';
@@ -29,7 +30,7 @@ export default function DashboardScreen() {
   const c = useTheme();
   const scheme = useScheme();
   const router = useRouter();
-  const { profile, latestWeightKg, todayEntries, goals, refresh } = useNumiStore();
+  const { loaded, profile, latestWeightKg, todayEntries, goals, refresh } = useNumiStore();
   const [activityKcal, setActivityKcal] = useState(0);
   const [suggestedWorkout, setSuggestedWorkout] = useState<{
     planId: string;
@@ -75,7 +76,7 @@ export default function DashboardScreen() {
             <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>{thaiDate()}</Text>
             <Text style={[type.greeting, { color: c.text, fontSize: 24 }]}>แดชบอร์ด</Text>
           </View>
-          <Mascot size={44} />
+          <AskNumiButton />
         </View>
 
         {!profile && (
@@ -91,10 +92,16 @@ export default function DashboardScreen() {
         )}
 
         <View style={cardStyle}>
+          {!loaded ? (
+            <CalorieCardSkeleton />
+          ) : (
+          <>
           <View style={styles.cardHeaderRow}>
             <View style={{ flex: 1 }}>
               <Text style={[type.cardTitle, { color: c.text, fontSize: 17 }]}>แคลอรี่</Text>
-              <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>ที่ควรได้รับ = เป้าหมาย − อาหาร + กิจกรรม</Text>
+              <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>
+                รวมแคลอรี่ที่ออกกำลังกายเผาไปแล้ว
+              </Text>
             </View>
           </View>
 
@@ -113,6 +120,8 @@ export default function DashboardScreen() {
             <MacroBar label="คาร์บ" colorKey="carb" currentG={totals.carbG} targetG={goals?.carbG ?? 0} compact />
             <MacroBar label="ไขมัน" colorKey="fat" currentG={totals.fatG} targetG={goals?.fatG ?? 0} compact />
           </View>
+          </>
+          )}
         </View>
 
         <WaterCard />
