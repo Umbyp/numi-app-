@@ -84,11 +84,12 @@ export async function executeToolCall(
             sets: e.sets,
             reps: e.reps,
             restSec: e.rest_sec,
+            muscleGroup: e.muscle_group,
             note: e.note,
           })),
         })),
       });
-      return `บันทึกแผนแล้ว ดูได้ที่ บัญชี > แผนออกกำลังกาย`;
+      return `บันทึกแผนแล้ว ดูได้ที่แท็บ "ออกกำลังกาย"`;
     }
 
     default:

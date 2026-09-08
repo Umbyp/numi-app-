@@ -5,10 +5,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalorieRing } from '../../components/calorie-ring';
 import { MacroBar } from '../../components/macro-bar';
 import { GoalIcon, FoodIcon, ActivityIcon } from '../../components/icons/nav-icons';
+import { DayTypeIcon, dayTypeTint } from '../../components/icons/workout-icons';
 import { Mascot } from '../../components/mascot';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { useNumiStore, sumTotals } from '../../lib/store';
-import { getWorkoutsForDate } from '../../lib/db/queries';
+import { getWorkoutsForDate, getWorkoutPlans, getWorkoutPlanCompletions } from '../../lib/db/queries';
+import type { WorkoutPlanDay } from '../../lib/db/schema';
 import { localDateString, calcBMI, bmiCategory } from '../../lib/nutrition';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
@@ -28,12 +30,27 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { profile, latestWeightKg, todayEntries, goals, refresh } = useNumiStore();
   const [activityKcal, setActivityKcal] = useState(0);
+  const [suggestedWorkout, setSuggestedWorkout] = useState<{
+    planId: string;
+    planTitle: string;
+    day: WorkoutPlanDay;
+  } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       refresh();
       getWorkoutsForDate(localDateString()).then((rows) => {
         setActivityKcal(rows.reduce((s, w) => s + w.kcalBurned, 0));
+      });
+      getWorkoutPlans().then(async (plans) => {
+        if (plans.length === 0) {
+          setSuggestedWorkout(null);
+          return;
+        }
+        const plan = plans[0];
+        const completions = await getWorkoutPlanCompletions(plan.id);
+        const dayIndex = completions.length % plan.days.length;
+        setSuggestedWorkout({ planId: plan.id, planTitle: plan.title, day: plan.days[dayIndex] });
       });
     }, [])
   );
@@ -96,6 +113,33 @@ export default function DashboardScreen() {
             <MacroBar label="ไขมัน" colorKey="fat" currentG={totals.fatG} targetG={goals?.fatG ?? 0} compact />
           </View>
         </View>
+
+        {suggestedWorkout && (
+          <Pressable
+            style={cardStyle}
+            onPress={() => router.push({ pathname: '/workout-plan-detail', params: { id: suggestedWorkout.planId } })}
+          >
+            <View style={styles.cardHeaderRow}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>
+                  วันนี้ตามแผน "{suggestedWorkout.planTitle}"
+                </Text>
+                <Text style={[type.cardTitle, { color: c.text, fontSize: 17 }]} numberOfLines={1}>
+                  {suggestedWorkout.day.label}
+                </Text>
+              </View>
+              {(() => {
+                const tint = dayTypeTint(suggestedWorkout.day.dayType, c);
+                return (
+                  <View style={[styles.workoutBadge, { backgroundColor: tint.bg }]}>
+                    <DayTypeIcon dayType={suggestedWorkout.day.dayType} size={16} color={tint.icon} />
+                  </View>
+                );
+              })()}
+            </View>
+            <Text style={[type.row, { color: c.brand, fontSize: 13 }]}>ไปเล่นเลย →</Text>
+          </Pressable>
+        )}
 
         {profile && (
           <View style={cardStyle}>
@@ -200,6 +244,7 @@ const styles = StyleSheet.create({
   statCol: { flex: 1, gap: 12, minWidth: 0 },
   statRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   statIcon: { width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  workoutBadge: { width: 36, height: 36, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   macroRow: { flexDirection: 'row', gap: 12, paddingTop: 2 },
   healthRow: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 52 },
   healthValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

@@ -1,17 +1,34 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { View, Text, Pressable, FlatList, StyleSheet } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
-import { getWorkoutPlans, deleteWorkoutPlan } from '../../lib/db/queries';
+import { getWorkoutPlans, deleteWorkoutPlan, getWorkoutHistory, getWorkoutPlanCompletionsInRange } from '../../lib/db/queries';
 import type { WorkoutPlanDay } from '../../lib/db/schema';
 import { DayTypeIcon, dayTypeTint } from '../../components/icons/workout-icons';
+import { WorkoutHistoryStrip } from '../../components/workout-history-strip';
 import { Mascot } from '../../components/mascot';
+import { localDateString } from '../../lib/nutrition';
+import { calcStreak, calcWeekCompletionCount, calcMuscleBalance } from '../../lib/workout-stats';
+import { MUSCLE_GROUPS } from '../../lib/met';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
 
 const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+/** วันที่ในสัปดาห์นี้ (จันทร์-อาทิตย์) แบบ YYYY-MM-DD ใช้คำนวณสถิติรายสัปดาห์ */
+function thisWeekDates(): string[] {
+  const today = new Date();
+  const dow = (today.getDay() + 6) % 7; // 0 = จันทร์
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - dow);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return localDateString(d);
+  });
+}
 
 /** เอาไว้เลือกสี/ไอคอนหน้าปกของแผน — ใช้ประเภทวันที่ปรากฏบ่อยสุด */
 function dominantDayType(days: { dayType: WorkoutPlanDay['dayType'] }[]): WorkoutPlanDay['dayType'] {
@@ -33,12 +50,27 @@ export default function WorkoutPlanScreen() {
   const scheme = useScheme();
   const router = useRouter();
   const [plans, setPlans] = useState<Awaited<ReturnType<typeof getWorkoutPlans>>>([]);
+  const [workoutDates, setWorkoutDates] = useState<Set<string>>(new Set());
+  const [muscleBalance, setMuscleBalance] = useState<ReturnType<typeof calcMuscleBalance>>({});
 
-  const load = useCallback(() => {
-    getWorkoutPlans().then(setPlans);
+  const load = useCallback(async () => {
+    const [plansData, historyRows] = await Promise.all([getWorkoutPlans(), getWorkoutHistory(60)]);
+    setPlans(plansData);
+    setWorkoutDates(new Set(historyRows.map((r) => r.localDate)));
+
+    const week = thisWeekDates();
+    const completions = await getWorkoutPlanCompletionsInRange(week[0], week[6]);
+    setMuscleBalance(calcMuscleBalance(completions, plansData));
   }, []);
 
-  useFocusEffect(load);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
+  const streak = useMemo(() => calcStreak(workoutDates), [workoutDates]);
+  const weekCount = useMemo(() => calcWeekCompletionCount(workoutDates, thisWeekDates()), [workoutDates]);
 
   async function handleDelete(id: string) {
     await deleteWorkoutPlan(id);
@@ -52,7 +84,43 @@ export default function WorkoutPlanScreen() {
         keyExtractor={(r) => r.id}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          <Text style={[type.greeting, { color: c.text, fontSize: 24, marginBottom: 8 }]}>แผนออกกำลังกาย</Text>
+          <>
+            <Text style={[type.greeting, { color: c.text, fontSize: 24, marginBottom: 8 }]}>แผนออกกำลังกาย</Text>
+            <View style={[styles.statsCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+              <View style={styles.statsRow}>
+                <View>
+                  <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>ต่อเนื่อง</Text>
+                  <Text style={[type.cardTitle, { color: c.text, fontSize: 20 }]}>{streak} วัน</Text>
+                </View>
+                <View>
+                  <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>สัปดาห์นี้</Text>
+                  <Text style={[type.cardTitle, { color: c.text, fontSize: 20 }]}>{weekCount}/7 วัน</Text>
+                </View>
+              </View>
+
+              <WorkoutHistoryStrip workoutDates={workoutDates} />
+
+              <View style={{ gap: 6 }}>
+                <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4 }]}>สมดุลกล้ามเนื้อสัปดาห์นี้</Text>
+                <View style={styles.muscleRow}>
+                  {MUSCLE_GROUPS.map((m) => {
+                    const n = muscleBalance[m.key] ?? 0;
+                    return (
+                      <View
+                        key={m.key}
+                        style={[styles.muscleBadge, { backgroundColor: n > 0 ? c.brandTint : c.surfaceAlt }]}
+                      >
+                        <Text style={[type.badge, { color: n > 0 ? c.brand : c.faint }]}>
+                          {m.label}
+                          {n > 0 ? ` ×${n}` : ''}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            </View>
+          </>
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
@@ -107,4 +175,8 @@ const styles = StyleSheet.create({
   iconBox: { width: 44, height: 44, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
   deleteBtn: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   emptyState: { alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 60, paddingHorizontal: 32 },
+  statsCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 12, marginBottom: 14 },
+  statsRow: { flexDirection: 'row', gap: 24 },
+  muscleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  muscleBadge: { borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 3 },
 });

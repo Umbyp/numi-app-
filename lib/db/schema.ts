@@ -108,6 +108,7 @@ export interface WorkoutPlanExercise {
   reps?: string; // string ไม่ใช่ number — รองรับ "8-12", "ถึงล้า", "30 วินาที" ฯลฯ
   restSec?: number;
   note?: string;
+  muscleGroup?: 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'glutes' | 'core' | 'full_body' | 'cardio';
 }
 export interface WorkoutPlanDay {
   label: string;

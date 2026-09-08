@@ -345,6 +345,14 @@ export async function getWorkoutPlanCompletions(planId: string) {
     .orderBy(workoutPlanCompletions.localDate);
 }
 
+/** completion ของทุกแผนในช่วงวันที่กำหนด — ใช้สรุปความสมดุลกล้ามเนื้อรายสัปดาห์ (ไม่จำกัดแผนเดียวเหมือน getWorkoutPlanCompletions) */
+export async function getWorkoutPlanCompletionsInRange(startDate: string, endDate: string) {
+  return db
+    .select()
+    .from(workoutPlanCompletions)
+    .where(and(gte(workoutPlanCompletions.localDate, startDate), lte(workoutPlanCompletions.localDate, endDate)));
+}
+
 export async function getTodayTotals(localDate: string): Promise<DayTotals> {
   const rows = await getMealEntriesForDate(localDate);
   return rows.reduce<DayTotals>(

@@ -28,6 +28,7 @@ const workoutPlanExerciseSchema = z.object({
   sets: z.number().int().positive().max(20).optional(),
   reps: z.string().max(30).optional(),
   rest_sec: z.number().int().min(0).max(600).optional(),
+  muscle_group: z.enum(['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes', 'core', 'full_body', 'cardio']).optional(),
   note: z.string().max(300).optional(),
 });
 

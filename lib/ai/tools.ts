@@ -57,6 +57,11 @@ export const TOOLS = [
                       sets: { type: 'number', description: 'จำนวนเซต (สำหรับท่าเวท)' },
                       reps: { type: 'string', description: 'จำนวนครั้งต่อเซต เช่น "8-12" หรือ "ถึงล้า"' },
                       rest_sec: { type: 'number', description: 'เวลาพักระหว่างเซต (วินาที)' },
+                      muscle_group: {
+                        type: 'string',
+                        enum: ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes', 'core', 'full_body', 'cardio'],
+                        description: 'กลุ่มกล้ามเนื้อหลักที่ท่านี้ฝึก ใช้สรุปความสมดุลรายสัปดาห์ให้ผู้ใช้',
+                      },
                       note: { type: 'string' },
                     },
                     required: ['name', 'category', 'met', 'duration_min'],

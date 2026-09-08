@@ -45,3 +45,21 @@ export function metsByCategory(category: WorkoutCategory): MetEntry[] {
 export function getMetEntry(key: string): MetEntry | undefined {
   return MET_TABLE.find((m) => m.key === key);
 }
+
+export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'glutes' | 'core' | 'full_body' | 'cardio';
+
+export const MUSCLE_GROUPS: { key: MuscleGroup; label: string }[] = [
+  { key: 'chest', label: 'อก' },
+  { key: 'back', label: 'หลัง' },
+  { key: 'shoulders', label: 'ไหล่' },
+  { key: 'arms', label: 'แขน' },
+  { key: 'legs', label: 'ขา' },
+  { key: 'glutes', label: 'ก้น' },
+  { key: 'core', label: 'แกนกลางลำตัว' },
+  { key: 'full_body', label: 'ทั้งตัว' },
+  { key: 'cardio', label: 'คาร์ดิโอ' },
+];
+
+export function muscleGroupLabel(key?: MuscleGroup | null): string | null {
+  return MUSCLE_GROUPS.find((m) => m.key === key)?.label ?? null;
+}

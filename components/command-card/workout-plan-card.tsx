@@ -4,6 +4,7 @@ import { X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { CategoryIcon, categoryTint, DayTypeIcon, dayTypeTint } from '../icons/workout-icons';
+import { muscleGroupLabel } from '../../lib/met';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
 import type { WorkoutPlanArgs } from '../../lib/ai/validators';
@@ -76,6 +77,9 @@ export function WorkoutPlanCard({ card, onConfirm, onDismiss }: Props) {
                       {ex.name}
                     </Text>
                     <View style={styles.badgeRow}>
+                      {muscleGroupLabel(ex.muscle_group) && (
+                        <Badge label={muscleGroupLabel(ex.muscle_group)!} bg={eTint.bg} text={eTint.icon} />
+                      )}
                       <Badge label={`MET ${ex.met}`} bg={c.surfaceAlt} text={c.subtext} />
                       <Badge label={`${ex.duration_min} นาที`} bg={c.surfaceAlt} text={c.subtext} />
                       {ex.sets != null && ex.reps && (

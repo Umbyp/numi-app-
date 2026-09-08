@@ -15,9 +15,10 @@ import {
 } from '../lib/db/queries';
 import type { WorkoutPlanDay, WorkoutPlanExercise } from '../lib/db/schema';
 import { calcKcalBurned, localDateString } from '../lib/nutrition';
-import { WORKOUT_CATEGORIES, metsByCategory, type WorkoutCategory } from '../lib/met';
+import { WORKOUT_CATEGORIES, metsByCategory, MUSCLE_GROUPS, muscleGroupLabel, type WorkoutCategory, type MuscleGroup } from '../lib/met';
 import { AmountStepper } from '../components/amount-stepper';
 import { Mascot } from '../components/mascot';
+import { RestTimerModal } from '../components/rest-timer-modal';
 import { CategoryIcon, categoryTint, DayTypeIcon, dayTypeTint } from '../components/icons/workout-icons';
 import { type as textType, fontFamily } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
@@ -66,6 +67,7 @@ export default function WorkoutPlanDetailScreen() {
   const [addingToDay, setAddingToDay] = useState<number | null>(null);
   const [pickerCategory, setPickerCategory] = useState<WorkoutCategory>('cardio');
   const [saving, setSaving] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState<number | null>(null);
 
   const load = useCallback(() => {
     if (!params.id) return;
@@ -282,6 +284,20 @@ export default function WorkoutPlanDetailScreen() {
                       placeholderTextColor={c.faint}
                     />
                   )}
+                  <View style={styles.chipRow}>
+                    {MUSCLE_GROUPS.map((m) => {
+                      const active = m.key === ex.muscleGroup;
+                      return (
+                        <Pressable
+                          key={m.key}
+                          onPress={() => updateExercise(dayIdx, exIdx, { muscleGroup: active ? undefined : m.key })}
+                          style={[styles.muscleChip, { backgroundColor: active ? exTint.bg : c.surfaceAlt }]}
+                        >
+                          <Text style={[textType.badge, { color: active ? exTint.icon : c.faint }]}>{m.label}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                 </View>
                 );
               })}
@@ -397,12 +413,21 @@ export default function WorkoutPlanDetailScreen() {
                       <Text style={[textType.row, { color: c.text, fontSize: 13 }]} numberOfLines={1}>
                         {ex.name}
                       </Text>
+                      {muscleGroupLabel(ex.muscleGroup) && (
+                        <Text style={[textType.label, { color: exTint.icon, fontSize: 11 }]}>
+                          {muscleGroupLabel(ex.muscleGroup)}
+                        </Text>
+                      )}
                       {ex.note && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>{ex.note}</Text>}
                     </View>
                     <Text style={[textType.label, { color: c.muted, fontSize: 11 }]} numberOfLines={2}>
                       MET {ex.met} · {ex.durationMin} นาที
                       {ex.sets != null && ex.reps ? ` · ${ex.sets}x${ex.reps}` : ''}
-                      {ex.restSec != null ? ` · พัก ${ex.restSec}วิ` : ''}
+                      {ex.restSec != null && (
+                        <Text style={{ color: c.brand }} onPress={() => setTimerSeconds(ex.restSec!)}>
+                          {` · ⏱ พัก ${ex.restSec}วิ`}
+                        </Text>
+                      )}
                     </Text>
                   </View>
                 );
@@ -423,6 +448,7 @@ export default function WorkoutPlanDetailScreen() {
           );
         })}
       </ScrollView>
+      <RestTimerModal visible={timerSeconds != null} seconds={timerSeconds ?? 0} onClose={() => setTimerSeconds(null)} />
     </SafeAreaView>
   );
 }
@@ -441,6 +467,7 @@ const styles = StyleSheet.create({
   dayEditHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   chipRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 32, paddingHorizontal: 12, borderRadius: radius.pill, justifyContent: 'center' },
+  muscleChip: { height: 26, paddingHorizontal: 9, borderRadius: radius.badge, alignItems: 'center', justifyContent: 'center' },
   exerciseEditCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card - 8, padding: 10, gap: 8 },
   exerciseEditHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stepperRow: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' },
