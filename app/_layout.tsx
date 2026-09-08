@@ -3,7 +3,7 @@ import { View, ActivityIndicator, useColorScheme } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { migrateDb } from '../lib/db/client';
-import { seedFoodsIfEmpty } from '../lib/db/queries';
+import { syncSeedFoods } from '../lib/db/queries';
 import { useNumiStore } from '../lib/store';
 import { colors } from '../lib/theme';
 
@@ -16,7 +16,7 @@ export default function RootLayout() {
   useEffect(() => {
     (async () => {
       await migrateDb();
-      await seedFoodsIfEmpty();
+      await syncSeedFoods();
       await refresh();
       setReady(true);
     })();
