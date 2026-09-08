@@ -186,6 +186,15 @@ export const mealTemplates = sqliteTable('meal_templates', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 
+// น้ำดื่ม — เก็บยอดรวมของวัน ไม่ได้เก็บทีละแก้ว
+// เพราะสิ่งที่คนอยากรู้คือวันนี้ดื่มไปเท่าไหร่แล้ว ไม่ใช่ดื่มตอนกี่โมงบ้าง
+export const waterLogs = sqliteTable('water_logs', {
+  id: text('id').primaryKey(),
+  localDate: text('local_date').notNull().unique(),
+  ml: integer('ml').notNull().default(0),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
 export const chatMessages = sqliteTable('chat_messages', {
   id: text('id').primaryKey(),
   role: text('role', { enum: ['user', 'assistant', 'tool'] }).notNull(),

@@ -13,6 +13,7 @@ import {
   chatMessages,
   measurements,
   mealTemplates,
+  waterLogs,
   type WorkoutPlanDay,
 } from './schema';
 import { localDateString } from '../nutrition';
@@ -680,4 +681,30 @@ export async function applyMealTemplate(id: string, mealType: MealType) {
 
 export async function deleteMealTemplate(id: string) {
   await db.delete(mealTemplates).where(eq(mealTemplates.id, id));
+}
+
+// ---------- น้ำดื่ม ----------
+
+export async function getWaterForDate(localDate: string): Promise<number> {
+  const rows = await db.select().from(waterLogs).where(eq(waterLogs.localDate, localDate));
+  return rows[0]?.ml ?? 0;
+}
+
+/**
+ * บวก/ลบปริมาณน้ำของวันนี้ คืนยอดรวมใหม่
+ * อ่านค่าเดิมมาบวกใน JS แทนการใช้ ml = ml + ? ใน SQL เพราะต้อง clamp ไม่ให้ติดลบ
+ * และแอปนี้ใช้คนเดียวจึงไม่มีการเขียนพร้อมกันให้ต้องกังวล
+ */
+export async function addWaterMl(deltaMl: number, localDate = localDateString()): Promise<number> {
+  const current = await getWaterForDate(localDate);
+  const next = Math.max(0, Math.min(20000, current + deltaMl));
+  const now = new Date();
+  await db
+    .insert(waterLogs)
+    .values({ id: `water_${localDate}`, localDate, ml: next, updatedAt: now })
+    .onConflictDoUpdate({
+      target: waterLogs.localDate,
+      set: { ml: next, updatedAt: now },
+    });
+  return next;
 }

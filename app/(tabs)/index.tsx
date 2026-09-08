@@ -4,6 +4,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalorieRing } from '../../components/calorie-ring';
 import { MacroBar } from '../../components/macro-bar';
+import { WaterCard } from '../../components/water-card';
 import { GoalIcon, FoodIcon, ActivityIcon } from '../../components/icons/nav-icons';
 import { DayTypeIcon, dayTypeTint } from '../../components/icons/workout-icons';
 import { Mascot } from '../../components/mascot';
@@ -113,6 +114,8 @@ export default function DashboardScreen() {
             <MacroBar label="ไขมัน" colorKey="fat" currentG={totals.fatG} targetG={goals?.fatG ?? 0} compact />
           </View>
         </View>
+
+        <WaterCard />
 
         {suggestedWorkout && (
           <Pressable
