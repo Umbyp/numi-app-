@@ -94,7 +94,7 @@ export function DatePickerModal({ visible, selectedDate, onSelect, onClose }: Pr
                   <Text
                     style={[
                       type.row,
-                      { fontSize: 13, color: isSelected ? '#fff' : isFuture ? c.faint : c.text },
+                      { fontSize: 13, color: isSelected ? c.onBrand : isFuture ? c.faint : c.text },
                     ]}
                   >
                     {d.getDate()}

@@ -101,7 +101,7 @@ export function ReminderSettings() {
                       onPress={() => apply(def.key, { enabled: true, hour: t.hour, minute: t.minute })}
                       style={[styles.timeChip, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
                     >
-                      <Text style={[type.badge, { color: active ? '#fff' : c.subtext, fontSize: 12 }]}>
+                      <Text style={[type.badge, { color: active ? c.onBrand : c.subtext, fontSize: 12 }]}>
                         {formatTime(t.hour, t.minute)}
                       </Text>
                     </Pressable>

@@ -130,7 +130,7 @@ export function MealTemplateSheet({ visible, mode, mealType, mealLabel, localDat
                   disabled={busy}
                   style={[styles.primaryBtn, { backgroundColor: c.brand }, busy && { opacity: 0.6 }]}
                 >
-                  <Text style={[type.row, { color: '#fff', fontSize: 14 }]}>
+                  <Text style={[type.row, { color: c.onBrand, fontSize: 14 }]}>
                     {busy ? 'กำลังบันทึก...' : 'บันทึกมื้อชุด'}
                   </Text>
                 </Pressable>

@@ -250,7 +250,7 @@ export default function AccountEditScreen() {
                           onPress={() => setWeeklyRateKg(signed)}
                           style={[styles.ratePill, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
                         >
-                          <Text style={[textType.label, { color: active ? '#fff' : c.text, fontSize: 12 }]}>
+                          <Text style={[textType.label, { color: active ? c.onBrand : c.text, fontSize: 12 }]}>
                             {v} kg{overSafe ? ' ⚠︎' : ''}
                           </Text>
                         </Pressable>
@@ -394,7 +394,7 @@ export default function AccountEditScreen() {
               disabled={nextDisabled}
               onPress={goNext}
             >
-              <Text style={[textType.row, styles.saveBtnText]}>ถัดไป</Text>
+              <Text style={[textType.row, styles.saveBtnText, { color: c.onBrand }]}>ถัดไป</Text>
             </Pressable>
           ) : (
             <Pressable
@@ -402,7 +402,7 @@ export default function AccountEditScreen() {
               disabled={saving || !preview}
               onPress={handleSave}
             >
-              <Text style={[textType.row, styles.saveBtnText]}>{saving ? 'กำลังบันทึก...' : 'บันทึกเป้าหมาย'}</Text>
+              <Text style={[textType.row, styles.saveBtnText, { color: c.onBrand }]}>{saving ? 'กำลังบันทึก...' : 'บันทึกเป้าหมาย'}</Text>
             </Pressable>
           )}
         </View>
@@ -510,5 +510,5 @@ const styles = StyleSheet.create({
   footerRow: { flexDirection: 'row', gap: 10, padding: 18, paddingTop: 8 },
   ghostBtn: { flex: 1, borderRadius: radius.iconBox, paddingVertical: 14, alignItems: 'center' },
   primaryBtn: { flex: 2, borderRadius: radius.iconBox, paddingVertical: 14, alignItems: 'center' },
-  saveBtnText: { color: '#fff', fontSize: 15 },
+  saveBtnText: { fontSize: 15 },
 });

@@ -104,7 +104,7 @@ export function AddMealCard({ card, onConfirm, onDismiss }: Props) {
           disabled={items.length === 0}
           onPress={handleConfirm}
         >
-          <Text style={[type.row, { color: '#fff', fontSize: 13 }]}>ยืนยัน</Text>
+          <Text style={[type.row, { color: c.onBrand, fontSize: 13 }]}>ยืนยัน</Text>
         </Pressable>
       </View>
     </View>

@@ -12,27 +12,29 @@ export const colors = {
     faint: '#A6B1C2',
     line: '#EDF1F7',
     border: '#EDF1F7',
-    brand: '#2E7DF7',
+    brand: '#2166D6',
     brandTint: '#EAF2FE',
+    /** สีตัวอักษร/ไอคอนที่วางบนพื้น brand — ดู MIN_CONTRAST ใน scripts ตรวจสี */
+    onBrand: '#FFFFFF',
     protein: '#F2545B',
     proteinBg: 'rgba(242,84,91,0.12)',
-    proteinText: '#CE454C',
+    proteinText: '#C0323A',
     // คาร์บต้องไม่ใช่สีเดียวกับ brand ไม่งั้นแถบข้อมูลกับปุ่มที่กดได้จะแยกไม่ออก
     carb: '#12A594',
     carbBg: 'rgba(18,165,148,0.12)',
-    carbText: '#0E8577',
+    carbText: '#0C766A',
     fat: '#F5B93C',
     fatBg: 'rgba(245,185,60,0.18)',
-    fatText: '#B3801F',
+    fatText: '#8A6318',
     dinner: '#6B4FCF',
     dinnerBg: '#EDE9FB',
     danger: '#F2545B',
     dangerBg: '#FDEEEF',
     // legacy aliases used by components not yet migrated
     card: '#FFFFFF',
-    primary: '#2E7DF7',
+    primary: '#2166D6',
     ringTrack: '#EDF1F7',
-    ringActive: '#2E7DF7',
+    ringActive: '#2166D6',
     ringOver: '#8593A8',
     ghostBg: '#F7F9FC',
   },
@@ -48,6 +50,8 @@ export const colors = {
     border: '#232F4B',
     brand: '#5C9BFF',
     brandTint: '#18223A',
+    /** dark mode ปุ่มที่ถมสี brand ใช้ตัวอักษรสีเข้ม ขาวบน #5C9BFF ได้แค่ 2.77 */
+    onBrand: '#0D1421',
     protein: '#FF6B72',
     proteinBg: 'rgba(255,107,114,0.18)',
     proteinText: '#FF8B91',
@@ -88,6 +92,30 @@ export const radius = {
 
 /** เป้ากดขั้นต่ำตามเกณฑ์ iOS (44) และ Android (48) — ใช้กับปุ่มไอคอนทุกตัว */
 export const MIN_TOUCH = 44;
+
+/** ความสว่างสัมพัทธ์ตามสูตร WCAG */
+function luminance(hex: string): number {
+  const channel = (h: string) => {
+    const v = parseInt(h, 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return (
+    0.2126 * channel(hex.slice(1, 3)) +
+    0.7152 * channel(hex.slice(3, 5)) +
+    0.0722 * channel(hex.slice(5, 7))
+  );
+}
+
+/**
+ * เลือกสีตัวอักษรที่อ่านออกบนพื้นสีที่ให้มา
+ *
+ * ใช้กับที่ที่สีพื้นไม่คงที่ เช่นชิปเลือกมื้อที่ถมสีของมื้อนั้น (เหลือง/แดง/ม่วง/เทา)
+ * ก่อนหน้านี้ใส่ขาวตายตัวทุกสี ตัวอักษรขาวบนพื้นเหลือง c.fat ได้คอนทราสต์
+ * ประมาณ 1.9 ซึ่งอ่านแทบไม่ออก
+ */
+export function onColor(bg: string): '#FFFFFF' | '#16233D' {
+  return luminance(bg) > 0.45 ? '#16233D' : '#FFFFFF';
+}
 
 // spacing scale 4 · 6 · 8 · 12 · 16 · 24 · 32
 export const space = [4, 6, 8, 12, 16, 24, 32] as const;

@@ -27,7 +27,7 @@ export function EmptyState({ title, description, actionLabel, onAction, mascotSi
       ) : null}
       {actionLabel && onAction ? (
         <Pressable onPress={onAction} style={[styles.action, { backgroundColor: c.brand }]}>
-          <Text style={[type.row, { color: '#fff', fontSize: 13 }]}>{actionLabel}</Text>
+          <Text style={[type.row, { color: c.onBrand, fontSize: 13 }]}>{actionLabel}</Text>
         </Pressable>
       ) : null}
     </View>

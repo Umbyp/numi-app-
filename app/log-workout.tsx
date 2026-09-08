@@ -205,7 +205,7 @@ export default function LogWorkoutScreen() {
                 onPress={() => pickCategory(cat.key)}
                 style={[styles.catChip, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
               >
-                <Text style={[textType.row, { fontSize: 13, color: active ? '#fff' : c.text }]}>{cat.label}</Text>
+                <Text style={[textType.row, { fontSize: 13, color: active ? c.onBrand : c.text }]}>{cat.label}</Text>
               </Pressable>
             );
           })}
@@ -360,7 +360,7 @@ export default function LogWorkoutScreen() {
           disabled={saving || !selected}
           onPress={handleSave}
         >
-          <Text style={[textType.row, { color: '#fff', fontSize: 15 }]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
+          <Text style={[textType.row, { color: c.onBrand, fontSize: 15 }]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
         </Pressable>
         <Pressable style={styles.cancelBtn} onPress={() => router.back()}>
           <Text style={[textType.row, { color: c.subtext, fontSize: 14 }]}>ยกเลิก</Text>

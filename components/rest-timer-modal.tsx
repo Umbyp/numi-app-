@@ -77,7 +77,7 @@ export function RestTimerModal({ visible, seconds, onClose }: Props) {
               <Text style={[type.row, { color: c.brand, fontSize: 13 }]}>+15 วิ</Text>
             </Pressable>
             <Pressable style={[styles.primaryBtn, { backgroundColor: c.brand }]} onPress={onClose}>
-              <Text style={[type.row, { color: '#fff', fontSize: 13 }]}>ปิด</Text>
+              <Text style={[type.row, { color: c.onBrand, fontSize: 13 }]}>ปิด</Text>
             </Pressable>
           </View>
         </View>

@@ -11,7 +11,7 @@ import { MEAL_TYPES, detectMealType, type MealType } from '../lib/meal-type';
 import { addMealEntry, createUserFood } from '../lib/db/queries';
 import { scaleFood } from '../lib/nutrition';
 import { type as textType, fontFamily } from '../lib/fonts';
-import { radius, cardShadow } from '../lib/theme';
+import { radius, cardShadow, onColor } from '../lib/theme';
 
 interface OffProduct {
   name: string;
@@ -115,7 +115,7 @@ export default function ScanBarcodeScreen() {
           เพื่อสแกนบาร์โค้ดอาหาร
         </Text>
         <Pressable style={[styles.primaryBtn, { backgroundColor: c.brand }]} onPress={requestPermission}>
-          <Text style={[textType.row, { color: '#fff', fontSize: 15 }]}>อนุญาตใช้กล้อง</Text>
+          <Text style={[textType.row, { color: c.onBrand, fontSize: 15 }]}>อนุญาตใช้กล้อง</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -147,7 +147,7 @@ export default function ScanBarcodeScreen() {
           <Text style={[styles.overlayText, { marginBottom: 20 }]}>{error}</Text>
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <Pressable style={[styles.primaryBtn, { backgroundColor: c.brand }]} onPress={retry}>
-              <Text style={[textType.row, { color: '#fff', fontSize: 14 }]}>สแกนใหม่</Text>
+              <Text style={[textType.row, { color: c.onBrand, fontSize: 14 }]}>สแกนใหม่</Text>
             </Pressable>
             <Pressable
               style={[styles.primaryBtn, { backgroundColor: c.surfaceAlt }]}
@@ -175,8 +175,10 @@ export default function ScanBarcodeScreen() {
                     onPress={() => setMealType(opt.key)}
                     style={[styles.mealPill, { backgroundColor: active ? c[opt.colorKey] : c.surfaceAlt }]}
                   >
-                    <MealTypeIcon type={opt.key} color={active ? '#fff' : c[opt.colorKey]} size={13} />
-                    <Text style={[textType.row, { fontSize: 13, color: active ? '#fff' : c.text }]}>{opt.label}</Text>
+                    <MealTypeIcon type={opt.key} color={active ? onColor(c[opt.colorKey]) : c[opt.colorKey]} size={13} />
+                    <Text style={[textType.row, { fontSize: 13, color: active ? onColor(c[opt.colorKey]) : c.text }]}>
+                      {opt.label}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -202,7 +204,7 @@ export default function ScanBarcodeScreen() {
               disabled={saving}
               onPress={handleSave}
             >
-              <Text style={[textType.row, { color: '#fff', fontSize: 15 }]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
+              <Text style={[textType.row, { color: c.onBrand, fontSize: 15 }]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
             </Pressable>
             <Pressable onPress={retry} style={{ alignItems: 'center', paddingVertical: 4 }}>
               <Text style={[textType.label, { color: c.subtext }]}>สแกนใหม่</Text>

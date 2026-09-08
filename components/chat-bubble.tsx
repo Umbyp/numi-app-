@@ -39,7 +39,7 @@ export function ChatBubble({ role, text, imageUri, lastOfRun, firstOfRun }: Prop
           style={[
             type.body,
             {
-              color: isUser ? '#fff' : c.text,
+              color: isUser ? c.onBrand : c.text,
               fontSize: 14.5,
               lineHeight: 21,
               marginTop: imageUri ? 8 : 0,

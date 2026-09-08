@@ -22,7 +22,7 @@ import { MEAL_TYPES, detectMealType, type MealType } from '../lib/meal-type';
 import { searchFoods, addMealEntry, createUserFood } from '../lib/db/queries';
 import { scaleFood } from '../lib/nutrition';
 import { type as textType, fontFamily } from '../lib/fonts';
-import { radius, cardShadow } from '../lib/theme';
+import { radius, cardShadow, onColor } from '../lib/theme';
 import type { foods as foodsTable } from '../lib/db/schema';
 
 type Food = typeof foodsTable.$inferSelect;
@@ -137,8 +137,10 @@ export default function AddFoodScreen() {
                   { backgroundColor: active ? c[opt.colorKey] : c.surfaceAlt },
                 ]}
               >
-                <MealTypeIcon type={opt.key} color={active ? '#fff' : c[opt.colorKey]} size={13} />
-                <Text style={[textType.row, { fontSize: 13, color: active ? '#fff' : c.text }]}>{opt.label}</Text>
+                <MealTypeIcon type={opt.key} color={active ? onColor(c[opt.colorKey]) : c[opt.colorKey]} size={13} />
+                <Text style={[textType.row, { fontSize: 13, color: active ? onColor(c[opt.colorKey]) : c.text }]}>
+                  {opt.label}
+                </Text>
               </Pressable>
             );
           })}
@@ -205,7 +207,7 @@ export default function AddFoodScreen() {
                   disabled={saving}
                   onPress={handleConfirmSelected}
                 >
-                  <Text style={[textType.row, styles.saveBtnText]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
+                  <Text style={[textType.row, styles.saveBtnText, { color: c.onBrand }]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
                 </Pressable>
               </View>
             ) : (
@@ -268,7 +270,7 @@ export default function AddFoodScreen() {
               disabled={saving || !manualName.trim() || !manualKcal}
               onPress={handleConfirmManual}
             >
-              <Text style={[textType.row, styles.saveBtnText]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
+              <Text style={[textType.row, styles.saveBtnText, { color: c.onBrand }]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
             </Pressable>
 
             <Pressable onPress={() => setShowManual(false)} style={{ marginTop: 12, alignItems: 'center' }}>
@@ -354,7 +356,7 @@ const styles = StyleSheet.create({
   amountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 },
   previewText: { fontSize: 13, marginTop: 10 },
   saveBtn: { borderRadius: radius.iconBox, paddingVertical: 13, alignItems: 'center', marginTop: 16 },
-  saveBtnText: { color: '#fff', fontSize: 15 },
+  saveBtnText: { fontSize: 15 },
   manualForm: { padding: 16 },
   input: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.iconBox, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
 });

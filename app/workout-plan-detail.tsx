@@ -261,8 +261,8 @@ export default function WorkoutPlanDetailScreen() {
                       onPress={() => updateDay(dayIdx, { dayType: opt.key })}
                       style={[styles.chip, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
                     >
-                      <DayTypeIcon dayType={opt.key} size={13} color={active ? '#fff' : c.subtext} />
-                      <Text style={[textType.row, { fontSize: 12, color: active ? '#fff' : c.text }]}>{opt.label}</Text>
+                      <DayTypeIcon dayType={opt.key} size={13} color={active ? c.onBrand : c.subtext} />
+                      <Text style={[textType.row, { fontSize: 12, color: active ? c.onBrand : c.text }]}>{opt.label}</Text>
                     </Pressable>
                   );
                 })}
@@ -352,8 +352,8 @@ export default function WorkoutPlanDetailScreen() {
                           onPress={() => setPickerCategory(cat.key)}
                           style={[styles.chip, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
                         >
-                          <CategoryIcon category={cat.key} size={13} color={active ? '#fff' : c.subtext} />
-                          <Text style={[textType.row, { fontSize: 12, color: active ? '#fff' : c.text }]}>{cat.label}</Text>
+                          <CategoryIcon category={cat.key} size={13} color={active ? c.onBrand : c.subtext} />
+                          <Text style={[textType.row, { fontSize: 12, color: active ? c.onBrand : c.text }]}>{cat.label}</Text>
                         </Pressable>
                       );
                     })}
@@ -397,7 +397,7 @@ export default function WorkoutPlanDetailScreen() {
               <Text style={[textType.row, { color: c.subtext, fontSize: 14 }]}>ยกเลิก</Text>
             </Pressable>
             <Pressable style={[styles.primaryBtn, { backgroundColor: c.brand }, saving && { opacity: 0.6 }]} disabled={saving} onPress={saveEditing}>
-              <Text style={[textType.row, { color: '#fff', fontSize: 14 }]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
+              <Text style={[textType.row, { color: c.onBrand, fontSize: 14 }]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -493,7 +493,7 @@ export default function WorkoutPlanDetailScreen() {
                       disabled={completingDay === dayIdx}
                       onPress={() => handleCompleteDay(dayIdx)}
                     >
-                      <Text style={[textType.row, { color: '#fff', fontSize: 13 }]}>
+                      <Text style={[textType.row, { color: c.onBrand, fontSize: 13 }]}>
                         {doneSets > 0 && doneSets < totalSets ? `บันทึกวันนี้ (${doneSets}/${totalSets} เซต) ✓` : 'ทำวันนี้ ✓'}
                       </Text>
                     </Pressable>

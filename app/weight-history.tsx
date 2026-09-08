@@ -150,7 +150,7 @@ export default function WeightHistoryScreen() {
                       onPress={() => setRange(r)}
                       style={[styles.rangeChip, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
                     >
-                      <Text style={[type.label, { fontSize: 12, color: active ? '#fff' : c.subtext }]}>{r} วัน</Text>
+                      <Text style={[type.label, { fontSize: 12, color: active ? c.onBrand : c.subtext }]}>{r} วัน</Text>
                     </Pressable>
                   );
                 })}
@@ -227,7 +227,7 @@ export default function WeightHistoryScreen() {
                       disabled={saving}
                       style={[styles.saveBtn, { backgroundColor: c.brand }, saving && { opacity: 0.6 }]}
                     >
-                      <Text style={[type.row, { color: '#fff', fontSize: 14 }]}>
+                      <Text style={[type.row, { color: c.onBrand, fontSize: 14 }]}>
                         {saving ? 'กำลังบันทึก...' : 'บันทึกสัดส่วนวันนี้'}
                       </Text>
                     </Pressable>

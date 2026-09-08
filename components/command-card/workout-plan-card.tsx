@@ -112,7 +112,7 @@ export function WorkoutPlanCard({ card, onConfirm, onDismiss }: Props) {
           disabled={days.length === 0}
           onPress={handleConfirm}
         >
-          <Text style={[type.row, { color: '#fff', fontSize: 13 }]}>ยืนยัน</Text>
+          <Text style={[type.row, { color: c.onBrand, fontSize: 13 }]}>ยืนยัน</Text>
         </Pressable>
       </View>
     </View>

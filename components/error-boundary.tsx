@@ -44,7 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </Text>
           )}
           <Pressable style={[styles.button, { backgroundColor: c.brand }]} onPress={this.reset}>
-            <Text style={styles.buttonText}>ลองใหม่</Text>
+            <Text style={[styles.buttonText, { color: c.onBrand }]}>ลองใหม่</Text>
           </Pressable>
         </View>
       );
@@ -59,5 +59,5 @@ const styles = StyleSheet.create({
   message: { fontFamily: fontFamily(500), fontSize: 14, textAlign: 'center', lineHeight: 21 },
   debug: { fontFamily: fontFamily(400), fontSize: 11, padding: 10, borderRadius: 10, marginTop: 4, width: '100%' },
   button: { marginTop: 12, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 13 },
-  buttonText: { fontFamily: fontFamily(700), fontSize: 15, color: '#fff' },
+  buttonText: { fontFamily: fontFamily(700), fontSize: 15 },
 });

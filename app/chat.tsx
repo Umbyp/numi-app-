@@ -230,7 +230,7 @@ export default function ChatScreen() {
             disabled={!canSend}
             onPress={() => handleSend()}
           >
-            <Send size={18} color={canSend ? '#fff' : c.faint} />
+            <Send size={18} color={canSend ? c.onBrand : c.faint} />
           </Pressable>
         </View>
       </KeyboardAvoidingView>

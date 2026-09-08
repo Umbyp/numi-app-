@@ -124,7 +124,7 @@ export function QuickAddSheet({ visible, onClose }: Props) {
             <Text style={[type.label, { color: c.subtext, fontSize: 12 }]}>“ข้าวกะเพราไข่ดาว 1 จาน”</Text>
           </View>
           <Pressable style={[styles.askBtn, { backgroundColor: c.brand }]} onPress={askNumi}>
-            <Text style={[type.row, { color: '#fff', fontSize: 13 }]}>ถามเลย</Text>
+            <Text style={[type.row, { color: c.onBrand, fontSize: 13 }]}>ถามเลย</Text>
           </Pressable>
         </View>
 

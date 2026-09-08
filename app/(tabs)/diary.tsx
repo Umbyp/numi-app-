@@ -142,7 +142,7 @@ export default function DiaryScreen() {
                 disabled={isFuture}
               >
                 <View style={[styles.dayCircle, active ? { backgroundColor: c.brand } : { borderWidth: 2.5, borderColor: c.line }]}>
-                  <Text style={[type.row, { fontSize: 12, color: active ? '#fff' : isFuture ? c.faint : c.subtext }]}>{DAY_LABELS[i]}</Text>
+                  <Text style={[type.row, { fontSize: 12, color: active ? c.onBrand : isFuture ? c.faint : c.subtext }]}>{DAY_LABELS[i]}</Text>
                 </View>
                 <Text style={[type.row, { fontSize: 13, color: active ? c.brand : isFuture ? c.faint : c.subtext }]}>{d.getDate()}</Text>
               </Pressable>
