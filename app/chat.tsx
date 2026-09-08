@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   FlatList,
   Pressable,
-  Image,
   Alert,
   StyleSheet,
   KeyboardAvoidingView,
@@ -21,15 +20,34 @@ import { textOf, imageOf } from '../lib/ai/types';
 import { captureFoodPhoto } from '../lib/ai/capture-photo';
 import { takePendingImage } from '../lib/ai/pending-image';
 import { CommandCard } from '../components/command-card';
+import { ChatBubble } from '../components/chat-bubble';
+import { TypingBubble } from '../components/typing-bubble';
 import { Mascot } from '../components/mascot';
 import { FadeInView } from '../components/fade-in';
 import { useNumiStore } from '../lib/store';
-import { type, fontFamily } from '../lib/fonts';
-import { radius, pillShadow, fabShadow } from '../lib/theme';
+import { type } from '../lib/fonts';
+import { radius, pillShadow, fabShadow, MIN_TOUCH } from '../lib/theme';
 
 type Row =
-  | { kind: 'message'; key: string; role: 'user' | 'assistant'; text: string; imageUri: string | null }
-  | { kind: 'card'; key: string };
+  | {
+      kind: 'message';
+      key: string;
+      role: 'user' | 'assistant';
+      text: string;
+      imageUri: string | null;
+      firstOfRun: boolean;
+      lastOfRun: boolean;
+    }
+  | { kind: 'card'; key: string }
+  | { kind: 'typing'; key: string };
+
+/** ตัวอย่างที่กดส่งได้เลย — ผู้ใช้ใหม่ส่วนใหญ่ไม่รู้ว่าพิมพ์อะไรได้ */
+const SUGGESTIONS = [
+  'เมื่อเช้ากินข้าวกะเพราหมูไข่ดาว',
+  'วันนี้เหลือกินได้อีกเท่าไหร่',
+  'จัดแผนเล่นเวท 3 วันต่อสัปดาห์ให้',
+  'วิ่ง 30 นาที เผาไปเท่าไหร่',
+];
 
 export default function ChatScreen() {
   const c = useTheme();
@@ -54,25 +72,35 @@ export default function ChatScreen() {
     }
   }, [historyLoaded, params.initialText]);
 
-  const rows: Row[] = [
-    ...messages
+  const rows: Row[] = useMemo(() => {
+    const visible = messages
       .filter((m) => m.role === 'user' || m.role === 'assistant')
-      .map((m, i) => ({
-        kind: 'message' as const,
-        key: `m${i}`,
+      .map((m) => ({
         role: m.role as 'user' | 'assistant',
         text: textOf(m.content),
         imageUri: imageOf(m.content),
       }))
-      .filter((r) => r.text.trim() || r.imageUri),
-    ...pendingCards.map((card) => ({ kind: 'card' as const, key: card.id })),
-  ];
+      .filter((r) => r.text.trim() || r.imageUri);
 
-  async function handleSend() {
-    const text = input.trim();
-    if (!text || loading) return;
-    setInput('');
-    await send(text);
+    const out: Row[] = visible.map((r, i) => ({
+      kind: 'message' as const,
+      key: `m${i}`,
+      ...r,
+      // จัดกลุ่มข้อความที่พูดติดกัน ใส่หางฟองแค่ใบสุดท้ายของชุด
+      firstOfRun: i === 0 || visible[i - 1].role !== r.role,
+      lastOfRun: i === visible.length - 1 || visible[i + 1].role !== r.role,
+    }));
+
+    for (const card of pendingCards) out.push({ kind: 'card', key: card.id });
+    if (loading) out.push({ kind: 'typing', key: 'typing' });
+    return out;
+  }, [messages, pendingCards, loading]);
+
+  async function handleSend(text?: string) {
+    const value = (text ?? input).trim();
+    if (!value || loading) return;
+    if (!text) setInput('');
+    await send(value);
     listRef.current?.scrollToEnd({ animated: true });
   }
 
@@ -96,33 +124,53 @@ export default function ChatScreen() {
     ]);
   }
 
+  const hasHistory = messages.some((m) => m.role === 'user' || m.role === 'assistant');
+  const canSend = !!input.trim() && !loading;
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }} keyboardVerticalOffset={90}>
-        <View style={styles.header}>
-          <Mascot size={44} />
-          <View style={{ flex: 1 }}>
-            <Text style={[type.cardTitle, { color: c.text, fontSize: 17 }]}>Numi</Text>
+        <View style={[styles.header, { borderBottomColor: c.line }]}>
+          <Mascot size={40} pose="idle" />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={[type.cardTitle, { color: c.text, fontSize: 16 }]}>Numi</Text>
             <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>เห็นบันทึกวันนี้ของคุณ</Text>
           </View>
-          <Pressable hitSlop={10} onPress={handleClearHistory} style={[styles.closeBtn, { backgroundColor: c.surfaceAlt }]}>
-            <Trash2 size={16} color={c.subtext} />
-          </Pressable>
-          <Pressable hitSlop={10} onPress={() => router.back()} style={[styles.closeBtn, { backgroundColor: c.surfaceAlt }]}>
-            <X size={18} color={c.subtext} />
+          {/* ปุ่มล้างประวัติโชว์เฉพาะตอนมีอะไรให้ล้าง และวางห่างจากปุ่มปิดไม่ให้กดพลาด */}
+          {hasHistory && (
+            <Pressable onPress={handleClearHistory} style={styles.headerBtn}>
+              <Trash2 size={17} color={c.faint} />
+            </Pressable>
+          )}
+          <View style={styles.headerGap} />
+          <Pressable onPress={() => router.back()} style={[styles.headerBtn, { backgroundColor: c.surfaceAlt }]}>
+            <X size={19} color={c.subtext} />
           </Pressable>
         </View>
 
         {!historyLoaded ? (
-          <View style={styles.empty}>
+          <View style={styles.center}>
             <ActivityIndicator color={c.muted} />
           </View>
         ) : rows.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={[type.cardTitle, { color: c.text }]}>คุยกับ Numi ได้เลย</Text>
-            <Text style={[type.label, { color: c.subtext, textAlign: 'center', marginTop: 6 }]}>
-              ลองพิมพ์เช่น "เมื่อเช้ากินข้าวกะเพราหมูไข่ดาว" หรือถ่ายรูปอาหารให้ดู
+            <Mascot size={92} pose="start" />
+            <Text style={[type.cardTitle, { color: c.text, fontSize: 17, textAlign: 'center' }]}>คุยกับ Numi ได้เลย</Text>
+            <Text style={[type.label, { color: c.subtext, fontSize: 12.5, textAlign: 'center', lineHeight: 19 }]}>
+              เล่าว่ากินอะไรมา ถ่ายรูปอาหารให้ดู หรือถามเรื่องเป้าหมายของวันนี้
+              {'\n'}Numi จะเสนอเป็นการ์ดให้ตรวจก่อนบันทึกเสมอ
             </Text>
+            <View style={styles.suggestions}>
+              {SUGGESTIONS.map((s) => (
+                <Pressable
+                  key={s}
+                  onPress={() => handleSend(s)}
+                  style={[styles.suggestion, { backgroundColor: c.surface, borderColor: c.line }, pillShadow(scheme)]}
+                >
+                  <Text style={[type.row, { color: c.text, fontSize: 12.5 }]}>{s}</Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
         ) : (
           <FlatList
@@ -130,54 +178,36 @@ export default function ChatScreen() {
             data={rows}
             keyExtractor={(r) => r.key}
             contentContainerStyle={styles.list}
+            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
             renderItem={({ item }) => (
               <FadeInView>
-                {item.kind === 'card' ? (
-                  <CommandCard
-                    card={pendingCards.find((p) => p.id === item.key)!}
-                    onConfirm={handleConfirm}
-                    onDismiss={dismissCard}
-                  />
-                ) : (
-                  <View
-                    style={[
-                      styles.bubble,
-                      item.role === 'user'
-                        ? [styles.bubbleUser, { backgroundColor: item.imageUri ? 'transparent' : c.brand }]
-                        : [styles.bubbleAssistant, { backgroundColor: c.surface, borderColor: c.line }, pillShadow(scheme)],
-                    ]}
-                  >
-                    {item.imageUri && <Image source={{ uri: item.imageUri }} style={styles.imageThumb} />}
-                    {item.text.trim() ? (
-                      <Text
-                        style={{
-                          color: item.role === 'user' ? '#fff' : c.text,
-                          fontSize: 14,
-                          fontFamily: fontFamily(500),
-                          lineHeight: 20,
-                          marginTop: item.imageUri ? 8 : 0,
-                        }}
-                      >
-                        {item.text}
-                      </Text>
-                    ) : null}
+                {item.kind === 'typing' ? (
+                  <TypingBubble />
+                ) : item.kind === 'card' ? (
+                  <View style={styles.cardWrap}>
+                    <CommandCard
+                      card={pendingCards.find((p) => p.id === item.key)!}
+                      onConfirm={handleConfirm}
+                      onDismiss={dismissCard}
+                    />
                   </View>
+                ) : (
+                  <ChatBubble
+                    role={item.role}
+                    text={item.text}
+                    imageUri={item.imageUri}
+                    firstOfRun={item.firstOfRun}
+                    lastOfRun={item.lastOfRun}
+                  />
                 )}
               </FadeInView>
             )}
           />
         )}
 
-        {loading && (
-          <View style={styles.typingRow}>
-            <ActivityIndicator size="small" color={c.muted} />
-            <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>Numi กำลังพิมพ์...</Text>
-          </View>
-        )}
-
-        <View style={styles.inputBar}>
+        <View style={[styles.inputBar, { backgroundColor: c.surface, borderTopColor: c.line }]}>
           <Pressable
-            style={[styles.cameraBtn, { backgroundColor: c.surface }, pillShadow(scheme), loading && { opacity: 0.5 }]}
+            style={[styles.cameraBtn, { backgroundColor: c.surfaceAlt }, loading && { opacity: 0.5 }]}
             disabled={loading}
             onPress={handleCamera}
           >
@@ -186,18 +216,21 @@ export default function ChatScreen() {
           <TextInput
             value={input}
             onChangeText={setInput}
-            placeholder="พิมพ์ข้อความ"
+            placeholder="เล่าว่ากินอะไรมา..."
             placeholderTextColor={c.faint}
-            style={[styles.input, { color: c.text, backgroundColor: c.surface }, pillShadow(scheme)]}
+            style={[styles.input, { color: c.text, backgroundColor: c.surfaceAlt }]}
             multiline
-            onSubmitEditing={handleSend}
+            onSubmitEditing={() => handleSend()}
           />
           <Pressable
-            style={[styles.sendBtn, { backgroundColor: c.brand }, fabShadow(scheme, c.brand), (!input.trim() || loading) && { opacity: 0.5 }]}
-            disabled={!input.trim() || loading}
-            onPress={handleSend}
+            style={[
+              styles.sendBtn,
+              canSend ? [{ backgroundColor: c.brand }, fabShadow(scheme, c.brand)] : { backgroundColor: c.line },
+            ]}
+            disabled={!canSend}
+            onPress={() => handleSend()}
           >
-            <Send size={18} color="#fff" />
+            <Send size={18} color={canSend ? '#fff' : c.faint} />
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -206,29 +239,47 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 18, paddingTop: 6, paddingBottom: 12 },
-  closeBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  list: { padding: 18, gap: 8 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
-  bubble: { maxWidth: '85%', paddingHorizontal: 15, paddingVertical: 11, marginBottom: 4 },
-  bubbleUser: { alignSelf: 'flex-end', borderRadius: 20, borderBottomRightRadius: 6 },
-  bubbleAssistant: { alignSelf: 'flex-start', borderRadius: 20, borderBottomLeftRadius: 6, borderWidth: StyleSheet.hairlineWidth },
-  imageThumb: { width: 200, height: 200, borderRadius: 16 },
-  typingRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, paddingBottom: 6 },
-  inputBar: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    padding: 12,
+    gap: 11,
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  cameraBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  headerBtn: { width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: MIN_TOUCH / 2, alignItems: 'center', justifyContent: 'center' },
+  headerGap: { width: 2 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  list: { padding: 16, paddingBottom: 8 },
+  cardWrap: { marginVertical: 6 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 28 },
+  suggestions: { alignSelf: 'stretch', gap: 8, marginTop: 8 },
+  suggestion: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.pill,
+    paddingHorizontal: 16,
+    minHeight: MIN_TOUCH,
+    justifyContent: 'center',
+  },
+  inputBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  cameraBtn: { width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: MIN_TOUCH / 2, alignItems: 'center', justifyContent: 'center' },
   input: {
     flex: 1,
     borderRadius: radius.pill + 6,
     paddingHorizontal: 18,
     paddingVertical: 12,
-    maxHeight: 100,
-    fontSize: 14,
+    minHeight: MIN_TOUCH,
+    maxHeight: 110,
+    fontSize: 14.5,
   },
-  sendBtn: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  sendBtn: { width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: MIN_TOUCH / 2, alignItems: 'center', justifyContent: 'center' },
 });
