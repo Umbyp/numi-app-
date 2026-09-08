@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Calendar, X } from 'lucide-react-native';
+import { Calendar, Plus, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { useNumiStore } from '../../lib/store';
@@ -162,22 +162,35 @@ export default function DiaryScreen() {
             const list = grouped[meta.key];
             const kcal = list.reduce((s, e) => s + e.kcal, 0);
             return (
-              <View key={meta.key} style={[styles.mealCard, { backgroundColor: c.surfaceAlt }]}>
+              <View
+                key={meta.key}
+                style={[styles.mealCard, { backgroundColor: c.surfaceAlt, borderLeftColor: c[meta.colorKey] }]}
+              >
                 <View style={styles.mealHeaderRow}>
                   <View style={[styles.mealIcon, { backgroundColor: c[meta.bgKey] }]}>
                     <MealTypeIcon type={meta.key} color={c[meta.colorKey]} size={13} />
                   </View>
                   <Text style={[type.cardTitle, { color: c.text, fontSize: 14, flex: 1 }]}>{meta.label}</Text>
-                  {list.length > 0 ? (
-                    <Text style={[type.cardTitle, { color: c.text, fontSize: 14 }]}>{Math.round(kcal)}</Text>
-                  ) : isToday ? (
+                  {list.length > 0 && (
+                    <Text style={[type.cardTitle, { color: c.text, fontSize: 14 }]}>
+                      {Math.round(kcal)}
+                      <Text style={[type.label, { color: c.faint, fontSize: 11 }]}> kcal</Text>
+                    </Text>
+                  )}
+                  {/* ปุ่มเพิ่มอยู่ตลอดเมื่อเป็นวันนี้ ของเดิมโชว์เฉพาะตอนมื้อยังว่าง
+                      พอมีอาหารแล้วปุ่มถูกแทนด้วยตัวเลข เลยเพิ่มรายการที่สองไม่ได้ */}
+                  {isToday && (
                     <Pressable
-                      style={[styles.addPill, { backgroundColor: c.brandTint }]}
+                      style={({ pressed }) => [
+                        styles.addBtn,
+                        { backgroundColor: c.brandTint },
+                        pressed && { opacity: 0.7 },
+                      ]}
                       onPress={() => router.push({ pathname: '/add-food', params: { mealType: meta.key } })}
                     >
-                      <Text style={[type.badge, { color: c.brand, fontSize: 12 }]}>+ เพิ่ม</Text>
+                      <Plus size={17} color={c.brand} strokeWidth={2.6} />
                     </Pressable>
-                  ) : null}
+                  )}
                 </View>
                 {list.length > 0 ? (
                   list.map((e) => (
@@ -197,8 +210,20 @@ export default function DiaryScreen() {
                       )}
                     </FadeInView>
                   ))
+                ) : isToday ? (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.emptyRow,
+                      { borderColor: c.line },
+                      pressed && { backgroundColor: c.surface },
+                    ]}
+                    onPress={() => router.push({ pathname: '/add-food', params: { mealType: meta.key } })}
+                  >
+                    <Plus size={14} color={c.muted} />
+                    <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>แตะเพื่อเพิ่มอาหาร</Text>
+                  </Pressable>
                 ) : (
-                  <Text style={[type.label, { color: c.faint, fontSize: 12, paddingLeft: 35 }]}>ยังไม่ได้บันทึก</Text>
+                  <Text style={[type.label, { color: c.faint, fontSize: 12, paddingLeft: 35 }]}>ไม่ได้บันทึกไว้</Text>
                 )}
 
                 {isToday && (
@@ -294,10 +319,20 @@ const styles = StyleSheet.create({
   dayCircle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 10 },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  mealCard: { borderRadius: radius.cardInner, padding: 12, gap: 9 },
+  mealCard: { borderRadius: radius.cardInner, padding: 12, gap: 9, borderLeftWidth: 3 },
   mealHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   mealIcon: { width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  addPill: { height: 28, paddingHorizontal: 11, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  addBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  emptyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: MIN_TOUCH,
+    borderRadius: radius.iconBox,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+  },
   mealFoodRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   // เป้ากดตามเกณฑ์ขั้นต่ำ ของเดิมไอคอน 14px + hitSlop 8 ได้แค่ 30px
   rowDeleteBtn: { width: MIN_TOUCH, height: MIN_TOUCH, alignItems: 'center', justifyContent: 'center' },

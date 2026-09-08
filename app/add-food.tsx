@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Search, X, Sparkles } from 'lucide-react-native';
+import { Search, X, Sparkles, Check, Plus } from 'lucide-react-native';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { AmountStepper } from '../components/amount-stepper';
 import { MealTypeIcon } from '../components/icons/meal-type-icons';
@@ -40,6 +40,8 @@ export default function AddFoodScreen() {
   const [amountG, setAmountG] = useState(100);
   const [showManual, setShowManual] = useState(params.mode === 'manual');
   const [saving, setSaving] = useState(false);
+  /** ชื่อรายการที่เพิ่งบันทึก ใช้ยืนยันให้เห็นตอนเลือก "บันทึกแล้วเพิ่มอีก" */
+  const [justSaved, setJustSaved] = useState<string | null>(null);
 
   // manual food fields
   const [manualName, setManualName] = useState('');
@@ -65,8 +67,10 @@ export default function AddFoodScreen() {
     router.replace({ pathname: '/chat', params: { initialText: query.trim() } });
   }
 
-  async function handleConfirmSelected() {
+  /** stay = true คือบันทึกแล้วอยู่หน้านี้ต่อ ไม่เด้งกลับ เพื่อเพิ่มรายการถัดไปในมื้อเดียวกัน */
+  async function handleConfirmSelected(stay = false) {
     if (!selected) return;
+    const savedName = selected.name;
     setSaving(true);
     try {
       const scaled = scaleFood(selected, amountG);
@@ -82,7 +86,13 @@ export default function AddFoodScreen() {
         estimated: selected.source === 'ai',
       });
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      router.back();
+      if (stay) {
+        setSelected(null);
+        setQuery('');
+        setJustSaved(savedName);
+      } else {
+        router.back();
+      }
     } finally {
       setSaving(false);
     }
@@ -125,6 +135,18 @@ export default function AddFoodScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        {justSaved && (
+          <View style={[styles.savedBanner, { backgroundColor: c.brandTint }]}>
+            <Check size={15} color={c.brand} strokeWidth={3} />
+            <Text style={[textType.row, { color: c.text, fontSize: 12.5, flex: 1 }]} numberOfLines={1}>
+              เพิ่ม {justSaved} แล้ว
+            </Text>
+            <Pressable hitSlop={10} onPress={() => setJustSaved(null)}>
+              <X size={14} color={c.muted} />
+            </Pressable>
+          </View>
+        )}
+
         <View style={styles.mealRow}>
           {MEAL_TYPES.map((opt) => {
             const active = opt.key === mealType;
@@ -202,13 +224,25 @@ export default function AddFoodScreen() {
                   </Text>
                 )}
 
-                <Pressable
-                  style={[styles.saveBtn, { backgroundColor: c.brand }, saving && { opacity: 0.6 }]}
-                  disabled={saving}
-                  onPress={handleConfirmSelected}
-                >
-                  <Text style={[textType.row, styles.saveBtnText, { color: c.onBrand }]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
-                </Pressable>
+                <View style={styles.saveRow}>
+                  <Pressable
+                    style={[styles.saveMore, { backgroundColor: c.brandTint }, saving && { opacity: 0.6 }]}
+                    disabled={saving}
+                    onPress={() => handleConfirmSelected(true)}
+                  >
+                    <Plus size={16} color={c.brand} strokeWidth={2.6} />
+                    <Text style={[textType.row, { color: c.brand, fontSize: 13 }]}>เพิ่มอีก</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.saveBtn, styles.saveBtnFlex, { backgroundColor: c.brand }, saving && { opacity: 0.6 }]}
+                    disabled={saving}
+                    onPress={() => handleConfirmSelected(false)}
+                  >
+                    <Text style={[textType.row, styles.saveBtnText, { color: c.onBrand }]}>
+                      {saving ? 'กำลังบันทึก...' : 'บันทึกแล้วปิด'}
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
             ) : (
               <FlatList
@@ -356,6 +390,26 @@ const styles = StyleSheet.create({
   amountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 },
   previewText: { fontSize: 13, marginTop: 10 },
   saveBtn: { borderRadius: radius.iconBox, paddingVertical: 13, alignItems: 'center', marginTop: 16 },
+  saveBtnFlex: { flex: 1, marginTop: 0 },
+  saveRow: { flexDirection: 'row', gap: 8, alignItems: 'stretch', marginTop: 16 },
+  saveMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingHorizontal: 16,
+    borderRadius: radius.iconBox,
+  },
+  savedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: radius.iconBox,
+  },
   saveBtnText: { fontSize: 15 },
   manualForm: { padding: 16 },
   input: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.iconBox, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
