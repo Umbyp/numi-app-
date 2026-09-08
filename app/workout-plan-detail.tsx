@@ -19,6 +19,7 @@ import { WORKOUT_CATEGORIES, metsByCategory, MUSCLE_GROUPS, muscleGroupLabel, ty
 import { AmountStepper } from '../components/amount-stepper';
 import { Mascot } from '../components/mascot';
 import { RestTimerModal } from '../components/rest-timer-modal';
+import { PlanExerciseCard } from '../components/plan-exercise-card';
 import { CategoryIcon, categoryTint, DayTypeIcon, dayTypeTint } from '../components/icons/workout-icons';
 import { type as textType, fontFamily } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
@@ -68,6 +69,43 @@ export default function WorkoutPlanDetailScreen() {
   const [pickerCategory, setPickerCategory] = useState<WorkoutCategory>('cardio');
   const [saving, setSaving] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState<number | null>(null);
+  /** ความคืบหน้าของเซตในรอบนี้ คีย์เป็น "วันที่:ท่าที่" เก็บในหน่วยความจำพอ ไม่ต้องลง DB */
+  const [setProgress, setSetProgress] = useState<Record<string, boolean[]>>({});
+
+  function setsOf(dayIdx: number, exIdx: number, ex: WorkoutPlanExercise): boolean[] {
+    const key = `${dayIdx}:${exIdx}`;
+    const count = ex.sets && ex.sets > 0 ? ex.sets : 1;
+    const current = setProgress[key];
+    return current && current.length === count ? current : new Array(count).fill(false);
+  }
+
+  function toggleSet(dayIdx: number, exIdx: number, ex: WorkoutPlanExercise, setIdx: number) {
+    const key = `${dayIdx}:${exIdx}`;
+    const current = setsOf(dayIdx, exIdx, ex);
+    const next = current.map((v, i) => (i === setIdx ? !v : v));
+    setSetProgress((p) => ({ ...p, [key]: next }));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  }
+
+  /** เริ่มรอบใหม่ ล้างเฉพาะวันที่เพิ่งทำเสร็จ วันอื่นยังคาไว้ */
+  function clearDayProgress(dayIdx: number) {
+    setSetProgress((p) => {
+      const next: Record<string, boolean[]> = {};
+      for (const [k, v] of Object.entries(p)) {
+        if (!k.startsWith(`${dayIdx}:`)) next[k] = v;
+      }
+      return next;
+    });
+  }
+
+  /** เปิดโหมดแก้ไข — ตัวแก้ไขแสดงทุกวันอยู่แล้ว จึงไม่ต้องส่งว่ามาจากวันไหน */
+  function openEditor() {
+    if (!plan) return;
+    setEditTitle(plan.title);
+    setEditRationale(plan.rationale);
+    setEditDays(plan.days);
+    setEditing(true);
+  }
 
   const load = useCallback(() => {
     if (!params.id) return;
@@ -100,6 +138,7 @@ export default function WorkoutPlanDetailScreen() {
         workoutId,
       });
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      clearDayProgress(dayIndex);
       await refresh();
       load();
     } finally {
@@ -392,7 +431,19 @@ export default function WorkoutPlanDetailScreen() {
           return (
             <View key={dayIdx} style={[...cardStyle, { borderLeftWidth: 4, borderLeftColor: dTint.icon }]}>
               <View style={styles.dayHeaderRow}>
-                <Text style={[textType.cardTitle, { color: c.text, fontSize: 15 }]}>{day.label}</Text>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={[textType.cardTitle, { color: c.text, fontSize: 15 }]}>{day.label}</Text>
+                  <Text style={[textType.label, { color: c.muted, fontSize: 11 }]}>
+                    {day.exercises.length} ท่า · {day.exercises.reduce((s, e) => s + e.durationMin, 0)} นาที · ราว{' '}
+                    {Math.round(
+                      day.exercises.reduce(
+                        (s, e) => s + calcKcalBurned(e.met, latestWeightKg ?? 70, e.durationMin),
+                        0
+                      )
+                    )}{' '}
+                    kcal
+                  </Text>
+                </View>
                 <View style={[styles.dayTypeBadge, { backgroundColor: dTint.bg }]}>
                   <DayTypeIcon dayType={day.dayType} size={12} color={dTint.icon} />
                   <Text style={[textType.badge, { color: dTint.icon }]}>{DAY_TYPE_LABEL[day.dayType]}</Text>
@@ -402,44 +453,53 @@ export default function WorkoutPlanDetailScreen() {
               {day.duringNote && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>ระหว่างเล่น: {day.duringNote}</Text>}
               {day.cooldown && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>หลังเล่น: {day.cooldown}</Text>}
 
-              {day.exercises.map((ex, exIdx) => {
-                const exTint = categoryTint(ex.category, c);
-                return (
-                  <View key={exIdx} style={styles.exerciseRow}>
-                    <View style={[styles.smallIconBox, { backgroundColor: exTint.bg }]}>
-                      <CategoryIcon category={ex.category} size={15} color={exTint.icon} />
-                    </View>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={[textType.row, { color: c.text, fontSize: 13 }]} numberOfLines={1}>
-                        {ex.name}
-                      </Text>
-                      {muscleGroupLabel(ex.muscleGroup) && (
-                        <Text style={[textType.label, { color: exTint.icon, fontSize: 11 }]}>
-                          {muscleGroupLabel(ex.muscleGroup)}
-                        </Text>
-                      )}
-                      {ex.note && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>{ex.note}</Text>}
-                    </View>
-                    <Text style={[textType.label, { color: c.muted, fontSize: 11 }]} numberOfLines={2}>
-                      MET {ex.met} · {ex.durationMin} นาที
-                      {ex.sets != null && ex.reps ? ` · ${ex.sets}x${ex.reps}` : ''}
-                      {ex.restSec != null && (
-                        <Text style={{ color: c.brand }} onPress={() => setTimerSeconds(ex.restSec!)}>
-                          {` · ⏱ พัก ${ex.restSec}วิ`}
-                        </Text>
-                      )}
-                    </Text>
-                  </View>
-                );
-              })}
+              {day.exercises.map((ex, exIdx) => (
+                <PlanExerciseCard
+                  key={exIdx}
+                  exercise={ex}
+                  done={setsOf(dayIdx, exIdx, ex)}
+                  onToggleSet={(setIdx) => toggleSet(dayIdx, exIdx, ex, setIdx)}
+                  onRest={(sec) => setTimerSeconds(sec)}
+                  onEdit={openEditor}
+                />
+              ))}
 
-              <Pressable
-                style={[styles.doneBtn, { backgroundColor: c.brand }, completingDay === dayIdx && { opacity: 0.6 }]}
-                disabled={completingDay === dayIdx}
-                onPress={() => handleCompleteDay(dayIdx)}
-              >
-                <Text style={[textType.row, { color: '#fff', fontSize: 13 }]}>ทำวันนี้ ✓</Text>
-              </Pressable>
+              {(() => {
+                const totalSets = day.exercises.reduce(
+                  (sum, ex, exIdx) => sum + setsOf(dayIdx, exIdx, ex).length,
+                  0
+                );
+                const doneSets = day.exercises.reduce(
+                  (sum, ex, exIdx) => sum + setsOf(dayIdx, exIdx, ex).filter(Boolean).length,
+                  0
+                );
+                const pct = totalSets > 0 ? doneSets / totalSets : 0;
+                return (
+                  <>
+                    {totalSets > 0 && (
+                      <View style={styles.progressWrap}>
+                        <View style={[styles.progressTrack, { backgroundColor: c.line }]}>
+                          <View
+                            style={[styles.progressFill, { width: `${pct * 100}%`, backgroundColor: dTint.icon }]}
+                          />
+                        </View>
+                        <Text style={[textType.label, { color: c.muted, fontSize: 11 }]}>
+                          {doneSets}/{totalSets} เซต
+                        </Text>
+                      </View>
+                    )}
+                    <Pressable
+                      style={[styles.doneBtn, { backgroundColor: c.brand }, completingDay === dayIdx && { opacity: 0.6 }]}
+                      disabled={completingDay === dayIdx}
+                      onPress={() => handleCompleteDay(dayIdx)}
+                    >
+                      <Text style={[textType.row, { color: '#fff', fontSize: 13 }]}>
+                        {doneSets > 0 && doneSets < totalSets ? `บันทึกวันนี้ (${doneSets}/${totalSets} เซต) ✓` : 'ทำวันนี้ ✓'}
+                      </Text>
+                    </Pressable>
+                  </>
+                );
+              })()}
 
               {dayCompletions.length > 0 && (
                 <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>ทำแล้ว: {dayCompletions.join(', ')}</Text>
@@ -461,6 +521,9 @@ const styles = StyleSheet.create({
   dayHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   dayTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 3 },
   exerciseRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  progressWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 },
+  progressTrack: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 3 },
   smallIconBox: { width: 32, height: 32, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
   doneBtn: { borderRadius: radius.iconBox, paddingVertical: 11, alignItems: 'center', marginTop: 4 },
   input: { borderRadius: radius.iconBox, paddingHorizontal: 14, paddingVertical: 10, fontSize: 13 },
