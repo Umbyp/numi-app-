@@ -708,3 +708,47 @@ export async function addWaterMl(deltaMl: number, localDate = localDateString())
     });
   return next;
 }
+
+// ---------- ตั้งค่าการเตือน ----------
+
+export interface ReminderSetting {
+  enabled: boolean;
+  hour: number;
+  minute: number;
+}
+
+const REMINDER_PREFIX = 'reminder_';
+
+/** เก็บเป็น JSON ใน app_settings เพราะเป็นค่าตั้งไม่กี่ตัว ไม่คุ้มที่จะทำตารางแยก */
+export async function getReminderSetting(key: string): Promise<ReminderSetting | null> {
+  const rows = await db
+    .select()
+    .from(appSettings)
+    .where(eq(appSettings.key, REMINDER_PREFIX + key));
+  const raw = rows[0]?.value;
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (
+      typeof parsed?.enabled !== 'boolean' ||
+      typeof parsed?.hour !== 'number' ||
+      typeof parsed?.minute !== 'number'
+    ) {
+      return null;
+    }
+    return parsed as ReminderSetting;
+  } catch {
+    // ค่าเสียหายให้ถือว่ายังไม่เคยตั้ง ดีกว่าทำแอปพังตอนเปิดหน้า
+    return null;
+  }
+}
+
+export async function saveReminderSetting(key: string, setting: ReminderSetting) {
+  await db
+    .insert(appSettings)
+    .values({ key: REMINDER_PREFIX + key, value: JSON.stringify(setting) })
+    .onConflictDoUpdate({
+      target: appSettings.key,
+      set: { value: JSON.stringify(setting) },
+    });
+}

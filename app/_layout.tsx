@@ -13,6 +13,7 @@ import {
 } from '@expo-google-fonts/noto-sans-thai';
 import { migrateDb } from '../lib/db/client';
 import { syncSeedFoods } from '../lib/db/queries';
+import { configureNotificationHandler } from '../lib/notifications';
 import { useNumiStore } from '../lib/store';
 import { useScheme } from '../lib/hooks/use-theme';
 import { colors } from '../lib/theme';
@@ -47,6 +48,8 @@ function RootLayoutInner() {
     (async () => {
       await migrateDb();
       await syncSeedFoods();
+      // ต้องตั้งก่อนแจ้งเตือนตัวแรกมาถึง ไม่งั้นแบนเนอร์จะไม่ขึ้นตอนแอปเปิดอยู่
+      configureNotificationHandler();
       await refresh();
       setDbReady(true);
     })();
