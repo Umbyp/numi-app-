@@ -6,14 +6,23 @@ import { Calendar, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { useNumiStore } from '../../lib/store';
-import { getMealEntriesForDate, getWorkoutsForDate, getWeightForDate, deleteMealEntry, type MealType } from '../../lib/db/queries';
+import {
+  getMealEntriesForDate,
+  getWorkoutsForDate,
+  getWeightForDate,
+  deleteMealEntry,
+  repeatMealsFrom,
+  type MealType,
+} from '../../lib/db/queries';
 import { localDateString } from '../../lib/nutrition';
+import { addDays } from '../../lib/dates';
 import { MEAL_TYPES, getMealTypeMeta } from '../../lib/meal-type';
 import { MealTypeIcon } from '../../components/icons/meal-type-icons';
 import { ActivityIcon, ScaleIcon } from '../../components/icons/nav-icons';
 import { FoodVisual } from '../../components/food-visual';
 import { FadeInView } from '../../components/fade-in';
 import { DatePickerModal } from '../../components/date-picker-modal';
+import { MealTemplateSheet } from '../../components/meal-template-sheet';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
 
@@ -44,10 +53,21 @@ export default function DiaryScreen() {
   const [activityKcal, setActivityKcal] = useState(0);
   const [dayWeightKg, setDayWeightKg] = useState<number | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [yesterdayKcal, setYesterdayKcal] = useState<Partial<Record<MealType, number>>>({});
+  const [sheet, setSheet] = useState<{ mode: 'pick' | 'save'; mealType: MealType; label: string } | null>(null);
   const week = useMemo(() => weekContaining(new Date(`${selectedDate}T00:00:00`)), [selectedDate]);
 
   const load = useCallback((date: string) => {
     getMealEntriesForDate(date).then(setEntries);
+    // ดูว่าวันก่อนหน้ากินมื้อไหนไว้บ้าง จะได้เสนอปุ่มกินซ้ำเฉพาะมื้อที่มีของจริง
+    getMealEntriesForDate(addDays(date, -1)).then((rows) => {
+      const map: Partial<Record<MealType, number>> = {};
+      for (const r of rows) {
+        const k = r.mealType as MealType;
+        map[k] = (map[k] ?? 0) + r.kcal;
+      }
+      setYesterdayKcal(map);
+    });
     getWorkoutsForDate(date).then((rows) => setActivityKcal(rows.reduce((s, w) => s + w.kcalBurned, 0)));
     getWeightForDate(date).then((row) => setDayWeightKg(row?.weightKg ?? null));
   }, []);
@@ -58,6 +78,13 @@ export default function DiaryScreen() {
       load(selectedDate);
     }, [selectedDate, load])
   );
+
+  async function handleRepeat(mealType: MealType) {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await repeatMealsFrom(addDays(selectedDate, -1), mealType);
+    load(selectedDate);
+    refresh();
+  }
 
   async function handleDeleteEntry(id: string) {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -173,6 +200,36 @@ export default function DiaryScreen() {
                 ) : (
                   <Text style={[type.label, { color: c.faint, fontSize: 12, paddingLeft: 35 }]}>ยังไม่ได้บันทึก</Text>
                 )}
+
+                {isToday && (
+                  <View style={styles.shortcutRow}>
+                    {list.length === 0 && yesterdayKcal[meta.key] ? (
+                      <Pressable
+                        style={[styles.shortcutPill, { backgroundColor: c.surface }]}
+                        onPress={() => handleRepeat(meta.key)}
+                      >
+                        <Text style={[type.badge, { color: c.subtext, fontSize: 11 }]}>
+                          ↻ ซ้ำเมื่อวาน · {Math.round(yesterdayKcal[meta.key] as number)}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                    {list.length === 0 ? (
+                      <Pressable
+                        style={[styles.shortcutPill, { backgroundColor: c.surface }]}
+                        onPress={() => setSheet({ mode: 'pick', mealType: meta.key, label: meta.label })}
+                      >
+                        <Text style={[type.badge, { color: c.subtext, fontSize: 11 }]}>มื้อชุด</Text>
+                      </Pressable>
+                    ) : (
+                      <Pressable
+                        style={[styles.shortcutPill, { backgroundColor: c.surface }]}
+                        onPress={() => setSheet({ mode: 'save', mealType: meta.key, label: meta.label })}
+                      >
+                        <Text style={[type.badge, { color: c.subtext, fontSize: 11 }]}>เก็บเป็นมื้อชุด</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                )}
               </View>
             );
           })}
@@ -208,6 +265,21 @@ export default function DiaryScreen() {
         </View>
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {sheet && (
+        <MealTemplateSheet
+          visible
+          mode={sheet.mode}
+          mealType={sheet.mealType}
+          mealLabel={sheet.label}
+          localDate={selectedDate}
+          onClose={() => setSheet(null)}
+          onDone={() => {
+            load(selectedDate);
+            refresh();
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -227,6 +299,8 @@ const styles = StyleSheet.create({
   mealIcon: { width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   addPill: { height: 28, paddingHorizontal: 11, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   mealFoodRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  shortcutRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', paddingLeft: 35 },
+  shortcutPill: { height: 26, paddingHorizontal: 10, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   divider: { height: 1, marginVertical: 2 },
   statRow: { flexDirection: 'row', gap: 8 },
   statCard: { flex: 1, borderRadius: radius.card - 6, padding: 12, gap: 3 },

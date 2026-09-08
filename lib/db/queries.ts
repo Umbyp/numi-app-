@@ -1,6 +1,6 @@
 import { eq, desc, like, or, and, gte, lte, isNotNull, sql } from 'drizzle-orm';
 import { db } from './client';
-import type { ExerciseSet } from './schema';
+import type { ExerciseSet, TemplateItem } from './schema';
 import {
   profile,
   foods,
@@ -11,6 +11,8 @@ import {
   workoutPlanCompletions,
   appSettings,
   chatMessages,
+  measurements,
+  mealTemplates,
   type WorkoutPlanDay,
 } from './schema';
 import { localDateString } from '../nutrition';
@@ -509,4 +511,173 @@ export async function getRecentExerciseNames(limit = 20) {
     }
   }
   return out;
+}
+
+// ---------- น้ำหนักและสัดส่วนสำหรับกราฟเทรนด์ ----------
+
+/** น้ำหนักตั้งแต่วันที่กำหนด เรียงเก่าไปใหม่ตามแกนกราฟ */
+export async function getWeightsSince(fromLocalDate: string) {
+  return db
+    .select()
+    .from(weights)
+    .where(gte(weights.localDate, fromLocalDate))
+    .orderBy(weights.localDate);
+}
+
+export interface MeasurementInput {
+  waistCm?: number | null;
+  chestCm?: number | null;
+  hipCm?: number | null;
+  armCm?: number | null;
+  thighCm?: number | null;
+}
+
+export async function getLatestMeasurement() {
+  const rows = await db.select().from(measurements).orderBy(desc(measurements.localDate)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getMeasurementsSince(fromLocalDate: string) {
+  return db
+    .select()
+    .from(measurements)
+    .where(gte(measurements.localDate, fromLocalDate))
+    .orderBy(measurements.localDate);
+}
+
+export async function addOrUpdateMeasurementToday(input: MeasurementInput) {
+  const localDate = localDateString();
+  const id = `m_${localDate}`;
+  const now = new Date();
+  const values = {
+    waistCm: input.waistCm ?? null,
+    chestCm: input.chestCm ?? null,
+    hipCm: input.hipCm ?? null,
+    armCm: input.armCm ?? null,
+    thighCm: input.thighCm ?? null,
+  };
+  await db
+    .insert(measurements)
+    .values({ id, ...values, localDate, recordedAt: now })
+    .onConflictDoUpdate({
+      target: measurements.localDate,
+      set: { ...values, recordedAt: now },
+    });
+}
+
+// ---------- ซ้ำทั้งมื้อ และมื้อชุด ----------
+
+/** ใส่หลายรายการในครั้งเดียว — index อยู่ใน id ด้วยเพื่อไม่ให้ชนกันภายในชุดเดียว */
+export async function addMealEntries(entries: NewMealEntry[]) {
+  if (entries.length === 0) return 0;
+  const now = new Date();
+  const localDate = localDateString(now);
+  const stamp = Date.now();
+  await db.insert(mealEntries).values(
+    entries.map((entry, i) => ({
+      id: `meal_${stamp}_${i}_${Math.round(Math.random() * 1e6)}`,
+      foodId: entry.foodId ?? null,
+      name: entry.name,
+      mealType: entry.mealType,
+      amountG: entry.amountG,
+      kcal: entry.kcal,
+      proteinG: entry.proteinG,
+      carbG: entry.carbG,
+      fatG: entry.fatG,
+      estimated: entry.estimated ?? false,
+      note: entry.note,
+      photoUri: entry.photoUri ?? null,
+      loggedAt: now,
+      localDate,
+    }))
+  );
+  return entries.length;
+}
+
+/**
+ * คัดลอกมื้อจากวันก่อนมาลงวันนี้
+ * คัดลอกค่าที่คำนวณไว้แล้วตรง ๆ ไม่คำนวณใหม่จาก foods เพราะปริมาณที่กินจริงอยู่ในแถวเดิม
+ */
+export async function repeatMealsFrom(fromLocalDate: string, mealType: MealType) {
+  const rows = await getMealEntriesForDate(fromLocalDate);
+  const source = rows.filter((r) => r.mealType === mealType);
+  return addMealEntries(
+    source.map((r) => ({
+      foodId: r.foodId,
+      name: r.name,
+      mealType,
+      amountG: r.amountG,
+      kcal: r.kcal,
+      proteinG: r.proteinG,
+      carbG: r.carbG,
+      fatG: r.fatG,
+      estimated: !!r.estimated,
+      note: r.note ?? undefined,
+    }))
+  );
+}
+
+export async function getMealTemplates() {
+  return db
+    .select()
+    .from(mealTemplates)
+    .orderBy(desc(mealTemplates.useCount), desc(mealTemplates.createdAt));
+}
+
+/** สร้างมื้อชุดจากมื้อที่บันทึกไว้แล้วของวันหนึ่ง */
+export async function createTemplateFromMeal(name: string, localDate: string, mealType: MealType) {
+  const rows = await getMealEntriesForDate(localDate);
+  const items: TemplateItem[] = rows
+    .filter((r) => r.mealType === mealType)
+    .map((r) => ({
+      foodId: r.foodId,
+      name: r.name,
+      amountG: r.amountG,
+      kcal: r.kcal,
+      proteinG: r.proteinG,
+      carbG: r.carbG,
+      fatG: r.fatG,
+    }));
+  if (items.length === 0) return null;
+
+  const id = `tpl_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
+  await db.insert(mealTemplates).values({
+    id,
+    name,
+    mealType,
+    items,
+    useCount: 0,
+    createdAt: new Date(),
+  });
+  return id;
+}
+
+export async function applyMealTemplate(id: string, mealType: MealType) {
+  const rows = await db.select().from(mealTemplates).where(eq(mealTemplates.id, id));
+  const tpl = rows[0];
+  if (!tpl) return 0;
+
+  const count = await addMealEntries(
+    tpl.items.map((it) => ({
+      foodId: it.foodId,
+      name: it.name,
+      mealType,
+      amountG: it.amountG,
+      kcal: it.kcal,
+      proteinG: it.proteinG,
+      carbG: it.carbG,
+      fatG: it.fatG,
+    }))
+  );
+
+  await db
+    .update(mealTemplates)
+    .set({ useCount: tpl.useCount + 1, lastUsedAt: new Date() })
+    .where(eq(mealTemplates.id, id));
+
+  return count;
+}
+
+export async function deleteMealTemplate(id: string) {
+  await db.delete(mealTemplates).where(eq(mealTemplates.id, id));
 }

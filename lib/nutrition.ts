@@ -167,6 +167,37 @@ export function calcWeightProgress(p: { startKg: number; currentKg: number; goal
   return { direction, remainingKg, progressPct, reachedGoal };
 }
 
+export interface SeriesPoint {
+  date: string;
+  /** ค่าที่บันทึกจริงในวันนั้น — null คือวันที่ไม่ได้บันทึก */
+  raw: number | null;
+  /** ค่าที่เติมต่อจากวันก่อนหน้าแล้ว ใช้คำนวณค่าเฉลี่ยเคลื่อนที่ */
+  filled: number | null;
+}
+
+/**
+ * แปลงค่าที่บันทึกเป็นราย ๆ ให้เป็นซีรีส์รายวันเต็มช่วง
+ * คนไม่ได้ชั่งน้ำหนักทุกวัน แต่ค่าเฉลี่ย 7 วันต้องคิดบนแกนวัน ไม่ใช่แกนจำนวนครั้งที่ชั่ง
+ * ไม่งั้นคนที่ชั่งอาทิตย์ละครั้งจะได้ "ค่าเฉลี่ย 7 วัน" ที่กินเวลาจริงเกือบสองเดือน
+ */
+export function dailySeries(dates: string[], byDate: Record<string, number>): SeriesPoint[] {
+  let last: number | null = null;
+  return dates.map((date) => {
+    const raw = date in byDate ? byDate[date] : null;
+    if (raw !== null) last = raw;
+    return { date, raw, filled: last };
+  });
+}
+
+/** ค่าเฉลี่ยเคลื่อนที่ของซีรีส์รายวัน — คืน null ในวันที่ยังไม่มีข้อมูลตั้งต้น */
+export function seriesMovingAverage(series: SeriesPoint[], window = 7): (number | null)[] {
+  const first = series.findIndex((p) => p.filled !== null);
+  if (first < 0) return series.map(() => null);
+  const filled = series.slice(first).map((p) => p.filled as number);
+  const avg = movingAverage(filled, window);
+  return [...series.slice(0, first).map(() => null), ...avg];
+}
+
 export function localDateString(d = new Date()): string {
   const tz = d.getTime() - d.getTimezoneOffset() * 60000;
   return new Date(tz).toISOString().slice(0, 10);

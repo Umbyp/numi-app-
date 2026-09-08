@@ -148,6 +148,44 @@ export const weights = sqliteTable('weights', {
   recordedAt: integer('recorded_at', { mode: 'timestamp' }).notNull(),
 });
 
+// สัดส่วนร่างกาย — วันละครั้งเหมือน weights เพราะวัดถี่กว่านั้นไม่มีความหมาย
+export const measurements = sqliteTable('measurements', {
+  id: text('id').primaryKey(),
+  waistCm: real('waist_cm'),
+  chestCm: real('chest_cm'),
+  hipCm: real('hip_cm'),
+  armCm: real('arm_cm'),
+  thighCm: real('thigh_cm'),
+  note: text('note'),
+  localDate: text('local_date').notNull().unique(),
+  recordedAt: integer('recorded_at', { mode: 'timestamp' }).notNull(),
+});
+
+// รายการหนึ่งชิ้นในมื้อชุด — เก็บค่าที่คำนวณแล้วไว้เลย
+// เพราะถ้าอ้างอิงกลับไปที่ foods อย่างเดียว พอผู้ใช้แก้ค่าอาหารทีหลัง มื้อชุดจะเพี้ยนตาม
+export interface TemplateItem {
+  foodId: string | null;
+  name: string;
+  amountG: number;
+  kcal: number;
+  proteinG: number;
+  carbG: number;
+  fatG: number;
+}
+
+// มื้อชุด — ชุดอาหารที่กินซ้ำบ่อย กดครั้งเดียวได้ทั้งมื้อ
+export const mealTemplates = sqliteTable('meal_templates', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  mealType: text('meal_type', {
+    enum: ['breakfast', 'lunch', 'dinner', 'snack'],
+  }),
+  items: text('items', { mode: 'json' }).$type<TemplateItem[]>().notNull(),
+  useCount: integer('use_count').notNull().default(0),
+  lastUsedAt: integer('last_used_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
 export const chatMessages = sqliteTable('chat_messages', {
   id: text('id').primaryKey(),
   role: text('role', { enum: ['user', 'assistant', 'tool'] }).notNull(),
