@@ -86,8 +86,8 @@ cp .env.example .env
 แล้วแก้ `.env`:
 
 ```
-EXPO_PUBLIC_NUMI_WORKER_URL=https://numi-worker.<บัญชีคุณ>.workers.dev
-EXPO_PUBLIC_NUMI_APP_TOKEN=<APP_TOKEN ตัวเดียวกับข้อ 2>
+EXPO_PUBLIC_WORKER_URL=https://numi-worker.<บัญชีคุณ>.workers.dev
+EXPO_PUBLIC_APP_TOKEN=<APP_TOKEN ตัวเดียวกับข้อ 2>
 ```
 
 รีสตาร์ท Metro ด้วย `npx expo start -c` (ต้องล้าง cache ไม่งั้นค่า env เดิมยังค้างอยู่ใน bundle)

@@ -69,8 +69,8 @@ export default function ChatScreen() {
               ยังใช้ผู้ช่วยไม่ได้
             </Text>
             <Text style={{ color: c.subtext, fontSize: 12, marginTop: 3, lineHeight: 18 }}>
-              ต้อง deploy Cloudflare Worker ก่อน แล้วใส่ค่า EXPO_PUBLIC_NUMI_WORKER_URL กับ
-              EXPO_PUBLIC_NUMI_APP_TOKEN ในไฟล์ .env — ขั้นตอนทั้งหมดอยู่ใน worker/README.md
+              ต้อง deploy Cloudflare Worker ก่อน แล้วใส่ค่า EXPO_PUBLIC_WORKER_URL กับ
+              EXPO_PUBLIC_APP_TOKEN ในไฟล์ .env ที่โฟลเดอร์โปรเจกต์ — ขั้นตอนอยู่ใน worker/README.md
             </Text>
           </View>
         )}

@@ -4,8 +4,8 @@
 // ไม่ใช่ API key ของ OpenRouter ถ้าหลุดก็แค่ rotate ใหม่ และ Worker มี rate limit คุมอยู่
 // ห้ามเอา OPENROUTER key มาไว้ฝั่งแอปเด็ดขาด
 
-export const WORKER_URL = process.env.EXPO_PUBLIC_NUMI_WORKER_URL ?? '';
-export const APP_TOKEN = process.env.EXPO_PUBLIC_NUMI_APP_TOKEN ?? '';
+export const WORKER_URL = process.env.EXPO_PUBLIC_WORKER_URL ?? '';
+export const APP_TOKEN = process.env.EXPO_PUBLIC_APP_TOKEN ?? '';
 
 export const DEFAULT_MODEL = 'anthropic/claude-sonnet-4.5';
 export const FALLBACK_MODELS = ['anthropic/claude-sonnet-4.5', 'google/gemini-2.5-flash'];
