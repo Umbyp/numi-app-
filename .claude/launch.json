@@ -4,8 +4,24 @@
     {
       "name": "numi-web",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["expo", "start", "--web"],
+      "runtimeArgs": [
+        "expo",
+        "start",
+        "--web"
+      ],
       "port": 8081
+    },
+    {
+      "name": "numi-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "expo",
+        "start",
+        "--port",
+        "8083"
+      ],
+      "port": 8083,
+      "autoPort": false
     }
   ]
 }
