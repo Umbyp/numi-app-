@@ -122,6 +122,13 @@ CREATE TABLE IF NOT EXISTS meal_templates (
   created_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS water_logs (
+  id TEXT PRIMARY KEY,
+  local_date TEXT NOT NULL UNIQUE,
+  ml INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS chat_messages (
   id TEXT PRIMARY KEY,
   role TEXT NOT NULL,

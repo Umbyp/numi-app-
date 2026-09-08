@@ -7,6 +7,7 @@ import { useNumiStore } from '../../lib/store';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
 import { Mascot } from '../../components/mascot';
+import { ReminderSettings } from '../../components/reminder-settings';
 
 const ROWS: {
   label: string;
@@ -99,6 +100,9 @@ export default function AccountScreen() {
             </Pressable>
           ))}
         </View>
+        <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4, paddingLeft: 6 }]}>การเตือน</Text>
+        <ReminderSettings />
+
         <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>

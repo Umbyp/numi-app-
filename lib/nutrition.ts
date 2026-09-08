@@ -198,6 +198,17 @@ export function seriesMovingAverage(series: SeriesPoint[], window = 7): (number 
   return [...series.slice(0, first).map(() => null), ...avg];
 }
 
+/**
+ * เป้าหมายน้ำดื่มต่อวัน — ประมาณ 33 มล. ต่อน้ำหนักตัว 1 กก.
+ * เป็นหลักคร่าว ๆ ที่ใช้กันทั่วไป ไม่ใช่ค่าทางการแพทย์
+ * จำกัดช่วงไว้ 1.5-4 ลิตร กันค่าสุดโต่งจากน้ำหนักที่กรอกผิด
+ */
+export function calcWaterGoalMl(weightKg: number | null): number {
+  if (!weightKg || weightKg <= 0) return 2000;
+  const raw = Math.round((weightKg * 33) / 50) * 50;
+  return Math.min(4000, Math.max(1500, raw));
+}
+
 export function localDateString(d = new Date()): string {
   const tz = d.getTime() - d.getTimezoneOffset() * 60000;
   return new Date(tz).toISOString().slice(0, 10);
