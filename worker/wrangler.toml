@@ -1,0 +1,9 @@
+name = "numi-worker"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+
+# สร้าง namespace ก่อนด้วย: npx wrangler kv namespace create RATE_LIMIT
+# แล้วเอา id ที่ได้มาใส่ตรงนี้
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "ใส่-id-ที่ได้จากคำสั่งด้านบน"
