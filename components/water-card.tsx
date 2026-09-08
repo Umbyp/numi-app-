@@ -8,6 +8,8 @@ import { useNumiStore } from '../lib/store';
 import { getWaterForDate, addWaterMl } from '../lib/db/queries';
 import { calcWaterGoalMl, localDateString } from '../lib/nutrition';
 import { type } from '../lib/fonts';
+import { AnimatedBar } from './animated-bar';
+import { AnimatedNumber } from './animated-number';
 import { radius, cardShadow } from '../lib/theme';
 
 /** แก้วน้ำมาตรฐาน 250 มล. ขวดเล็ก 600 มล. — หน่วยที่คนนึกภาพออกจริง */
@@ -46,15 +48,17 @@ export function WaterCard() {
             {latestWeightKg ? ` · ราว 33 มล. ต่อน้ำหนัก 1 กก.` : ''}
           </Text>
         </View>
-        <Text style={[type.metric, { color: c.carb, fontSize: 26 }]}>
-          {(ml / 1000).toFixed(2)}
+        <View style={styles.amountRow}>
+          <AnimatedNumber
+            value={ml / 1000}
+            format={(n) => n.toFixed(2)}
+            style={[type.metric, { color: c.carb, fontSize: 26 }]}
+          />
           <Text style={[type.label, { color: c.faint, fontSize: 12 }]}> ล.</Text>
-        </Text>
+        </View>
       </View>
 
-      <View style={[styles.track, { backgroundColor: c.line }]}>
-        <View style={[styles.fill, { width: `${pct * 100}%`, backgroundColor: c.carb }]} />
-      </View>
+      <AnimatedBar fraction={pct} color={c.carb} trackColor={c.line} height={8} />
 
       <View style={styles.actionRow}>
         <Text style={[type.label, { color: c.muted, fontSize: 11, flex: 1 }]}>
@@ -88,8 +92,7 @@ export function WaterCard() {
 const styles = StyleSheet.create({
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 10 },
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  track: { height: 8, borderRadius: 4, overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: 4 },
+  amountRow: { flexDirection: 'row', alignItems: 'baseline' },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   btn: { width: 34, height: 30, borderRadius: radius.badge, alignItems: 'center', justifyContent: 'center' },
   addBtn: {

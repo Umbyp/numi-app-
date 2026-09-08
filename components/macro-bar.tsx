@@ -1,4 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { AnimatedBar } from './animated-bar';
+import { AnimatedNumber } from './animated-number';
 import { useTheme } from '../lib/hooks/use-theme';
 import { type } from '../lib/fonts';
 import type { ThemeColors } from '../lib/theme';
@@ -25,9 +27,7 @@ export function MacroBar({ label, colorKey, bgKey, currentG, targetG, compact }:
         <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>
           {label} {Math.round(currentG)}/{Math.round(targetG)}g
         </Text>
-        <View style={[styles.track, { backgroundColor: c.line }]}>
-          <View style={[styles.fill, { width: `${pct * 100}%`, backgroundColor: color }]} />
-        </View>
+        <AnimatedBar fraction={pct} color={color} trackColor={c.line} height={5} round={3} style={styles.track} />
       </View>
     );
   }
@@ -39,11 +39,10 @@ export function MacroBar({ label, colorKey, bgKey, currentG, targetG, compact }:
       </View>
       <Text style={[type.label, { color: c.muted }]}>{label}</Text>
       <Text style={[type.badge, styles.value, { color: c.text }]}>
-        {Math.round(currentG)}g<Text style={{ color: c.faint }}> /{Math.round(targetG)}g</Text>
+        <AnimatedNumber value={currentG} format={(n) => `${Math.round(n)}g`} style={[type.badge, styles.value, { color: c.text }]} />
+        <Text style={{ color: c.faint }}> /{Math.round(targetG)}g</Text>
       </Text>
-      <View style={[styles.track, { backgroundColor: c.line }]}>
-        <View style={[styles.fill, { width: `${pct * 100}%`, backgroundColor: color }]} />
-      </View>
+      <AnimatedBar fraction={pct} color={color} trackColor={c.line} height={5} round={3} style={styles.track} />
     </View>
   );
 }

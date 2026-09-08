@@ -11,6 +11,8 @@ import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
 import { Mascot } from '../../components/mascot';
 import { EmptyState } from '../../components/empty-state';
+import { AnimatedBar } from '../../components/animated-bar';
+import { AnimatedNumber } from '../../components/animated-number';
 
 const DAY_LETTERS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 const PERIODS = [
@@ -111,7 +113,7 @@ export default function InsightsScreen() {
             <View>
               <Text style={[type.cardTitle, { color: c.text, fontSize: 14 }]}>แคลอรี่ที่ได้รับ</Text>
               <View style={styles.baselineRow}>
-                <Text style={[type.metric, { color: c.text, fontSize: 28 }]}>{Math.round(avgKcal).toLocaleString()}</Text>
+                <AnimatedNumber value={avgKcal} style={[type.metric, { color: c.text, fontSize: 28 }]} />
                 <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>เฉลี่ย/วัน</Text>
               </View>
             </View>
@@ -176,9 +178,13 @@ export default function InsightsScreen() {
                 </Text>
                 <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>{Math.round(weightProgress.progressPct)}%</Text>
               </View>
-              <View style={[styles.progressTrack, { backgroundColor: c.surfaceAlt }]}>
-                <View style={[styles.progressFill, { width: `${weightProgress.progressPct}%`, backgroundColor: c.brand }]} />
-              </View>
+              <AnimatedBar
+                fraction={weightProgress.progressPct / 100}
+                color={c.brand}
+                trackColor={c.surfaceAlt}
+                height={8}
+                round={radius.pill}
+              />
             </View>
           ) : (
             <Pressable onPress={() => router.push('/account-edit')}>

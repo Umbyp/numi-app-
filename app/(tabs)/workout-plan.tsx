@@ -9,6 +9,9 @@ import type { WorkoutPlanDay } from '../../lib/db/schema';
 import { DayTypeIcon, dayTypeTint } from '../../components/icons/workout-icons';
 import { WorkoutHistoryStrip } from '../../components/workout-history-strip';
 import { EmptyState } from '../../components/empty-state';
+import { PressableCard } from '../../components/pressable-card';
+import { Mascot } from '../../components/mascot';
+import { AnimatedNumber } from '../../components/animated-number';
 import { localDateString } from '../../lib/nutrition';
 import { calcStreak, calcWeekCompletionCount, calcMuscleBalance } from '../../lib/workout-stats';
 import { MUSCLE_GROUPS } from '../../lib/met';
@@ -100,7 +103,9 @@ export default function WorkoutPlanScreen() {
               <View style={styles.statsRow}>
                 <View>
                   <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>ต่อเนื่อง</Text>
-                  <Text style={[type.cardTitle, { color: c.text, fontSize: 20 }]}>{streak} วัน</Text>
+                  <Text style={[type.cardTitle, { color: c.text, fontSize: 20 }]}>
+                    <AnimatedNumber value={streak} style={[type.cardTitle, { color: c.text, fontSize: 20 }]} /> วัน
+                  </Text>
                 </View>
                 <View>
                   <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>สัปดาห์นี้</Text>
@@ -109,6 +114,16 @@ export default function WorkoutPlanScreen() {
               </View>
 
               <WorkoutHistoryStrip workoutDates={workoutDates} />
+
+              {/* streak ยาวคือของที่ควรมีคนชม ไม่ใช่แค่ตัวเลขเฉย ๆ */}
+              {streak >= 7 && (
+                <View style={[styles.streakRow, { backgroundColor: c.brandTint }]}>
+                  <Mascot size={38} pose="goal" />
+                  <Text style={[type.row, { color: c.text, fontSize: 12.5, flex: 1 }]}>
+                    ต่อเนื่อง {streak} วันแล้ว เก่งมาก
+                  </Text>
+                </View>
+              )}
 
               <View style={{ gap: 6 }}>
                 <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4 }]}>สมดุลกล้ามเนื้อสัปดาห์นี้</Text>
@@ -191,4 +206,12 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: 24 },
   muscleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   muscleBadge: { borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 3 },
+  streakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: radius.cardInner,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
 });

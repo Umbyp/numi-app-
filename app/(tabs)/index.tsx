@@ -8,6 +8,8 @@ import { WaterCard } from '../../components/water-card';
 import { GoalIcon, FoodIcon, ActivityIcon } from '../../components/icons/nav-icons';
 import { DayTypeIcon, dayTypeTint } from '../../components/icons/workout-icons';
 import { MascotGreeting } from '../../components/mascot-greeting';
+import { AnimatedNumber } from '../../components/animated-number';
+import { PressableCard } from '../../components/pressable-card';
 import { CalorieCardSkeleton } from '../../components/skeleton';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { useNumiStore, sumTotals } from '../../lib/store';
@@ -76,6 +78,8 @@ export default function DashboardScreen() {
   }
 
   const cardStyle = [styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)];
+  // การ์ดแคลอรี่คือของสำคัญสุดของหน้า ให้หนาและมีที่ว่างมากกว่าการ์ดอื่น
+  const heroStyle = [styles.card, styles.heroCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)];
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
@@ -114,7 +118,7 @@ export default function DashboardScreen() {
           </Pressable>
         )}
 
-        <View style={cardStyle}>
+        <View style={heroStyle}>
           {!loaded ? (
             <CalorieCardSkeleton />
           ) : (
@@ -150,7 +154,7 @@ export default function DashboardScreen() {
         <WaterCard />
 
         {suggestedWorkout && (
-          <Pressable
+          <PressableCard
             style={cardStyle}
             onPress={() => router.push({ pathname: '/workout-plan-detail', params: { id: suggestedWorkout.planId } })}
           >
@@ -173,11 +177,12 @@ export default function DashboardScreen() {
               })()}
             </View>
             <Text style={[type.row, { color: c.brand, fontSize: 13 }]}>ไปเล่นเลย →</Text>
-          </Pressable>
+          </PressableCard>
         )}
 
         {profile && (
-          <View style={cardStyle}>
+          <View style={styles.plainSection}>
+            <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4, paddingLeft: 4 }]}>ตัวเลขร่างกาย</Text>
             <HealthRow
               label="ดัชนีมวลกาย"
               value={bmi ? `BMI ${bmi.toFixed(1)}` : '—'}
@@ -227,7 +232,7 @@ function StatRow({
       <View style={[styles.statIcon, { backgroundColor: bg }]}>{icon}</View>
       <View style={{ minWidth: 0 }}>
         <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>{label}</Text>
-        <Text style={[type.cardTitle, { color: c.text, fontSize: 17 }]}>{value.toLocaleString()}</Text>
+        <AnimatedNumber value={value} style={[type.cardTitle, { color: c.text, fontSize: 17 }]} />
       </View>
     </View>
   );
@@ -274,6 +279,9 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   setupBanner: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16 },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 14 },
+  heroCard: { padding: 20, gap: 18 },
+  // ของรองสุดไม่ต้องเป็นการ์ด ปล่อยเป็นแถวบนพื้นหลังเพื่อให้ลำดับความสำคัญต่างกันจริง
+  plainSection: { gap: 6, paddingHorizontal: 4 },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'flex-start' },
   ringRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   statCol: { flex: 1, gap: 12, minWidth: 0 },

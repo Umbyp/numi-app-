@@ -22,6 +22,8 @@ import { ActivityIcon, ScaleIcon } from '../../components/icons/nav-icons';
 import { FoodVisual } from '../../components/food-visual';
 import { FadeInView } from '../../components/fade-in';
 import { DatePickerModal } from '../../components/date-picker-modal';
+import { Mascot } from '../../components/mascot';
+import { AnimatedNumber } from '../../components/animated-number';
 import { MealTemplateSheet } from '../../components/meal-template-sheet';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow, MIN_TOUCH } from '../../lib/theme';
@@ -100,6 +102,7 @@ export default function DiaryScreen() {
   }, [entries]);
 
   const totalKcal = entries.reduce((s, e) => s + e.kcal, 0);
+  const allMealsLogged = MEAL_TYPES.every((meta) => grouped[meta.key].length > 0);
   const isToday = selectedDate === today;
   const selectedD = new Date(`${selectedDate}T00:00:00`);
 
@@ -154,7 +157,8 @@ export default function DiaryScreen() {
           <View style={styles.cardHeaderRow}>
             <Text style={[type.cardTitle, { color: c.text, fontSize: 16 }]}>มื้อวันนี้</Text>
             <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>
-              รวม <Text style={[type.cardTitle, { color: c.text, fontSize: 12 }]}>{Math.round(totalKcal)}</Text> kcal
+              รวม{' '}
+              <AnimatedNumber value={totalKcal} style={[type.cardTitle, { color: c.text, fontSize: 12 }]} /> kcal
             </Text>
           </View>
 
@@ -259,6 +263,15 @@ export default function DiaryScreen() {
             );
           })}
 
+          {allMealsLogged && isToday && (
+            <View style={[styles.completeRow, { backgroundColor: c.brandTint }]}>
+              <Mascot size={38} pose="goal" />
+              <Text style={[type.row, { color: c.text, fontSize: 12.5, flex: 1 }]}>
+                บันทึกครบทั้งสี่มื้อแล้ววันนี้
+              </Text>
+            </View>
+          )}
+
           <View style={[styles.divider, { backgroundColor: c.line }]} />
 
           <View style={styles.statRow}>
@@ -339,6 +352,14 @@ const styles = StyleSheet.create({
   shortcutRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', paddingLeft: 35 },
   shortcutPill: { height: 26, paddingHorizontal: 10, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   divider: { height: 1, marginVertical: 2 },
+  completeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: radius.cardInner,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   statRow: { flexDirection: 'row', gap: 8 },
   statCard: { flex: 1, borderRadius: radius.cardInner, padding: 12, gap: 3 },
   statLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

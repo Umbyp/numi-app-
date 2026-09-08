@@ -19,6 +19,7 @@ import { WORKOUT_CATEGORIES, metsByCategory, MUSCLE_GROUPS, muscleGroupLabel, ty
 import { AmountStepper } from '../components/amount-stepper';
 import { Mascot } from '../components/mascot';
 import { RestTimerModal } from '../components/rest-timer-modal';
+import { AnimatedBar } from '../components/animated-bar';
 import { PlanExerciseCard } from '../components/plan-exercise-card';
 import { CategoryIcon, categoryTint, DayTypeIcon, dayTypeTint } from '../components/icons/workout-icons';
 import { type as textType, fontFamily } from '../lib/fonts';
@@ -478,13 +479,25 @@ export default function WorkoutPlanDetailScreen() {
                   <>
                     {totalSets > 0 && (
                       <View style={styles.progressWrap}>
-                        <View style={[styles.progressTrack, { backgroundColor: c.line }]}>
-                          <View
-                            style={[styles.progressFill, { width: `${pct * 100}%`, backgroundColor: dTint.icon }]}
-                          />
-                        </View>
+                        <AnimatedBar
+                          fraction={pct}
+                          color={dTint.icon}
+                          trackColor={c.line}
+                          height={6}
+                          style={{ flex: 1 }}
+                        />
                         <Text style={[textType.label, { color: c.muted, fontSize: 11 }]}>
                           {doneSets}/{totalSets} เซต
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* ทำครบทุกเซตแล้วให้มาสคอตออกมาชม ก่อนหน้านี้ไม่มีอะไรบอกว่าจบวันแล้ว */}
+                    {totalSets > 0 && doneSets === totalSets && (
+                      <View style={[styles.celebrateRow, { backgroundColor: c.brandTint }]}>
+                        <Mascot size={40} pose="goal" />
+                        <Text style={[textType.row, { color: c.text, fontSize: 12.5, flex: 1 }]}>
+                          ครบทุกเซตแล้ว กดบันทึกเก็บไว้เลย
                         </Text>
                       </View>
                     )}
@@ -522,6 +535,14 @@ const styles = StyleSheet.create({
   dayTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 3 },
   exerciseRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   progressWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 },
+  celebrateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: radius.cardInner,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   progressTrack: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 3 },
   smallIconBox: { width: 32, height: 32, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
