@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Animated, StyleSheet } from 'react-native';
 import { Check, Pencil, Timer } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
+import { useCelebration } from '../lib/hooks/use-celebration';
 import { muscleGroupLabel } from '../lib/met';
 import { CategoryIcon, categoryTint } from './icons/workout-icons';
 import { type as textType } from '../lib/fonts';
@@ -35,6 +36,10 @@ export function PlanExerciseCard({ exercise, done, onToggleSet, onRest, onEdit }
   const allDone = total > 0 && completed === total;
   const countsSets = exercise.sets != null && exercise.sets > 0;
 
+  // เด้งเฉพาะตอนติ๊กเซตสุดท้ายจนครบ ไม่ใช่ตอนเปิดหน้ามาแล้วครบอยู่แล้ว
+  // ปิด haptic เพราะการติ๊กเซตมี haptic ของตัวเองอยู่แล้ว
+  const celebration = useCelebration({ when: allDone, haptic: false, scaleTo: 1.16, lift: -5, rock: -6 });
+
   function handleToggle(i: number) {
     const turningOn = !done[i];
     onToggleSet(i);
@@ -51,13 +56,13 @@ export function PlanExerciseCard({ exercise, done, onToggleSet, onRest, onEdit }
       ]}
     >
       <View style={styles.headRow}>
-        <View style={[styles.iconBox, { backgroundColor: allDone ? c.surface : tint.bg }]}>
+        <Animated.View style={[styles.iconBox, { backgroundColor: allDone ? c.surface : tint.bg }, celebration.style]}>
           {allDone ? (
             <Check size={16} color={tint.icon} />
           ) : (
             <CategoryIcon category={exercise.category} size={16} color={tint.icon} />
           )}
-        </View>
+        </Animated.View>
 
         <View style={styles.titleCol}>
           <Text style={[textType.row, { color: c.text, fontSize: 14 }]} numberOfLines={2}>
