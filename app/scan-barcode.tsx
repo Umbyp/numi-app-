@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -12,6 +12,7 @@ import { addMealEntry, createUserFood } from '../lib/db/queries';
 import { scaleFood } from '../lib/nutrition';
 import { type as textType, fontFamily } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
+import { Squish } from '../components/squish';
 
 interface OffProduct {
   name: string;
@@ -114,9 +115,9 @@ export default function ScanBarcodeScreen() {
         <Text style={[textType.label, { color: c.subtext, textAlign: 'center', marginTop: 6, marginBottom: 20 }]}>
           เพื่อสแกนบาร์โค้ดอาหาร
         </Text>
-        <Pressable style={[styles.primaryBtn, { backgroundColor: c.brand }]} onPress={requestPermission}>
+        <Squish scaleTo={0.97} style={[styles.primaryBtn, { backgroundColor: c.brand }]} onPress={requestPermission}>
           <Text style={[textType.row, { color: '#fff', fontSize: 15 }]}>อนุญาตใช้กล้อง</Text>
-        </Pressable>
+        </Squish>
       </SafeAreaView>
     );
   }
@@ -146,15 +147,15 @@ export default function ScanBarcodeScreen() {
         <View style={styles.overlay}>
           <Text style={[styles.overlayText, { marginBottom: 20 }]}>{error}</Text>
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Pressable style={[styles.primaryBtn, { backgroundColor: c.brand }]} onPress={retry}>
+            <Squish scaleTo={0.97} style={[styles.primaryBtn, { backgroundColor: c.brand }]} onPress={retry}>
               <Text style={[textType.row, { color: '#fff', fontSize: 14 }]}>สแกนใหม่</Text>
-            </Pressable>
-            <Pressable
+            </Squish>
+            <Squish scaleTo={0.97}
               style={[styles.primaryBtn, { backgroundColor: c.surfaceAlt }]}
               onPress={() => router.replace({ pathname: '/add-food', params: { mode: 'manual' } })}
             >
               <Text style={[textType.row, { color: c.text, fontSize: 14 }]}>กรอกเอง</Text>
-            </Pressable>
+            </Squish>
           </View>
         </View>
       )}
@@ -170,14 +171,14 @@ export default function ScanBarcodeScreen() {
               {MEAL_TYPES.map((opt) => {
                 const active = opt.key === mealType;
                 return (
-                  <Pressable
+                  <Squish
                     key={opt.key}
                     onPress={() => setMealType(opt.key)}
                     style={[styles.mealPill, { backgroundColor: active ? c[opt.colorKey] : c.surfaceAlt }]}
                   >
                     <MealTypeIcon type={opt.key} color={active ? '#fff' : c[opt.colorKey]} size={13} />
                     <Text style={[textType.row, { fontSize: 13, color: active ? '#fff' : c.text }]}>{opt.label}</Text>
-                  </Pressable>
+                  </Squish>
                 );
               })}
             </View>
@@ -197,16 +198,16 @@ export default function ScanBarcodeScreen() {
               );
             })()}
 
-            <Pressable
+            <Squish scaleTo={0.97}
               style={[styles.primaryBtn, { backgroundColor: c.brand }, saving && { opacity: 0.6 }, cardShadow(scheme)]}
               disabled={saving}
               onPress={handleSave}
             >
               <Text style={[textType.row, { color: '#fff', fontSize: 15 }]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
-            </Pressable>
-            <Pressable onPress={retry} style={{ alignItems: 'center', paddingVertical: 4 }}>
+            </Squish>
+            <Squish onPress={retry} style={{ alignItems: 'center', paddingVertical: 4 }}>
               <Text style={[textType.label, { color: c.subtext }]}>สแกนใหม่</Text>
-            </Pressable>
+            </Squish>
           </ScrollView>
         </SafeAreaView>
       )}

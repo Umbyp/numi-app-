@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { View, Text, Pressable, FlatList, StyleSheet, Alert } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trash2 } from 'lucide-react-native';
@@ -14,6 +14,7 @@ import { calcStreak, calcWeekCompletionCount, calcMuscleBalance } from '../../li
 import { MUSCLE_GROUPS } from '../../lib/met';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow, MIN_TOUCH } from '../../lib/theme';
+import { Squish } from '../../components/squish';
 
 const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
@@ -147,7 +148,7 @@ export default function WorkoutPlanScreen() {
           return (
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
               <View style={styles.row}>
-                <Pressable
+                <Squish scaleTo={0.98}
                   style={styles.rowMain}
                   onPress={() => router.push({ pathname: '/workout-plan-detail', params: { id: item.id } })}
                 >
@@ -162,13 +163,13 @@ export default function WorkoutPlanScreen() {
                       {d.getDate()} {THAI_MONTHS_SHORT[d.getMonth()]} {d.getFullYear() + 543} · {item.days.length} วัน · {exerciseCount} ท่า
                     </Text>
                   </View>
-                </Pressable>
-                <Pressable
+                </Squish>
+                <Squish
                   style={[styles.deleteBtn, { backgroundColor: c.surfaceAlt }]}
                   onPress={() => handleDelete(item.id, item.title)}
                 >
                   <Trash2 size={15} color={c.faint} />
-                </Pressable>
+                </Squish>
               </View>
             </View>
           );

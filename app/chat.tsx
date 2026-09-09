@@ -1,16 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  FlatList,
-  Pressable,
-  Alert,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, TextInput, FlatList, Alert, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Send, X, Camera, Trash2 } from 'lucide-react-native';
@@ -27,6 +16,7 @@ import { FadeInView } from '../components/fade-in';
 import { useNumiStore } from '../lib/store';
 import { type } from '../lib/fonts';
 import { radius, pillShadow, fabShadow, MIN_TOUCH } from '../lib/theme';
+import { Squish } from '../components/squish';
 
 type Row =
   | {
@@ -138,14 +128,14 @@ export default function ChatScreen() {
           </View>
           {/* ปุ่มล้างประวัติโชว์เฉพาะตอนมีอะไรให้ล้าง และวางห่างจากปุ่มปิดไม่ให้กดพลาด */}
           {hasHistory && (
-            <Pressable onPress={handleClearHistory} style={styles.headerBtn}>
+            <Squish onPress={handleClearHistory} style={styles.headerBtn}>
               <Trash2 size={17} color={c.faint} />
-            </Pressable>
+            </Squish>
           )}
           <View style={styles.headerGap} />
-          <Pressable onPress={() => router.back()} style={[styles.headerBtn, { backgroundColor: c.surfaceAlt }]}>
+          <Squish onPress={() => router.back()} style={[styles.headerBtn, { backgroundColor: c.surfaceAlt }]}>
             <X size={19} color={c.subtext} />
-          </Pressable>
+          </Squish>
         </View>
 
         {!historyLoaded ? (
@@ -162,13 +152,13 @@ export default function ChatScreen() {
             </Text>
             <View style={styles.suggestions}>
               {SUGGESTIONS.map((s) => (
-                <Pressable
+                <Squish
                   key={s}
                   onPress={() => handleSend(s)}
                   style={[styles.suggestion, { backgroundColor: c.surface, borderColor: c.line }, pillShadow(scheme)]}
                 >
                   <Text style={[type.row, { color: c.text, fontSize: 12.5 }]}>{s}</Text>
-                </Pressable>
+                </Squish>
               ))}
             </View>
           </View>
@@ -206,13 +196,13 @@ export default function ChatScreen() {
         )}
 
         <View style={[styles.inputBar, { backgroundColor: c.surface, borderTopColor: c.line }]}>
-          <Pressable
+          <Squish
             style={[styles.cameraBtn, { backgroundColor: c.surfaceAlt }, loading && { opacity: 0.5 }]}
             disabled={loading}
             onPress={handleCamera}
           >
             <Camera size={19} color={c.brand} />
-          </Pressable>
+          </Squish>
           <TextInput
             value={input}
             onChangeText={setInput}
@@ -222,7 +212,7 @@ export default function ChatScreen() {
             multiline
             onSubmitEditing={() => handleSend()}
           />
-          <Pressable
+          <Squish
             style={[
               styles.sendBtn,
               canSend ? [{ backgroundColor: c.brand }, fabShadow(scheme, c.brand)] : { backgroundColor: c.line },
@@ -231,7 +221,7 @@ export default function ChatScreen() {
             onPress={() => handleSend()}
           >
             <Send size={18} color={canSend ? '#fff' : c.faint} />
-          </Pressable>
+          </Squish>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

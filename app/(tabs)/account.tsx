@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
@@ -8,6 +8,7 @@ import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
 import { Mascot } from '../../components/mascot';
 import { ReminderSettings } from '../../components/reminder-settings';
+import { Squish } from '../../components/squish';
 
 const ROWS: {
   label: string;
@@ -60,9 +61,9 @@ export default function AccountScreen() {
                 : 'ยังไม่ได้ตั้งน้ำหนักเป้าหมาย'}
             </Text>
           </View>
-          <Pressable style={[styles.editPill, { backgroundColor: c.brandTint }]} onPress={() => router.push('/account-edit')}>
+          <Squish style={[styles.editPill, { backgroundColor: c.brandTint }]} onPress={() => router.push('/account-edit')}>
             <Text style={[type.row, { color: c.brand, fontSize: 12 }]}>แก้ไข</Text>
-          </Pressable>
+          </Squish>
         </View>
 
         <View style={styles.statRow}>
@@ -80,7 +81,7 @@ export default function AccountScreen() {
 
         <View style={[styles.listCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
           {ROWS.map((row, i) => (
-            <Pressable
+            <Squish scaleTo={0.98}
               key={row.label}
               style={[styles.row, i < ROWS.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line }]}
               disabled={row.disabled || !row.route}
@@ -97,7 +98,7 @@ export default function AccountScreen() {
               ) : (
                 <Text style={{ color: c.faint, fontSize: 17 }}>›</Text>
               )}
-            </Pressable>
+            </Squish>
           ))}
         </View>
         <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4, paddingLeft: 6 }]}>การเตือน</Text>

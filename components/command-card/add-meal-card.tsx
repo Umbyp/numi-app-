@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
@@ -9,6 +9,7 @@ import { getMealTypeMeta, type MealType } from '../../lib/meal-type';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
 import type { AddMealArgs } from '../../lib/ai/validators';
+import { Squish } from '../squish';
 
 interface Props {
   card: { id: string; args: AddMealArgs; photoUri?: string | null };
@@ -84,9 +85,9 @@ export function AddMealCard({ card, onConfirm, onDismiss }: Props) {
 
           <AmountStepper value={item.amount_g} onChange={(v) => updateAmount(idx, v)} />
 
-          <Pressable hitSlop={10} onPress={() => removeItem(idx)}>
+          <Squish hitSlop={10} onPress={() => removeItem(idx)}>
             <X size={16} color={c.muted} />
-          </Pressable>
+          </Squish>
         </View>
       ))}
 
@@ -96,16 +97,16 @@ export function AddMealCard({ card, onConfirm, onDismiss }: Props) {
         <Text style={[type.label, { color: c.muted, flex: 1 }]}>
           รวม <Text style={[type.cardTitle, { color: c.text, fontSize: 13 }]}>{Math.round(total)} kcal</Text>
         </Text>
-        <Pressable style={[styles.ghost, { backgroundColor: c.surfaceAlt }]} onPress={() => onDismiss(card.id)}>
+        <Squish style={[styles.ghost, { backgroundColor: c.surfaceAlt }]} onPress={() => onDismiss(card.id)}>
           <Text style={[type.row, { color: c.subtext, fontSize: 13 }]}>ยกเลิก</Text>
-        </Pressable>
-        <Pressable
+        </Squish>
+        <Squish scaleTo={0.97}
           style={[styles.primary, { backgroundColor: c.brand }, items.length === 0 && { opacity: 0.5 }]}
           disabled={items.length === 0}
           onPress={handleConfirm}
         >
           <Text style={[type.row, { color: '#fff', fontSize: 13 }]}>ยืนยัน</Text>
-        </Pressable>
+        </Squish>
       </View>
     </View>
   );

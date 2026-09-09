@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { View, Animated, Easing, StyleSheet } from 'react-native';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { Mascot } from './mascot';
-import { pillShadow } from '../lib/theme';
+import { pillShadow, motion } from '../lib/theme';
 
 /**
  * ฟองข้อความ "กำลังพิมพ์" ที่อยู่ในบทสนทนาจริง
@@ -18,8 +18,8 @@ export function TypingBubble() {
       Animated.loop(
         Animated.sequence([
           Animated.delay(i * 160),
-          Animated.timing(dot, { toValue: 1, duration: 320, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-          Animated.timing(dot, { toValue: 0.3, duration: 320, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 1, duration: motion.duration.base, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0.3, duration: motion.duration.base, easing: Easing.in(Easing.quad), useNativeDriver: true }),
           Animated.delay(320 - i * 160),
         ])
       )

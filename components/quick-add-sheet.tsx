@@ -15,6 +15,7 @@ import { detectMealType } from '../lib/meal-type';
 import { useNumiStore } from '../lib/store';
 import { captureFoodPhoto } from '../lib/ai/capture-photo';
 import { setPendingImage } from '../lib/ai/pending-image';
+import { Squish } from './squish';
 
 interface Props {
   visible: boolean;
@@ -123,9 +124,9 @@ export function QuickAddSheet({ visible, onClose }: Props) {
             />
             <Text style={[type.label, { color: c.subtext, fontSize: 12 }]}>“ข้าวกะเพราไข่ดาว 1 จาน”</Text>
           </View>
-          <Pressable style={[styles.askBtn, { backgroundColor: c.brand }]} onPress={askNumi}>
+          <Squish style={[styles.askBtn, { backgroundColor: c.brand }]} onPress={askNumi}>
             <Text style={[type.row, { color: '#fff', fontSize: 13 }]}>ถามเลย</Text>
-          </Pressable>
+          </Squish>
         </View>
 
         <View style={styles.grid}>
@@ -143,7 +144,7 @@ export function QuickAddSheet({ visible, onClose }: Props) {
             <View style={styles.frequentRow}>
               {frequent.map((f) => (
                 <FadeInView key={f.foodId} style={{ flex: 1 }}>
-                  <Pressable
+                  <Squish
                     style={[styles.frequentCard, { backgroundColor: c.surfaceAlt }, logging === f.foodId && { opacity: 0.5 }]}
                     disabled={logging === f.foodId}
                     onPress={() => repeatFood(f)}
@@ -155,7 +156,7 @@ export function QuickAddSheet({ visible, onClose }: Props) {
                       </Text>
                     </View>
                     <Text style={[type.label, { color: c.faint, fontSize: 10 }]}>{Math.round(f.kcal)} kcal</Text>
-                  </Pressable>
+                  </Squish>
                 </FadeInView>
               ))}
             </View>
@@ -167,14 +168,14 @@ export function QuickAddSheet({ visible, onClose }: Props) {
         </View>
 
         <View style={styles.footerRow}>
-          <Pressable style={[styles.footerBtn, { backgroundColor: c.surfaceAlt }]} onPress={goWorkout}>
+          <Squish style={[styles.footerBtn, { backgroundColor: c.surfaceAlt }]} onPress={goWorkout}>
             <ActivityIcon color={c.dinner} size={18} />
             <Text style={[type.row, { color: c.text, fontSize: 14 }]}>กิจกรรม</Text>
-          </Pressable>
-          <Pressable style={[styles.footerBtn, { backgroundColor: c.surfaceAlt }]} onPress={goWeight}>
+          </Squish>
+          <Squish style={[styles.footerBtn, { backgroundColor: c.surfaceAlt }]} onPress={goWeight}>
             <ScaleIcon color={c.brand} size={18} />
             <Text style={[type.row, { color: c.text, fontSize: 14 }]}>น้ำหนัก</Text>
-          </Pressable>
+          </Squish>
         </View>
       </View>
     </Modal>
@@ -195,10 +196,10 @@ function GridButton({
   c: ReturnType<typeof useTheme>;
 }) {
   return (
-    <Pressable style={styles.gridBtn} onPress={onPress} disabled={disabled || !onPress}>
+    <Squish style={styles.gridBtn} onPress={onPress} disabled={disabled || !onPress}>
       <View style={[styles.gridIcon, { backgroundColor: c.surfaceAlt }]}>{icon}</View>
       <Text style={[type.row, { color: disabled ? c.faint : c.text, fontSize: 11 }]}>{label}</Text>
-    </Pressable>
+    </Squish>
   );
 }
 

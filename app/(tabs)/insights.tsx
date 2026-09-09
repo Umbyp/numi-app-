@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Svg, { Polyline, Path, Circle } from 'react-native-svg';
@@ -11,6 +11,7 @@ import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
 import { Mascot } from '../../components/mascot';
 import { EmptyState } from '../../components/empty-state';
+import { Squish } from '../../components/squish';
 
 const DAY_LETTERS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 const PERIODS = [
@@ -85,13 +86,13 @@ export default function InsightsScreen() {
           {PERIODS.map((p) => {
             const active = p.key === period;
             return (
-              <Pressable
+              <Squish
                 key={p.key}
                 onPress={() => setPeriod(p.key)}
                 style={[styles.periodChip, { backgroundColor: active ? c.surface : 'transparent' }, active && cardShadow(scheme)]}
               >
                 <Text style={[type.row, { fontSize: 13, color: active ? c.text : c.muted }]}>{p.label}</Text>
-              </Pressable>
+              </Squish>
             );
           })}
         </ScrollView>
@@ -181,11 +182,11 @@ export default function InsightsScreen() {
               </View>
             </View>
           ) : (
-            <Pressable onPress={() => router.push('/account-edit')}>
+            <Squish onPress={() => router.push('/account-edit')}>
               <Text style={[type.label, { color: c.brand, fontSize: 12 }]}>
                 {goalWeight ? 'บันทึกน้ำหนักเพื่อดูความคืบหน้า' : 'ตั้งเป้าหมายน้ำหนักเพื่อดูความคืบหน้า'}
               </Text>
-            </Pressable>
+            </Squish>
           )}
         </View>
         <View style={{ height: 100 }} />

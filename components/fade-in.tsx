@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated } from 'react-native';
+import { motion } from '../lib/theme';
 
 interface Props {
   children: React.ReactNode;
@@ -11,7 +12,7 @@ export function FadeInView({ children, style }: Props) {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(anim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+    Animated.timing(anim, { toValue: 1, duration: motion.duration.quick, useNativeDriver: true }).start();
   }, []);
 
   return (

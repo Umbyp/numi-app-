@@ -5,6 +5,7 @@ import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { type } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
 import { Mascot } from './mascot';
+import { Squish } from './squish';
 
 interface Props {
   visible: boolean;
@@ -73,12 +74,12 @@ export function RestTimerModal({ visible, seconds, onClose }: Props) {
           </View>
 
           <View style={styles.actions}>
-            <Pressable style={[styles.ghostBtn, { backgroundColor: c.surfaceAlt }]} onPress={() => addTime(15)}>
+            <Squish style={[styles.ghostBtn, { backgroundColor: c.surfaceAlt }]} onPress={() => addTime(15)}>
               <Text style={[type.row, { color: c.brand, fontSize: 13 }]}>+15 วิ</Text>
-            </Pressable>
-            <Pressable style={[styles.primaryBtn, { backgroundColor: c.brand }]} onPress={onClose}>
+            </Squish>
+            <Squish style={[styles.primaryBtn, { backgroundColor: c.brand }]} onPress={onClose}>
               <Text style={[type.row, { color: '#fff', fontSize: 13 }]}>ปิด</Text>
-            </Pressable>
+            </Squish>
           </View>
         </View>
       </View>

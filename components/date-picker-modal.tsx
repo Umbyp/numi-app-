@@ -5,6 +5,7 @@ import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { localDateString } from '../lib/nutrition';
 import { type } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
+import { Squish } from './squish';
 
 const THAI_MONTHS = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -53,15 +54,15 @@ export function DatePickerModal({ visible, selectedDate, onSelect, onClose }: Pr
       <View style={styles.centerWrap} pointerEvents="box-none">
         <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
           <View style={styles.headerRow}>
-            <Pressable hitSlop={10} onPress={() => goMonth(-1)}>
+            <Squish hitSlop={10} onPress={() => goMonth(-1)}>
               <ChevronLeft size={20} color={c.subtext} />
-            </Pressable>
+            </Squish>
             <Text style={[type.cardTitle, { color: c.text, fontSize: 15 }]}>
               {THAI_MONTHS[viewMonth.getMonth()]} {viewMonth.getFullYear() + 543}
             </Text>
-            <Pressable hitSlop={10} onPress={() => goMonth(1)}>
+            <Squish hitSlop={10} onPress={() => goMonth(1)}>
               <ChevronRight size={20} color={c.subtext} />
-            </Pressable>
+            </Squish>
           </View>
 
           <View style={styles.weekLabelRow}>
@@ -80,7 +81,7 @@ export function DatePickerModal({ visible, selectedDate, onSelect, onClose }: Pr
               const isSelected = ds === selectedDate;
               const isToday = ds === localDateString(today);
               return (
-                <Pressable
+                <Squish
                   key={i}
                   style={[
                     styles.cell,
@@ -99,12 +100,12 @@ export function DatePickerModal({ visible, selectedDate, onSelect, onClose }: Pr
                   >
                     {d.getDate()}
                   </Text>
-                </Pressable>
+                </Squish>
               );
             })}
           </View>
 
-          <Pressable
+          <Squish
             style={[styles.todayBtn, { backgroundColor: c.surfaceAlt }]}
             onPress={() => {
               setViewMonth(startOfMonth(today));
@@ -112,7 +113,7 @@ export function DatePickerModal({ visible, selectedDate, onSelect, onClose }: Pr
             }}
           >
             <Text style={[type.row, { color: c.brand, fontSize: 13 }]}>วันนี้</Text>
-          </Pressable>
+          </Squish>
         </View>
       </View>
     </Modal>

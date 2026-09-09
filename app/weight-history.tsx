@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
@@ -17,6 +17,7 @@ import { TrendChart } from '../components/trend-chart';
 import { type } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
 import { EmptyState } from '../components/empty-state';
+import { Squish } from '../components/squish';
 
 const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 const RANGES = [30, 90, 180] as const;
@@ -145,13 +146,13 @@ export default function WeightHistoryScreen() {
                 {RANGES.map((r) => {
                   const active = r === range;
                   return (
-                    <Pressable
+                    <Squish
                       key={r}
                       onPress={() => setRange(r)}
                       style={[styles.rangeChip, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
                     >
                       <Text style={[type.label, { fontSize: 12, color: active ? '#fff' : c.subtext }]}>{r} วัน</Text>
-                    </Pressable>
+                    </Squish>
                   );
                 })}
               </View>
@@ -165,7 +166,7 @@ export default function WeightHistoryScreen() {
                     ] as const).map((m) => {
                       const active = metric === m.key;
                       return (
-                        <Pressable key={m.key} onPress={() => setMetric(m.key)} hitSlop={6}>
+                        <Squish key={m.key} onPress={() => setMetric(m.key)} hitSlop={6}>
                           <Text
                             style={[
                               type.cardTitle,
@@ -175,7 +176,7 @@ export default function WeightHistoryScreen() {
                           >
                             {m.label}
                           </Text>
-                        </Pressable>
+                        </Squish>
                       );
                     })}
                   </View>
@@ -200,10 +201,10 @@ export default function WeightHistoryScreen() {
               </View>
 
               <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
-                <Pressable style={styles.toggle} onPress={() => setShowMeasure((v) => !v)} hitSlop={6}>
+                <Squish scaleTo={0.98} style={styles.toggle} onPress={() => setShowMeasure((v) => !v)} hitSlop={6}>
                   <Text style={[type.cardTitle, { color: c.text, fontSize: 14, flex: 1 }]}>สัดส่วน (ซม.)</Text>
                   {showMeasure ? <ChevronUp size={16} color={c.muted} /> : <ChevronDown size={16} color={c.muted} />}
-                </Pressable>
+                </Squish>
 
                 {showMeasure && (
                   <>
@@ -222,7 +223,7 @@ export default function WeightHistoryScreen() {
                         </View>
                       ))}
                     </View>
-                    <Pressable
+                    <Squish
                       onPress={handleSaveMeasure}
                       disabled={saving}
                       style={[styles.saveBtn, { backgroundColor: c.brand }, saving && { opacity: 0.6 }]}
@@ -230,7 +231,7 @@ export default function WeightHistoryScreen() {
                       <Text style={[type.row, { color: '#fff', fontSize: 14 }]}>
                         {saving ? 'กำลังบันทึก...' : 'บันทึกสัดส่วนวันนี้'}
                       </Text>
-                    </Pressable>
+                    </Squish>
                   </>
                 )}
               </View>

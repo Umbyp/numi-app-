@@ -1,7 +1,8 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Minus, Plus } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
 import { fontFamily } from '../lib/fonts';
+import { Squish } from './squish';
 
 interface Props {
   value: number;
@@ -15,19 +16,19 @@ export function AmountStepper({ value, step = 10, unit = 'g', min = 1, onChange 
   const c = useTheme();
   return (
     <View style={styles.row}>
-      <Pressable
+      <Squish
         style={[styles.btn, { backgroundColor: c.ghostBg }]}
         onPress={() => onChange(Math.max(min, value - step))}
       >
         <Minus size={14} color={c.text} />
-      </Pressable>
+      </Squish>
       <Text style={[styles.value, { color: c.text }]}>{Math.round(value)}{unit}</Text>
-      <Pressable
+      <Squish
         style={[styles.btn, { backgroundColor: c.ghostBg }]}
         onPress={() => onChange(value + step)}
       >
         <Plus size={14} color={c.text} />
-      </Pressable>
+      </Squish>
     </View>
   );
 }

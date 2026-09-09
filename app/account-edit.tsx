@@ -1,14 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { View, Text, TextInput, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
@@ -28,6 +19,7 @@ import { Sparkles } from 'lucide-react-native';
 import { type as textType, fontFamily } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
 import { AmountStepper } from '../components/amount-stepper';
+import { Squish } from '../components/squish';
 
 type GoalType = 'lose' | 'maintain' | 'gain';
 
@@ -245,7 +237,7 @@ export default function AccountEditScreen() {
                       const active = Math.abs(weeklyRateKg - signed) < 0.001;
                       const overSafe = goalType === 'lose' && v > safeMaxLoss;
                       return (
-                        <Pressable
+                        <Squish
                           key={v}
                           onPress={() => setWeeklyRateKg(signed)}
                           style={[styles.ratePill, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
@@ -253,7 +245,7 @@ export default function AccountEditScreen() {
                           <Text style={[textType.label, { color: active ? '#fff' : c.text, fontSize: 12 }]}>
                             {v} kg{overSafe ? ' ⚠︎' : ''}
                           </Text>
-                        </Pressable>
+                        </Squish>
                       );
                     })}
                   </View>
@@ -270,7 +262,7 @@ export default function AccountEditScreen() {
           {STEP_KEYS[step] === 'activity' && (
             <Field label="ระดับกิจกรรม" color={c.subtext}>
               {ACTIVITY_LEVELS.map((lvl) => (
-                <Pressable
+                <Squish
                   key={lvl.value}
                   onPress={() => setActivityLevel(lvl.value)}
                   style={[
@@ -282,7 +274,7 @@ export default function AccountEditScreen() {
                     {activityLevel === lvl.value && <View style={[styles.radioDot, { backgroundColor: c.brand }]} />}
                   </View>
                   <Text style={[textType.label, { color: c.text, flex: 1, fontSize: 13 }]}>{lvl.label}</Text>
-                </Pressable>
+                </Squish>
               ))}
             </Field>
           )}
@@ -295,7 +287,7 @@ export default function AccountEditScreen() {
               <Text style={[textType.label, { color: c.subtext, fontSize: 13, lineHeight: 20 }]}>
                 มีผลกับสัดส่วนโปรตีนที่แนะนำ และสัดส่วนวันเวท/คาร์ดิโอที่ Numi ช่วยออกแบบให้ในแผนออกกำลังกาย
               </Text>
-              <Pressable
+              <Squish
                 onPress={() => setPrioritizeMuscle(true)}
                 style={[
                   styles.choiceCard,
@@ -306,8 +298,8 @@ export default function AccountEditScreen() {
                 <Text style={[textType.label, { color: c.subtext, fontSize: 12 }]}>
                   เพิ่มโปรตีนในสัดส่วนที่แนะนำ และแนะนำวันเวทมากขึ้นในแผนออกกำลังกาย
                 </Text>
-              </Pressable>
-              <Pressable
+              </Squish>
+              <Squish
                 onPress={() => setPrioritizeMuscle(false)}
                 style={[
                   styles.choiceCard,
@@ -316,7 +308,7 @@ export default function AccountEditScreen() {
               >
                 <Text style={[textType.row, { color: c.text, fontSize: 14 }]}>ไม่ต้อง เอาตามเป้าหมายหลักพอ</Text>
                 <Text style={[textType.label, { color: c.subtext, fontSize: 12 }]}>ใช้สัดส่วนมาตรฐานตามเป้าหมายที่เลือกไว้</Text>
-              </Pressable>
+              </Squish>
             </View>
           )}
 
@@ -334,10 +326,10 @@ export default function AccountEditScreen() {
                 <Text style={[textType.row, { color: c.text, fontSize: 13, width: 70 }]}>ไขมัน</Text>
                 <Text style={[textType.label, { color: c.muted, fontSize: 13 }]}>{fatPct}% (คำนวณจากที่เหลือ)</Text>
               </View>
-              <Pressable style={[styles.recommendBtn, { backgroundColor: c.brandTint }]} onPress={applyRecommendedMacros}>
+              <Squish scaleTo={0.97} style={[styles.recommendBtn, { backgroundColor: c.brandTint }]} onPress={applyRecommendedMacros}>
                 <Sparkles size={14} color={c.brand} />
                 <Text style={[textType.row, { color: c.brand, fontSize: 13 }]}>ใช้ค่าแนะนำสำหรับเป้าหมายนี้</Text>
-              </Pressable>
+              </Squish>
               <Text style={[textType.label, { color: c.faint, fontSize: 11, marginTop: 4 }]}>
                 {MACRO_RATIONALE[goalType]}
                 {prioritizeMuscle ? ' และเพิ่มโปรตีนอีกเพราะเลือกเน้นกล้ามเนื้อ' : ''}
@@ -384,26 +376,26 @@ export default function AccountEditScreen() {
 
         <View style={styles.footerRow}>
           {step > 0 && (
-            <Pressable style={[styles.ghostBtn, { backgroundColor: c.surfaceAlt }]} onPress={goBack}>
+            <Squish style={[styles.ghostBtn, { backgroundColor: c.surfaceAlt }]} onPress={goBack}>
               <Text style={[textType.row, { color: c.subtext, fontSize: 14 }]}>ย้อนกลับ</Text>
-            </Pressable>
+            </Squish>
           )}
           {step < STEP_KEYS.length - 1 ? (
-            <Pressable
+            <Squish scaleTo={0.97}
               style={[styles.primaryBtn, { backgroundColor: c.brand }, nextDisabled && { opacity: 0.5 }]}
               disabled={nextDisabled}
               onPress={goNext}
             >
               <Text style={[textType.row, styles.saveBtnText]}>ถัดไป</Text>
-            </Pressable>
+            </Squish>
           ) : (
-            <Pressable
+            <Squish scaleTo={0.97}
               style={[styles.primaryBtn, { backgroundColor: c.brand }, (saving || !preview) && { opacity: 0.6 }]}
               disabled={saving || !preview}
               onPress={handleSave}
             >
               <Text style={[textType.row, styles.saveBtnText]}>{saving ? 'กำลังบันทึก...' : 'บันทึกเป้าหมาย'}</Text>
-            </Pressable>
+            </Squish>
           )}
         </View>
       </KeyboardAvoidingView>
@@ -459,13 +451,13 @@ function Segmented({
       {options.map((opt) => {
         const active = opt.key === value;
         return (
-          <Pressable
+          <Squish
             key={opt.key}
             onPress={() => onChange(opt.key)}
             style={[styles.segment, active && { backgroundColor: c.surface }]}
           >
             <Text style={[textType.row, { color: active ? c.text : c.muted, fontSize: 13 }]}>{opt.label}</Text>
-          </Pressable>
+          </Squish>
         );
       })}
     </View>

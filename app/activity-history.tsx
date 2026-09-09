@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, FlatList, StyleSheet, Alert } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trash2 } from 'lucide-react-native';
@@ -9,6 +9,7 @@ import { buildRecords, type ExerciseRecord, type SessionLike } from '../lib/stre
 import { type } from '../lib/fonts';
 import { radius, MIN_TOUCH } from '../lib/theme';
 import { EmptyState } from '../components/empty-state';
+import { Squish } from '../components/squish';
 
 const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
@@ -101,9 +102,9 @@ export default function ActivityHistoryScreen() {
                 </Text>
               </View>
               <Text style={[type.cardTitle, { color: c.dinner, fontSize: 15 }]}>-{Math.round(item.kcalBurned)}</Text>
-              <Pressable style={styles.deleteBtn} onPress={() => handleDelete(item.id, item.name)}>
+              <Squish style={styles.deleteBtn} onPress={() => handleDelete(item.id, item.name)}>
                 <Trash2 size={15} color={c.faint} />
-              </Pressable>
+              </Squish>
             </View>
           );
         }}
