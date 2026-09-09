@@ -7,6 +7,11 @@ export const db = drizzle(sqliteDb, { schema });
 
 const CREATE_TABLES = `
 CREATE TABLE IF NOT EXISTS profile (
+  user_id TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  server_updated_at INTEGER,
+  deleted_at INTEGER,
+  dirty INTEGER NOT NULL DEFAULT 1,
   id INTEGER PRIMARY KEY,
   sex TEXT NOT NULL,
   birth_year INTEGER NOT NULL,
@@ -24,6 +29,11 @@ CREATE TABLE IF NOT EXISTS profile (
 );
 
 CREATE TABLE IF NOT EXISTS foods (
+  user_id TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  server_updated_at INTEGER,
+  deleted_at INTEGER,
+  dirty INTEGER NOT NULL DEFAULT 1,
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   name_en TEXT,
@@ -40,6 +50,11 @@ CREATE TABLE IF NOT EXISTS foods (
 );
 
 CREATE TABLE IF NOT EXISTS meal_entries (
+  user_id TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  server_updated_at INTEGER,
+  deleted_at INTEGER,
+  dirty INTEGER NOT NULL DEFAULT 1,
   id TEXT PRIMARY KEY,
   food_id TEXT REFERENCES foods(id),
   name TEXT NOT NULL,
@@ -58,6 +73,11 @@ CREATE TABLE IF NOT EXISTS meal_entries (
 CREATE INDEX IF NOT EXISTS idx_meal_entries_local_date ON meal_entries(local_date);
 
 CREATE TABLE IF NOT EXISTS workouts (
+  user_id TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  server_updated_at INTEGER,
+  deleted_at INTEGER,
+  dirty INTEGER NOT NULL DEFAULT 1,
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   category TEXT NOT NULL,
@@ -74,6 +94,11 @@ CREATE TABLE IF NOT EXISTS workouts (
 CREATE INDEX IF NOT EXISTS idx_workouts_local_date ON workouts(local_date);
 
 CREATE TABLE IF NOT EXISTS workout_plans (
+  user_id TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  server_updated_at INTEGER,
+  deleted_at INTEGER,
+  dirty INTEGER NOT NULL DEFAULT 1,
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
   rationale TEXT NOT NULL,
@@ -82,6 +107,11 @@ CREATE TABLE IF NOT EXISTS workout_plans (
 );
 
 CREATE TABLE IF NOT EXISTS workout_plan_completions (
+  user_id TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  server_updated_at INTEGER,
+  deleted_at INTEGER,
+  dirty INTEGER NOT NULL DEFAULT 1,
   id TEXT PRIMARY KEY,
   plan_id TEXT NOT NULL REFERENCES workout_plans(id),
   day_index INTEGER NOT NULL,
@@ -92,6 +122,11 @@ CREATE TABLE IF NOT EXISTS workout_plan_completions (
 CREATE INDEX IF NOT EXISTS idx_workout_plan_completions_plan ON workout_plan_completions(plan_id);
 
 CREATE TABLE IF NOT EXISTS weights (
+  user_id TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  server_updated_at INTEGER,
+  deleted_at INTEGER,
+  dirty INTEGER NOT NULL DEFAULT 1,
   id TEXT PRIMARY KEY,
   weight_kg REAL NOT NULL,
   body_fat_pct REAL,
@@ -101,6 +136,11 @@ CREATE TABLE IF NOT EXISTS weights (
 );
 
 CREATE TABLE IF NOT EXISTS measurements (
+  user_id TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  server_updated_at INTEGER,
+  deleted_at INTEGER,
+  dirty INTEGER NOT NULL DEFAULT 1,
   id TEXT PRIMARY KEY,
   waist_cm REAL,
   chest_cm REAL,
@@ -113,6 +153,11 @@ CREATE TABLE IF NOT EXISTS measurements (
 );
 
 CREATE TABLE IF NOT EXISTS meal_templates (
+  user_id TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  server_updated_at INTEGER,
+  deleted_at INTEGER,
+  dirty INTEGER NOT NULL DEFAULT 1,
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   meal_type TEXT,
@@ -130,6 +175,11 @@ CREATE TABLE IF NOT EXISTS water_logs (
 );
 
 CREATE TABLE IF NOT EXISTS chat_messages (
+  user_id TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  server_updated_at INTEGER,
+  deleted_at INTEGER,
+  dirty INTEGER NOT NULL DEFAULT 1,
   id TEXT PRIMARY KEY,
   role TEXT NOT NULL,
   content TEXT NOT NULL,
@@ -140,8 +190,31 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 
 CREATE TABLE IF NOT EXISTS app_settings (
+  user_id TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  server_updated_at INTEGER,
+  deleted_at INTEGER,
+  dirty INTEGER NOT NULL DEFAULT 1,
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS water_intakes (
+  user_id TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  server_updated_at INTEGER,
+  deleted_at INTEGER,
+  dirty INTEGER NOT NULL DEFAULT 1,
+  id TEXT PRIMARY KEY,
+  local_date TEXT NOT NULL,
+  ml INTEGER NOT NULL,
+  drank_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_water_intakes_local_date ON water_intakes(local_date);
+
+CREATE TABLE IF NOT EXISTS sync_meta (
+  table_name TEXT PRIMARY KEY,
+  last_pulled_at INTEGER NOT NULL DEFAULT 0
 );
 `;
 
@@ -150,7 +223,96 @@ CREATE TABLE IF NOT EXISTS app_settings (
 const COLUMN_MIGRATIONS = [
   `ALTER TABLE profile ADD COLUMN goal_weight_kg REAL`,
   `ALTER TABLE profile ADD COLUMN prioritize_muscle INTEGER NOT NULL DEFAULT 0`,
+
+  // คอลัมน์สำหรับ sync — ดู docs/sync-design.md
+  // dirty ตั้งต้นเป็น 1 ตั้งใจ: ข้อมูลที่มีอยู่แล้วในเครื่องต้องถูก push ขึ้นครบในรอบแรก
+  `ALTER TABLE profile ADD COLUMN user_id TEXT`,
+  `ALTER TABLE profile ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE profile ADD COLUMN server_updated_at INTEGER`,
+  `ALTER TABLE profile ADD COLUMN deleted_at INTEGER`,
+  `ALTER TABLE profile ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE foods ADD COLUMN user_id TEXT`,
+  `ALTER TABLE foods ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE foods ADD COLUMN server_updated_at INTEGER`,
+  `ALTER TABLE foods ADD COLUMN deleted_at INTEGER`,
+  `ALTER TABLE foods ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE meal_entries ADD COLUMN user_id TEXT`,
+  `ALTER TABLE meal_entries ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE meal_entries ADD COLUMN server_updated_at INTEGER`,
+  `ALTER TABLE meal_entries ADD COLUMN deleted_at INTEGER`,
+  `ALTER TABLE meal_entries ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE workouts ADD COLUMN user_id TEXT`,
+  `ALTER TABLE workouts ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE workouts ADD COLUMN server_updated_at INTEGER`,
+  `ALTER TABLE workouts ADD COLUMN deleted_at INTEGER`,
+  `ALTER TABLE workouts ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE workout_plans ADD COLUMN user_id TEXT`,
+  `ALTER TABLE workout_plans ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE workout_plans ADD COLUMN server_updated_at INTEGER`,
+  `ALTER TABLE workout_plans ADD COLUMN deleted_at INTEGER`,
+  `ALTER TABLE workout_plans ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE workout_plan_completions ADD COLUMN user_id TEXT`,
+  `ALTER TABLE workout_plan_completions ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE workout_plan_completions ADD COLUMN server_updated_at INTEGER`,
+  `ALTER TABLE workout_plan_completions ADD COLUMN deleted_at INTEGER`,
+  `ALTER TABLE workout_plan_completions ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE weights ADD COLUMN user_id TEXT`,
+  `ALTER TABLE weights ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE weights ADD COLUMN server_updated_at INTEGER`,
+  `ALTER TABLE weights ADD COLUMN deleted_at INTEGER`,
+  `ALTER TABLE weights ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE measurements ADD COLUMN user_id TEXT`,
+  `ALTER TABLE measurements ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE measurements ADD COLUMN server_updated_at INTEGER`,
+  `ALTER TABLE measurements ADD COLUMN deleted_at INTEGER`,
+  `ALTER TABLE measurements ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE meal_templates ADD COLUMN user_id TEXT`,
+  `ALTER TABLE meal_templates ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE meal_templates ADD COLUMN server_updated_at INTEGER`,
+  `ALTER TABLE meal_templates ADD COLUMN deleted_at INTEGER`,
+  `ALTER TABLE meal_templates ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE chat_messages ADD COLUMN user_id TEXT`,
+  `ALTER TABLE chat_messages ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE chat_messages ADD COLUMN server_updated_at INTEGER`,
+  `ALTER TABLE chat_messages ADD COLUMN deleted_at INTEGER`,
+  `ALTER TABLE chat_messages ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE app_settings ADD COLUMN user_id TEXT`,
+  `ALTER TABLE app_settings ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE app_settings ADD COLUMN server_updated_at INTEGER`,
+  `ALTER TABLE app_settings ADD COLUMN deleted_at INTEGER`,
+  `ALTER TABLE app_settings ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1`,
 ];
+
+/**
+ * ย้ายน้ำดื่มจาก water_logs (ยอดรวมต่อวัน) ไป water_intakes (แถวต่อครั้ง)
+ *
+ * ทำครั้งเดียว กันรันซ้ำด้วยธงใน app_settings ไม่ใช่ด้วยการเช็คว่า water_intakes ว่างไหม
+ * เพราะถ้าผู้ใช้ลบน้ำของวันนี้ทิ้งจนตารางว่าง แล้วเปิดแอปใหม่ ข้อมูลเก่าจะถูกยัดกลับเข้ามาอีกรอบ
+ *
+ * ยอดรวมเดิมของแต่ละวันกลายเป็นแถวเดียวก้อนเดียว ไม่ได้แตกเป็นแก้ว ๆ
+ * เพราะข้อมูลเดิมไม่เคยเก็บว่าดื่มตอนกี่โมง จะแต่งเวลาขึ้นมาเองไม่ได้
+ */
+async function migrateWaterLogs(): Promise<void> {
+  const flag = await sqliteDb.getFirstAsync<{ value: string }>(
+    `SELECT value FROM app_settings WHERE key = 'water_migrated_v2'`,
+  );
+  if (flag?.value === '1') return;
+
+  const rows = await sqliteDb.getAllAsync<{ local_date: string; ml: number; updated_at: number }>(
+    `SELECT local_date, ml, updated_at FROM water_logs WHERE ml > 0`,
+  );
+  for (const r of rows) {
+    await sqliteDb.runAsync(
+      `INSERT OR IGNORE INTO water_intakes (id, local_date, ml, drank_at, updated_at, dirty)
+       VALUES (?, ?, ?, ?, ?, 1)`,
+      [`water_migrated_${r.local_date}`, r.local_date, r.ml, r.updated_at, r.updated_at],
+    );
+  }
+  await sqliteDb.runAsync(
+    `INSERT OR REPLACE INTO app_settings (key, value, updated_at, dirty) VALUES ('water_migrated_v2', '1', ?, 0)`,
+    [Date.now()],
+  );
+}
 
 let migrated: Promise<void> | null = null;
 
@@ -166,6 +328,7 @@ export function migrateDb(): Promise<void> {
           // คอลัมน์มีอยู่แล้ว (เครื่องที่เคยลงเวอร์ชันก่อนเพิ่มคอลัมน์นี้) — ข้ามได้เลย
         }
       }
+      await migrateWaterLogs();
     })();
   }
   return migrated;
