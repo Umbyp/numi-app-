@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, Switch, StyleSheet, Alert, Linking } from 'react-native';
+import { View, Text, Switch, StyleSheet, Alert, Linking } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { getReminderSetting, saveReminderSetting, type ReminderSetting } from '../lib/db/queries';
@@ -13,6 +13,7 @@ import {
 } from '../lib/notifications';
 import { type } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
+import { Squish } from './squish';
 
 type SettingsMap = Partial<Record<ReminderKey, ReminderSetting>>;
 
@@ -95,7 +96,7 @@ export function ReminderSettings() {
                 {def.timeOptions.map((t) => {
                   const active = t.hour === setting.hour && t.minute === setting.minute;
                   return (
-                    <Pressable
+                    <Squish
                       key={formatTime(t.hour, t.minute)}
                       disabled={busy}
                       onPress={() => apply(def.key, { enabled: true, hour: t.hour, minute: t.minute })}
@@ -104,7 +105,7 @@ export function ReminderSettings() {
                       <Text style={[type.badge, { color: active ? '#fff' : c.subtext, fontSize: 12 }]}>
                         {formatTime(t.hour, t.minute)}
                       </Text>
-                    </Pressable>
+                    </Squish>
                   );
                 })}
               </View>

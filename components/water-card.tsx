@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Minus, Plus } from 'lucide-react-native';
@@ -10,6 +10,7 @@ import { calcWaterGoalMl, localDateString } from '../lib/nutrition';
 import { WaterGlass } from './water-glass';
 import { type } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
+import { Squish } from './squish';
 
 /** แก้วน้ำมาตรฐาน 250 มล. ขวดเล็ก 600 มล. — หน่วยที่คนนึกภาพออกจริง */
 const QUICK_ADD = [250, 600];
@@ -74,23 +75,23 @@ export function WaterCard() {
           </Text>
 
           <View style={styles.actionRow}>
-            <Pressable
+            <Squish
               onPress={() => change(-250)}
               disabled={ml === 0}
               style={[styles.btn, { backgroundColor: c.surfaceAlt }, ml === 0 && { opacity: 0.4 }]}
             >
               <Minus size={15} color={c.subtext} />
-            </Pressable>
+            </Squish>
 
             {QUICK_ADD.map((amount) => (
-              <Pressable
+              <Squish
                 key={amount}
                 onPress={() => change(amount)}
                 style={[styles.addBtn, { backgroundColor: c.carbBg }]}
               >
                 <Plus size={13} color={c.carbText} />
                 <Text style={[type.badge, { color: c.carbText, fontSize: 12 }]}>{amount}</Text>
-              </Pressable>
+              </Squish>
             ))}
           </View>
         </View>

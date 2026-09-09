@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalorieRing } from '../../components/calorie-ring';
@@ -22,6 +22,7 @@ import type { WorkoutPlanDay } from '../../lib/db/schema';
 import { localDateString, calcBMI, bmiCategory } from '../../lib/nutrition';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
+import { Squish } from '../../components/squish';
 
 const THAI_MONTHS = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -103,7 +104,7 @@ export default function DashboardScreen() {
         )}
 
         {!profile && (
-          <Pressable
+          <Squish scaleTo={0.98}
             style={[styles.setupBanner, { backgroundColor: c.surface, borderColor: c.line }]}
             onPress={() => router.push('/account-edit')}
           >
@@ -111,7 +112,7 @@ export default function DashboardScreen() {
             <Text style={[type.label, { color: c.subtext, marginTop: 2 }]}>
               กรอกน้ำหนัก ส่วนสูง อายุ เพื่อคำนวณเป้าหมายที่เหมาะกับคุณ
             </Text>
-          </Pressable>
+          </Squish>
         )}
 
         <View style={cardStyle}>
@@ -150,7 +151,7 @@ export default function DashboardScreen() {
         <WaterCard />
 
         {suggestedWorkout && (
-          <Pressable
+          <Squish scaleTo={0.98}
             style={cardStyle}
             onPress={() => router.push({ pathname: '/workout-plan-detail', params: { id: suggestedWorkout.planId } })}
           >
@@ -173,7 +174,7 @@ export default function DashboardScreen() {
               })()}
             </View>
             <Text style={[type.row, { color: c.brand, fontSize: 13 }]}>ไปเล่นเลย →</Text>
-          </Pressable>
+          </Squish>
         )}
 
         {profile && (
@@ -249,7 +250,7 @@ function HealthRow({
   onPress?: () => void;
 }) {
   return (
-    <Pressable
+    <Squish scaleTo={0.98}
       onPress={onPress}
       style={[styles.healthRow, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line }]}>
       <View style={{ flex: 1, gap: 4 }}>
@@ -264,7 +265,7 @@ function HealthRow({
         </View>
       </View>
       <Text style={{ color: c.faint, fontSize: 17 }}>›</Text>
-    </Pressable>
+    </Squish>
   );
 }
 

@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Plus } from 'lucide-react-native';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { fabShadow } from '../lib/theme';
+import { Squish } from './squish';
 
 /**
  * ปุ่มเพิ่มด่วน — ปุ่มลอยเดียวของแอป
@@ -14,13 +15,13 @@ export function FloatingQuickAddButton({ onPress, bottomOffset = 100 }: { onPres
   const scheme = useScheme();
 
   return (
-    <Pressable
+    <Squish
       style={[styles.btn, { bottom: bottomOffset, backgroundColor: c.brand }, fabShadow(scheme, c.brand)]}
       onPress={onPress}
       hitSlop={8}
     >
       <Plus size={26} color="#fff" strokeWidth={2.8} />
-    </Pressable>
+    </Squish>
   );
 }
 

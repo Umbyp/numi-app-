@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View, type DimensionValue } from 'react-native';
 import { useTheme } from '../lib/hooks/use-theme';
-import { radius } from '../lib/theme';
+import { radius, motion } from '../lib/theme';
 
 interface BlockProps {
   width?: DimensionValue;
@@ -21,8 +21,8 @@ export function SkeletonBlock({ width = '100%', height = 14, round }: BlockProps
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 750, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0.45, duration: 750, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: motion.duration.breath, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.45, duration: motion.duration.breath, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
       ])
     );
     loop.start();

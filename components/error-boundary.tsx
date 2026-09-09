@@ -1,7 +1,8 @@
 import { Component, type ReactNode } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../lib/theme';
 import { fontFamily } from '../lib/fonts';
+import { Squish } from './squish';
 
 interface Props {
   children: ReactNode;
@@ -43,9 +44,9 @@ export class ErrorBoundary extends Component<Props, State> {
               {this.state.error.message}
             </Text>
           )}
-          <Pressable style={[styles.button, { backgroundColor: c.brand }]} onPress={this.reset}>
+          <Squish style={[styles.button, { backgroundColor: c.brand }]} onPress={this.reset}>
             <Text style={styles.buttonText}>ลองใหม่</Text>
-          </Pressable>
+          </Squish>
         </View>
       );
     }

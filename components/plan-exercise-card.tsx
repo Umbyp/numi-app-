@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Check, Pencil, Timer } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
 import { muscleGroupLabel } from '../lib/met';
@@ -6,6 +6,7 @@ import { CategoryIcon, categoryTint } from './icons/workout-icons';
 import { type as textType } from '../lib/fonts';
 import { radius } from '../lib/theme';
 import type { WorkoutPlanExercise } from '../lib/db/schema';
+import { Squish } from './squish';
 
 interface Props {
   exercise: WorkoutPlanExercise;
@@ -73,9 +74,9 @@ export function PlanExerciseCard({ exercise, done, onToggleSet, onRest, onEdit }
           </Text>
         </View>
 
-        <Pressable hitSlop={10} onPress={onEdit} style={styles.editBtn}>
+        <Squish hitSlop={10} onPress={onEdit} style={styles.editBtn}>
           <Pencil size={14} color={c.faint} />
-        </Pressable>
+        </Squish>
       </View>
 
       {exercise.note ? (
@@ -84,7 +85,7 @@ export function PlanExerciseCard({ exercise, done, onToggleSet, onRest, onEdit }
 
       <View style={styles.setRow}>
         {done.map((isDone, i) => (
-          <Pressable
+          <Squish
             key={i}
             onPress={() => handleToggle(i)}
             style={[
@@ -101,17 +102,17 @@ export function PlanExerciseCard({ exercise, done, onToggleSet, onRest, onEdit }
                 {countsSets ? i + 1 : '✓'}
               </Text>
             )}
-          </Pressable>
+          </Squish>
         ))}
 
         {exercise.restSec ? (
-          <Pressable
+          <Squish
             onPress={() => onRest(exercise.restSec!)}
             style={[styles.restBtn, { backgroundColor: c.surface }]}
           >
             <Timer size={13} color={c.brand} />
             <Text style={[textType.badge, { color: c.brand, fontSize: 11 }]}>พัก {exercise.restSec} วิ</Text>
-          </Pressable>
+          </Squish>
         ) : null}
       </View>
 

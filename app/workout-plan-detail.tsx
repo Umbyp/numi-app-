@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Pencil, Plus, X } from 'lucide-react-native';
@@ -23,6 +23,7 @@ import { PlanExerciseCard } from '../components/plan-exercise-card';
 import { CategoryIcon, categoryTint, DayTypeIcon, dayTypeTint } from '../components/icons/workout-icons';
 import { type as textType, fontFamily } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
+import { Squish } from '../components/squish';
 
 const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
@@ -247,23 +248,23 @@ export default function WorkoutPlanDetailScreen() {
                   value={day.label}
                   onChangeText={(v) => updateDay(dayIdx, { label: v })}
                 />
-                <Pressable hitSlop={10} onPress={() => removeDay(dayIdx)}>
+                <Squish hitSlop={10} onPress={() => removeDay(dayIdx)}>
                   <X size={18} color={c.faint} />
-                </Pressable>
+                </Squish>
               </View>
 
               <View style={styles.chipRow}>
                 {DAY_TYPE_OPTIONS.map((opt) => {
                   const active = opt.key === day.dayType;
                   return (
-                    <Pressable
+                    <Squish
                       key={opt.key}
                       onPress={() => updateDay(dayIdx, { dayType: opt.key })}
                       style={[styles.chip, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
                     >
                       <DayTypeIcon dayType={opt.key} size={13} color={active ? '#fff' : c.subtext} />
                       <Text style={[textType.row, { fontSize: 12, color: active ? '#fff' : c.text }]}>{opt.label}</Text>
-                    </Pressable>
+                    </Squish>
                   );
                 })}
               </View>
@@ -301,9 +302,9 @@ export default function WorkoutPlanDetailScreen() {
                     <Text style={[textType.row, { color: c.text, fontSize: 13, flex: 1 }]} numberOfLines={1}>
                       {ex.name}
                     </Text>
-                    <Pressable hitSlop={10} onPress={() => removeExercise(dayIdx, exIdx)}>
+                    <Squish hitSlop={10} onPress={() => removeExercise(dayIdx, exIdx)}>
                       <X size={16} color={c.muted} />
-                    </Pressable>
+                    </Squish>
                   </View>
                   <View style={styles.stepperRow}>
                     <AmountStepper value={ex.durationMin} step={5} min={5} unit=" นาที" onChange={(v) => updateExercise(dayIdx, exIdx, { durationMin: v })} />
@@ -327,13 +328,13 @@ export default function WorkoutPlanDetailScreen() {
                     {MUSCLE_GROUPS.map((m) => {
                       const active = m.key === ex.muscleGroup;
                       return (
-                        <Pressable
+                        <Squish
                           key={m.key}
                           onPress={() => updateExercise(dayIdx, exIdx, { muscleGroup: active ? undefined : m.key })}
                           style={[styles.muscleChip, { backgroundColor: active ? exTint.bg : c.surfaceAlt }]}
                         >
                           <Text style={[textType.badge, { color: active ? exTint.icon : c.faint }]}>{m.label}</Text>
-                        </Pressable>
+                        </Squish>
                       );
                     })}
                   </View>
@@ -347,21 +348,21 @@ export default function WorkoutPlanDetailScreen() {
                     {WORKOUT_CATEGORIES.map((cat) => {
                       const active = cat.key === pickerCategory;
                       return (
-                        <Pressable
+                        <Squish
                           key={cat.key}
                           onPress={() => setPickerCategory(cat.key)}
                           style={[styles.chip, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
                         >
                           <CategoryIcon category={cat.key} size={13} color={active ? '#fff' : c.subtext} />
                           <Text style={[textType.row, { fontSize: 12, color: active ? '#fff' : c.text }]}>{cat.label}</Text>
-                        </Pressable>
+                        </Squish>
                       );
                     })}
                   </View>
                   {metsByCategory(pickerCategory).map((opt) => {
                     const pTint = categoryTint(pickerCategory, c);
                     return (
-                      <Pressable
+                      <Squish
                         key={opt.key}
                         onPress={() => addExercise(dayIdx, opt)}
                         style={[styles.exerciseOption, { backgroundColor: c.surfaceAlt }]}
@@ -371,34 +372,34 @@ export default function WorkoutPlanDetailScreen() {
                         </View>
                         <Text style={[textType.row, { fontSize: 13, color: c.text, flex: 1 }]}>{opt.name}</Text>
                         <Text style={[textType.label, { fontSize: 11, color: c.faint }]}>MET {opt.met}</Text>
-                      </Pressable>
+                      </Squish>
                     );
                   })}
-                  <Pressable onPress={() => setAddingToDay(null)}>
+                  <Squish onPress={() => setAddingToDay(null)}>
                     <Text style={[textType.row, { color: c.subtext, fontSize: 12, textAlign: 'center' }]}>ปิด</Text>
-                  </Pressable>
+                  </Squish>
                 </View>
               ) : (
-                <Pressable style={[styles.addRow, { backgroundColor: c.surfaceAlt }]} onPress={() => { setAddingToDay(dayIdx); setPickerCategory('cardio'); }}>
+                <Squish scaleTo={0.98} style={[styles.addRow, { backgroundColor: c.surfaceAlt }]} onPress={() => { setAddingToDay(dayIdx); setPickerCategory('cardio'); }}>
                   <Plus size={14} color={c.brand} />
                   <Text style={[textType.row, { color: c.brand, fontSize: 13 }]}>เพิ่มท่า</Text>
-                </Pressable>
+                </Squish>
               )}
             </View>
           ))}
 
-          <Pressable style={[styles.addRow, { backgroundColor: c.surfaceAlt }]} onPress={addDay}>
+          <Squish scaleTo={0.98} style={[styles.addRow, { backgroundColor: c.surfaceAlt }]} onPress={addDay}>
             <Plus size={14} color={c.brand} />
             <Text style={[textType.row, { color: c.brand, fontSize: 13 }]}>เพิ่มวัน</Text>
-          </Pressable>
+          </Squish>
 
           <View style={styles.actions}>
-            <Pressable style={[styles.ghostBtn, { backgroundColor: c.surfaceAlt }]} onPress={cancelEditing}>
+            <Squish style={[styles.ghostBtn, { backgroundColor: c.surfaceAlt }]} onPress={cancelEditing}>
               <Text style={[textType.row, { color: c.subtext, fontSize: 14 }]}>ยกเลิก</Text>
-            </Pressable>
-            <Pressable style={[styles.primaryBtn, { backgroundColor: c.brand }, saving && { opacity: 0.6 }]} disabled={saving} onPress={saveEditing}>
+            </Squish>
+            <Squish scaleTo={0.97} style={[styles.primaryBtn, { backgroundColor: c.brand }, saving && { opacity: 0.6 }]} disabled={saving} onPress={saveEditing}>
               <Text style={[textType.row, { color: '#fff', fontSize: 14 }]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
-            </Pressable>
+            </Squish>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -413,10 +414,10 @@ export default function WorkoutPlanDetailScreen() {
             <Text style={[textType.cardTitle, { color: c.text, fontSize: 20 }]}>{plan.title}</Text>
             <Text style={[textType.label, { color: c.subtext, fontSize: 13, lineHeight: 20 }]}>{plan.rationale}</Text>
           </View>
-          <Pressable style={[styles.editPill, { backgroundColor: c.brandTint }]} onPress={startEditing}>
+          <Squish style={[styles.editPill, { backgroundColor: c.brandTint }]} onPress={startEditing}>
             <Pencil size={14} color={c.brand} />
             <Text style={[textType.row, { color: c.brand, fontSize: 12 }]}>แก้ไข</Text>
-          </Pressable>
+          </Squish>
         </View>
 
         {plan.days.map((day, dayIdx) => {
@@ -488,7 +489,7 @@ export default function WorkoutPlanDetailScreen() {
                         </Text>
                       </View>
                     )}
-                    <Pressable
+                    <Squish scaleTo={0.97}
                       style={[styles.doneBtn, { backgroundColor: c.brand }, completingDay === dayIdx && { opacity: 0.6 }]}
                       disabled={completingDay === dayIdx}
                       onPress={() => handleCompleteDay(dayIdx)}
@@ -496,7 +497,7 @@ export default function WorkoutPlanDetailScreen() {
                       <Text style={[textType.row, { color: '#fff', fontSize: 13 }]}>
                         {doneSets > 0 && doneSets < totalSets ? `บันทึกวันนี้ (${doneSets}/${totalSets} เซต) ✓` : 'ทำวันนี้ ✓'}
                       </Text>
-                    </Pressable>
+                    </Squish>
                   </>
                 );
               })()}

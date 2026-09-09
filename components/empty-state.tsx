@@ -1,8 +1,9 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../lib/hooks/use-theme';
 import { Mascot } from './mascot';
 import { type } from '../lib/fonts';
 import { radius, MIN_TOUCH } from '../lib/theme';
+import { Squish } from './squish';
 
 interface Props {
   title: string;
@@ -26,9 +27,9 @@ export function EmptyState({ title, description, actionLabel, onAction, mascotSi
         </Text>
       ) : null}
       {actionLabel && onAction ? (
-        <Pressable onPress={onAction} style={[styles.action, { backgroundColor: c.brand }]}>
+        <Squish onPress={onAction} style={[styles.action, { backgroundColor: c.brand }]}>
           <Text style={[type.row, { color: '#fff', fontSize: 13 }]}>{actionLabel}</Text>
-        </Pressable>
+        </Squish>
       ) : null}
     </View>
   );

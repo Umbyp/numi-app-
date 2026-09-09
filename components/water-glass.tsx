@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { View, Animated, Easing, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { motion } from '../lib/theme';
 
 /**
  * แก้วน้ำที่ระดับน้ำขึ้นตามที่ดื่มไปแล้ว
@@ -92,7 +93,7 @@ export function WaterGlass({
   useEffect(() => {
     Animated.timing(level, {
       toValue: pct,
-      duration: 520,
+      duration: motion.duration.slow,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
@@ -104,7 +105,7 @@ export function WaterGlass({
     const loop = Animated.loop(
       Animated.timing(drift, {
         toValue: 1,
-        duration: 3200,
+        duration: motion.duration.ambient,
         easing: Easing.linear,
         useNativeDriver: true,
       }),

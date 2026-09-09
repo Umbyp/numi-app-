@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, Pressable, Animated, Easing, StyleSheet } from 'react-native';
+import { View, Text, Animated, Easing, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { ChevronRight } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
 import { Mascot } from './mascot';
 import { pickMood, type DayState } from '../lib/mascot-pose';
 import { type } from '../lib/fonts';
-import { radius, MIN_TOUCH } from '../lib/theme';
+import { radius, MIN_TOUCH, motion } from '../lib/theme';
+import { Squish } from './squish';
 
 interface Props extends DayState {
   /** เล่นแอนิเมชันฉลองได้ไหม — แดชบอร์ดส่ง false มาถ้าฉลองของวันนี้ไปแล้ว */
@@ -40,8 +41,8 @@ export function MascotGreeting({ allowCelebrate = false, onCelebrated, onPress, 
     celebrated.current = true;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     Animated.sequence([
-      Animated.timing(bounce, { toValue: 1, duration: 260, easing: Easing.out(Easing.back(2.4)), useNativeDriver: true }),
-      Animated.spring(bounce, { toValue: 0, friction: 4, tension: 90, useNativeDriver: true }),
+      Animated.timing(bounce, { toValue: 1, duration: motion.duration.base, easing: Easing.out(Easing.back(2.4)), useNativeDriver: true }),
+      Animated.spring(bounce, { toValue: 0, ...motion.spring.celebrate, useNativeDriver: true }),
     ]).start(() => onCelebrated?.());
   }, [mood.celebrate, allowCelebrate]);
 
@@ -53,10 +54,12 @@ export function MascotGreeting({ allowCelebrate = false, onCelebrated, onPress, 
     mood.pose === 'goal' ? c.brand : mood.pose === 'rest' ? c.fat : mood.pose === 'start' ? c.carb : c.muted;
 
   return (
-    <Pressable
+    <Squish
       onPress={onPress}
       disabled={!onPress}
-      style={({ pressed }) => [styles.wrap, pressed && { opacity: 0.9 }]}
+      // การ์ดกว้างเต็มจอ ยุบ 0.95 แบบปุ่มเล็กจะขยับเป็นสิบพิกเซลจนดูกระตุก
+      scaleTo={0.98}
+      style={styles.wrap}
     >
       <Animated.View style={{ transform: [{ scale }, { translateY: lift }, { rotate: rock }] }}>
         <Mascot size={74} pose={mood.pose} />
@@ -80,7 +83,7 @@ export function MascotGreeting({ allowCelebrate = false, onCelebrated, onPress, 
           </View>
         </View>
       </View>
-    </Pressable>
+    </Squish>
   );
 }
 

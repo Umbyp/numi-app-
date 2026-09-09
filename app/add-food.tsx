@@ -1,14 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { View, Text, TextInput, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -24,6 +15,7 @@ import { scaleFood } from '../lib/nutrition';
 import { type as textType, fontFamily } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
 import type { foods as foodsTable } from '../lib/db/schema';
+import { Squish } from '../components/squish';
 
 type Food = typeof foodsTable.$inferSelect;
 
@@ -129,7 +121,7 @@ export default function AddFoodScreen() {
           {MEAL_TYPES.map((opt) => {
             const active = opt.key === mealType;
             return (
-              <Pressable
+              <Squish
                 key={opt.key}
                 onPress={() => setMealType(opt.key)}
                 style={[
@@ -139,7 +131,7 @@ export default function AddFoodScreen() {
               >
                 <MealTypeIcon type={opt.key} color={active ? '#fff' : c[opt.colorKey]} size={13} />
                 <Text style={[textType.row, { fontSize: 13, color: active ? '#fff' : c.text }]}>{opt.label}</Text>
-              </Pressable>
+              </Squish>
             );
           })}
         </View>
@@ -166,15 +158,15 @@ export default function AddFoodScreen() {
                       {selected.name}
                     </Text>
                   </View>
-                  <Pressable onPress={() => setSelected(null)} hitSlop={10}>
+                  <Squish onPress={() => setSelected(null)} hitSlop={10}>
                     <X size={18} color={c.muted} />
-                  </Pressable>
+                  </Squish>
                 </View>
 
                 {selected.servingUnits && selected.servingUnits.length > 0 && (
                   <View style={styles.unitRow}>
                     {selected.servingUnits.map((u) => (
-                      <Pressable
+                      <Squish
                         key={u.label}
                         onPress={() => setAmountG(u.grams)}
                         style={[
@@ -183,7 +175,7 @@ export default function AddFoodScreen() {
                         ]}
                       >
                         <Text style={[textType.label, { color: amountG === u.grams ? c.brand : c.subtext, fontSize: 12 }]}>{u.label}</Text>
-                      </Pressable>
+                      </Squish>
                     ))}
                   </View>
                 )}
@@ -200,13 +192,13 @@ export default function AddFoodScreen() {
                   </Text>
                 )}
 
-                <Pressable
+                <Squish scaleTo={0.97}
                   style={[styles.saveBtn, { backgroundColor: c.brand }, saving && { opacity: 0.6 }]}
                   disabled={saving}
                   onPress={handleConfirmSelected}
                 >
                   <Text style={[textType.row, styles.saveBtnText]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
-                </Pressable>
+                </Squish>
               </View>
             ) : (
               <FlatList
@@ -215,7 +207,7 @@ export default function AddFoodScreen() {
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                   <FadeInView>
-                    <Pressable style={[styles.resultRow, { borderBottomColor: c.line }]} onPress={() => pickFood(item)}>
+                    <Squish scaleTo={0.98} style={[styles.resultRow, { borderBottomColor: c.line }]} onPress={() => pickFood(item)}>
                       <FoodVisual name={item.name} size={36} />
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <Text style={[textType.row, { color: c.text, fontSize: 15 }]} numberOfLines={1}>
@@ -223,7 +215,7 @@ export default function AddFoodScreen() {
                         </Text>
                         <Text style={[textType.label, { color: c.muted, fontSize: 12 }]}>{Math.round(item.kcalPer100)} kcal/100g</Text>
                       </View>
-                    </Pressable>
+                    </Squish>
                   </FadeInView>
                 )}
                 ListEmptyComponent={
@@ -232,12 +224,12 @@ export default function AddFoodScreen() {
                       ไม่พบอาหาร ลองพิมพ์คำอื่น หรือเพิ่มเอง
                     </Text>
                     {query.trim().length > 0 && (
-                      <Pressable style={[styles.askNumiBtn, { backgroundColor: c.brandTint }]} onPress={askNumiToEstimate}>
+                      <Squish style={[styles.askNumiBtn, { backgroundColor: c.brandTint }]} onPress={askNumiToEstimate}>
                         <Sparkles size={15} color={c.brand} />
                         <Text style={[textType.row, { color: c.brand, fontSize: 13 }]} numberOfLines={1}>
                           ให้ Numi ช่วยประมาณ "{query.trim()}"
                         </Text>
-                      </Pressable>
+                      </Squish>
                     )}
                   </View>
                 }
@@ -245,9 +237,9 @@ export default function AddFoodScreen() {
             )}
 
             {!selected && (
-              <Pressable style={styles.manualLink} onPress={() => setShowManual(true)}>
+              <Squish style={styles.manualLink} onPress={() => setShowManual(true)}>
                 <Text style={[textType.row, { color: c.brand, fontSize: 14 }]}>+ ไม่เจอ พิมพ์ข้อมูลเอง</Text>
-              </Pressable>
+              </Squish>
             )}
           </>
         ) : (
@@ -263,17 +255,17 @@ export default function AddFoodScreen() {
               <AmountStepper value={amountG} onChange={setAmountG} />
             </View>
 
-            <Pressable
+            <Squish scaleTo={0.97}
               style={[styles.saveBtn, { backgroundColor: c.brand }, saving && { opacity: 0.6 }]}
               disabled={saving || !manualName.trim() || !manualKcal}
               onPress={handleConfirmManual}
             >
               <Text style={[textType.row, styles.saveBtnText]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
-            </Pressable>
+            </Squish>
 
-            <Pressable onPress={() => setShowManual(false)} style={{ marginTop: 12, alignItems: 'center' }}>
+            <Squish onPress={() => setShowManual(false)} style={{ marginTop: 12, alignItems: 'center' }}>
               <Text style={[textType.label, { color: c.subtext }]}>กลับไปค้นหา</Text>
-            </Pressable>
+            </Squish>
           </View>
         )}
       </KeyboardAvoidingView>

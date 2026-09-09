@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, ScrollView, Pressable, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, ScrollView, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,6 +28,7 @@ import {
   type SessionLike,
 } from '../lib/strength';
 import type { ExerciseSet } from '../lib/db/schema';
+import { Squish } from '../components/squish';
 
 interface DraftSet {
   kg: string;
@@ -200,13 +201,13 @@ export default function LogWorkoutScreen() {
           {WORKOUT_CATEGORIES.map((cat) => {
             const active = cat.key === category;
             return (
-              <Pressable
+              <Squish
                 key={cat.key}
                 onPress={() => pickCategory(cat.key)}
                 style={[styles.catChip, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
               >
                 <Text style={[textType.row, { fontSize: 13, color: active ? '#fff' : c.text }]}>{cat.label}</Text>
-              </Pressable>
+              </Squish>
             );
           })}
         </View>
@@ -215,14 +216,14 @@ export default function LogWorkoutScreen() {
           {options.map((opt) => {
             const active = opt.key === metKey;
             return (
-              <Pressable
+              <Squish
                 key={opt.key}
                 onPress={() => setMetKey(opt.key)}
                 style={[styles.exerciseRow, { backgroundColor: active ? c.brandTint : c.surfaceAlt }]}
               >
                 <Text style={[textType.row, { fontSize: 14, color: active ? c.brand : c.text, flex: 1 }]}>{opt.name}</Text>
                 <Text style={[textType.label, { fontSize: 11, color: c.faint }]}>MET {opt.met}</Text>
-              </Pressable>
+              </Squish>
             );
           })}
         </View>
@@ -233,14 +234,14 @@ export default function LogWorkoutScreen() {
               <Text style={[textType.label, { color: c.muted, fontSize: 12, flex: 1 }]}>
                 จดเซตที่ทำ (ไม่บังคับ)
               </Text>
-              <Pressable
+              <Squish
                 onPress={() => setRestVisible(true)}
                 style={[styles.restBtn, { backgroundColor: c.surfaceAlt }]}
                 hitSlop={6}
               >
                 <Timer size={14} color={c.brand} />
                 <Text style={[textType.label, { color: c.brand, fontSize: 11 }]}>พัก</Text>
-              </Pressable>
+              </Squish>
             </View>
 
             <View style={styles.addRow}>
@@ -253,21 +254,21 @@ export default function LogWorkoutScreen() {
                 returnKeyType="done"
                 style={[styles.input, { flex: 1, color: c.text, backgroundColor: c.surfaceAlt }]}
               />
-              <Pressable onPress={() => addExercise(newName)} style={[styles.addBtn, { backgroundColor: c.brand }]}>
+              <Squish onPress={() => addExercise(newName)} style={[styles.addBtn, { backgroundColor: c.brand }]}>
                 <Plus size={18} color="#fff" />
-              </Pressable>
+              </Squish>
             </View>
 
             {unusedSuggestions.length > 0 && (
               <View style={styles.chipWrap}>
                 {unusedSuggestions.map((s) => (
-                  <Pressable
+                  <Squish
                     key={s}
                     onPress={() => addExercise(s)}
                     style={[styles.suggestChip, { backgroundColor: c.surfaceAlt }]}
                   >
                     <Text style={[textType.label, { color: c.text, fontSize: 12 }]}>{s}</Text>
-                  </Pressable>
+                  </Squish>
                 ))}
               </View>
             )}
@@ -279,9 +280,9 @@ export default function LogWorkoutScreen() {
                 <View key={`${ex.exercise}-${exIdx}`} style={[styles.exBlock, { borderTopColor: c.line }]}>
                   <View style={styles.exHead}>
                     <Text style={[textType.row, { color: c.text, fontSize: 14, flex: 1 }]}>{ex.exercise}</Text>
-                    <Pressable hitSlop={10} onPress={() => setExercises((p) => p.filter((_, i) => i !== exIdx))}>
+                    <Squish hitSlop={10} onPress={() => setExercises((p) => p.filter((_, i) => i !== exIdx))}>
                       <X size={15} color={c.faint} />
-                    </Pressable>
+                    </Squish>
                   </View>
 
                   {ex.lastHint && (
@@ -307,22 +308,22 @@ export default function LogWorkoutScreen() {
                         placeholderTextColor={c.faint}
                         style={[styles.input, styles.setInput, { color: c.text, backgroundColor: c.surfaceAlt }]}
                       />
-                      <Pressable
+                      <Squish
                         hitSlop={8}
                         style={styles.setX}
                         disabled={ex.sets.length === 1}
                         onPress={() => removeSet(exIdx, setIdx)}
                       >
                         <X size={13} color={ex.sets.length === 1 ? c.line : c.faint} />
-                      </Pressable>
+                      </Squish>
                     </View>
                   ))}
 
                   <View style={styles.exFoot}>
-                    <Pressable onPress={() => addSet(exIdx)} style={styles.addSet} hitSlop={6}>
+                    <Squish scaleTo={0.98} onPress={() => addSet(exIdx)} style={styles.addSet} hitSlop={6}>
                       <Plus size={13} color={c.brand} />
                       <Text style={[textType.label, { color: c.brand, fontSize: 12 }]}>เพิ่มเซต</Text>
-                    </Pressable>
+                    </Squish>
                     {best && (
                       <Text style={[textType.label, { color: c.muted, fontSize: 11 }]}>
                         1RM ประมาณ {best.oneRm.toFixed(1)} kg
@@ -355,16 +356,16 @@ export default function LogWorkoutScreen() {
           <Text style={[textType.metric, { color: c.brand, fontSize: 26 }]}>{kcalBurned}</Text>
         </View>
 
-        <Pressable
+        <Squish scaleTo={0.97}
           style={[styles.saveBtn, { backgroundColor: c.brand }, (saving || !selected) && { opacity: 0.6 }, cardShadow(scheme)]}
           disabled={saving || !selected}
           onPress={handleSave}
         >
           <Text style={[textType.row, { color: '#fff', fontSize: 15 }]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
-        </Pressable>
-        <Pressable style={styles.cancelBtn} onPress={() => router.back()}>
+        </Squish>
+        <Squish style={styles.cancelBtn} onPress={() => router.back()}>
           <Text style={[textType.row, { color: c.subtext, fontSize: 14 }]}>ยกเลิก</Text>
-        </Pressable>
+        </Squish>
       </ScrollView>
 
       <RestTimerModal visible={restVisible} seconds={90} onClose={() => setRestVisible(false)} />

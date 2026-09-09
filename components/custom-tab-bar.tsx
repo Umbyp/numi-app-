@@ -1,8 +1,9 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../lib/hooks/use-theme';
 import { type, fontFamily } from '../lib/fonts';
 import { DashboardIcon, DiaryIcon, WorkoutPlanIcon, InsightsIcon, AccountIcon } from './icons/nav-icons';
+import { Squish } from './squish';
 
 const TAB_META: Record<string, { label: string; Icon: typeof DashboardIcon }> = {
   index: { label: 'แดชบอร์ด', Icon: DashboardIcon },
@@ -46,10 +47,10 @@ export function CustomTabBar({ state, navigation }: TabBarProps) {
         }
 
         return (
-          <Pressable key={route.key} style={styles.tab} onPress={onPress}>
+          <Squish key={route.key} style={styles.tab} onPress={onPress}>
             <Icon color={color} active={isFocused} size={22} />
             <Text style={[type.badge, { color, fontFamily: fontFamily(isFocused ? 800 : 600), fontSize: 10 }]}>{label}</Text>
-          </Pressable>
+          </Squish>
         );
       })}
     </View>

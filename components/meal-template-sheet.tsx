@@ -23,6 +23,7 @@ import {
 } from '../lib/db/queries';
 import { type } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
+import { Squish } from './squish';
 
 type Template = Awaited<ReturnType<typeof getMealTemplates>>[number];
 
@@ -125,7 +126,7 @@ export function MealTemplateSheet({ visible, mode, mealType, mealLabel, localDat
                   placeholderTextColor={c.faint}
                   style={[styles.input, { color: c.text, backgroundColor: c.surfaceAlt }]}
                 />
-                <Pressable
+                <Squish
                   onPress={handleSave}
                   disabled={busy}
                   style={[styles.primaryBtn, { backgroundColor: c.brand }, busy && { opacity: 0.6 }]}
@@ -133,7 +134,7 @@ export function MealTemplateSheet({ visible, mode, mealType, mealLabel, localDat
                   <Text style={[type.row, { color: '#fff', fontSize: 14 }]}>
                     {busy ? 'กำลังบันทึก...' : 'บันทึกมื้อชุด'}
                   </Text>
-                </Pressable>
+                </Squish>
               </>
             ) : templates.length === 0 ? (
               <Text style={[type.label, { color: c.faint, fontSize: 12.5, lineHeight: 19 }]}>
@@ -145,7 +146,7 @@ export function MealTemplateSheet({ visible, mode, mealType, mealLabel, localDat
                   const kcal = tpl.items.reduce((s, x) => s + x.kcal, 0);
                   return (
                     <View key={tpl.id} style={[styles.row, { backgroundColor: c.surfaceAlt }]}>
-                      <Pressable style={{ flex: 1 }} disabled={busy} onPress={() => handleApply(tpl)}>
+                      <Squish style={{ flex: 1 }} disabled={busy} onPress={() => handleApply(tpl)}>
                         <Text style={[type.row, { color: c.text, fontSize: 14 }]} numberOfLines={1}>
                           {tpl.name}
                         </Text>
@@ -153,19 +154,19 @@ export function MealTemplateSheet({ visible, mode, mealType, mealLabel, localDat
                           {tpl.items.length} รายการ · {Math.round(kcal)} kcal
                           {tpl.useCount > 0 ? ` · ใช้ไป ${tpl.useCount} ครั้ง` : ''}
                         </Text>
-                      </Pressable>
-                      <Pressable hitSlop={10} onPress={() => handleDelete(tpl)}>
+                      </Squish>
+                      <Squish hitSlop={10} onPress={() => handleDelete(tpl)}>
                         <Trash2 size={15} color={c.faint} />
-                      </Pressable>
+                      </Squish>
                     </View>
                   );
                 })}
               </ScrollView>
             )}
 
-            <Pressable onPress={onClose} style={styles.cancelBtn}>
+            <Squish onPress={onClose} style={styles.cancelBtn}>
               <Text style={[type.row, { color: c.subtext, fontSize: 14 }]}>ปิด</Text>
-            </Pressable>
+            </Squish>
           </Pressable>
         </KeyboardAvoidingView>
       </Pressable>

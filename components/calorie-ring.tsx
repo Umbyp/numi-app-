@@ -4,6 +4,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { useTheme } from '../lib/hooks/use-theme';
 import { calcRingFraction, calcNetRemaining } from '../lib/nutrition';
 import { type } from '../lib/fonts';
+import { motion } from '../lib/theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -26,7 +27,7 @@ export function CalorieRing({ consumedKcal, targetKcal, activityKcal, size = 152
 
   const animatedFraction = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.timing(animatedFraction, { toValue: fraction, duration: 600, useNativeDriver: false }).start();
+    Animated.timing(animatedFraction, { toValue: fraction, duration: motion.duration.slow, useNativeDriver: false }).start();
   }, [fraction]);
 
   const strokeDashoffset = animatedFraction.interpolate({

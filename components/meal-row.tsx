@@ -1,10 +1,11 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Trash2 } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
 import { type } from '../lib/fonts';
 import { getMealTypeMeta, type MealType } from '../lib/meal-type';
 import { MealTypeIcon } from './icons/meal-type-icons';
 import { radius } from '../lib/theme';
+import { Squish } from './squish';
 
 interface Entry {
   id: string;
@@ -56,9 +57,9 @@ export function MealRow({ entry, onDelete }: Props) {
         <Text style={[type.label, { color: c.faint, fontSize: 10 }]}>{time}</Text>
       </View>
 
-      <Pressable hitSlop={10} onPress={() => onDelete(entry.id)} style={styles.deleteBtn}>
+      <Squish hitSlop={10} onPress={() => onDelete(entry.id)} style={styles.deleteBtn}>
         <Trash2 size={16} color={c.muted} />
-      </Pressable>
+      </Squish>
     </View>
   );
 }

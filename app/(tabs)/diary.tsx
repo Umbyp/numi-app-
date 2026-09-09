@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, X } from 'lucide-react-native';
@@ -25,6 +25,7 @@ import { DatePickerModal } from '../../components/date-picker-modal';
 import { MealTemplateSheet } from '../../components/meal-template-sheet';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow, MIN_TOUCH } from '../../lib/theme';
+import { Squish } from '../../components/squish';
 
 const DAY_LABELS = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
 
@@ -108,7 +109,7 @@ export default function DiaryScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.headerRow}>
           <Text style={[type.greeting, { color: c.text, fontSize: 24 }]}>ไดอารี่</Text>
-          <Pressable
+          <Squish
             style={[styles.datePill, { backgroundColor: c.surface }, cardShadow(scheme)]}
             onPress={() => setPickerOpen(true)}
           >
@@ -116,7 +117,7 @@ export default function DiaryScreen() {
             <Text style={[type.row, { color: c.text, fontSize: 14 }]}>
               {selectedD.getDate()} {THAI_MONTHS_SHORT[selectedD.getMonth()]} {selectedD.getFullYear() + 543}
             </Text>
-          </Pressable>
+          </Squish>
         </View>
 
         <DatePickerModal
@@ -135,7 +136,7 @@ export default function DiaryScreen() {
             const active = ds === selectedDate;
             const isFuture = d > new Date();
             return (
-              <Pressable
+              <Squish
                 key={ds}
                 style={[styles.dayCol, active && { backgroundColor: c.surface }, active && cardShadow(scheme)]}
                 onPress={() => !isFuture && setSelectedDate(ds)}
@@ -145,7 +146,7 @@ export default function DiaryScreen() {
                   <Text style={[type.row, { fontSize: 12, color: active ? '#fff' : isFuture ? c.faint : c.subtext }]}>{DAY_LABELS[i]}</Text>
                 </View>
                 <Text style={[type.row, { fontSize: 13, color: active ? c.brand : isFuture ? c.faint : c.subtext }]}>{d.getDate()}</Text>
-              </Pressable>
+              </Squish>
             );
           })}
         </View>
@@ -171,12 +172,12 @@ export default function DiaryScreen() {
                   {list.length > 0 ? (
                     <Text style={[type.cardTitle, { color: c.text, fontSize: 14 }]}>{Math.round(kcal)}</Text>
                   ) : isToday ? (
-                    <Pressable
+                    <Squish
                       style={[styles.addPill, { backgroundColor: c.brandTint }]}
                       onPress={() => router.push({ pathname: '/add-food', params: { mealType: meta.key } })}
                     >
                       <Text style={[type.badge, { color: c.brand, fontSize: 12 }]}>+ เพิ่ม</Text>
-                    </Pressable>
+                    </Squish>
                   ) : null}
                 </View>
                 {list.length > 0 ? (
@@ -191,9 +192,9 @@ export default function DiaryScreen() {
                       </Text>
                       <Text style={[type.row, { color: c.subtext, fontSize: 12 }]}>{Math.round(e.kcal)}</Text>
                       {isToday && (
-                        <Pressable style={styles.rowDeleteBtn} onPress={() => handleDeleteEntry(e.id)}>
+                        <Squish style={styles.rowDeleteBtn} onPress={() => handleDeleteEntry(e.id)}>
                           <X size={15} color={c.faint} />
-                        </Pressable>
+                        </Squish>
                       )}
                     </FadeInView>
                   ))
@@ -204,29 +205,29 @@ export default function DiaryScreen() {
                 {isToday && (
                   <View style={styles.shortcutRow}>
                     {list.length === 0 && yesterdayKcal[meta.key] ? (
-                      <Pressable
+                      <Squish
                         style={[styles.shortcutPill, { backgroundColor: c.surface }]}
                         onPress={() => handleRepeat(meta.key)}
                       >
                         <Text style={[type.badge, { color: c.subtext, fontSize: 11 }]}>
                           ↻ ซ้ำเมื่อวาน · {Math.round(yesterdayKcal[meta.key] as number)}
                         </Text>
-                      </Pressable>
+                      </Squish>
                     ) : null}
                     {list.length === 0 ? (
-                      <Pressable
+                      <Squish
                         style={[styles.shortcutPill, { backgroundColor: c.surface }]}
                         onPress={() => setSheet({ mode: 'pick', mealType: meta.key, label: meta.label })}
                       >
                         <Text style={[type.badge, { color: c.subtext, fontSize: 11 }]}>มื้อชุด</Text>
-                      </Pressable>
+                      </Squish>
                     ) : (
-                      <Pressable
+                      <Squish
                         style={[styles.shortcutPill, { backgroundColor: c.surface }]}
                         onPress={() => setSheet({ mode: 'save', mealType: meta.key, label: meta.label })}
                       >
                         <Text style={[type.badge, { color: c.subtext, fontSize: 11 }]}>เก็บเป็นมื้อชุด</Text>
-                      </Pressable>
+                      </Squish>
                     )}
                   </View>
                 )}
@@ -244,9 +245,9 @@ export default function DiaryScreen() {
               </View>
               <Text style={[type.cardTitle, { color: c.dinner, fontSize: 18 }]}>{Math.round(activityKcal)}</Text>
               {isToday && (
-                <Pressable onPress={() => router.push('/log-workout')}>
+                <Squish onPress={() => router.push('/log-workout')}>
                   <Text style={[type.label, { color: c.brand, fontSize: 11 }]}>+ บันทึก</Text>
-                </Pressable>
+                </Squish>
               )}
             </View>
             <View style={[styles.statCard, { backgroundColor: c.surfaceAlt }]}>
@@ -256,9 +257,9 @@ export default function DiaryScreen() {
               </View>
               <Text style={[type.cardTitle, { color: c.text, fontSize: 18 }]}>{dayWeightKg?.toFixed(1) ?? '—'}</Text>
               {isToday && (
-                <Pressable onPress={() => router.push('/account-edit')}>
+                <Squish onPress={() => router.push('/account-edit')}>
                   <Text style={[type.label, { color: c.brand, fontSize: 11 }]}>+ ชั่งวันนี้</Text>
-                </Pressable>
+                </Squish>
               )}
             </View>
           </View>
