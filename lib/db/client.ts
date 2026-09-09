@@ -212,6 +212,82 @@ CREATE TABLE IF NOT EXISTS water_intakes (
 );
 CREATE INDEX IF NOT EXISTS idx_water_intakes_local_date ON water_intakes(local_date);
 
+-- ทุกการ UPDATE ต้องทำให้แถวกลายเป็น dirty เอง ไม่งั้นจะลืมได้
+--
+-- $defaultFn ของ drizzle ครอบคลุมแค่ INSERT ส่วน UPDATE ทุกจุดในแอปต้องเซ็ต dirty เอง
+-- ซึ่งลืมง่ายมาก และถ้าลืมแถวนั้นจะไม่ถูก push ขึ้นเซิร์ฟเวอร์เลยโดยไม่มี error ให้เห็น
+-- ยกงานนี้ให้ฐานข้อมูลทำแทน จะได้ไม่ต้องพึ่งวินัยของคนเขียนโค้ด
+--
+-- เงื่อนไขเป็น OLD.dirty = 0 ไม่ใช่ NEW.dirty = OLD.dirty เพราะ:
+--   1. ถ้าแถว dirty อยู่แล้วก็ไม่มีอะไรต้องทำ เดี๋ยวก็ถูก push อยู่ดี
+--   2. ตอน sync engine ล้างธง (1 -> 0) OLD.dirty = 1 trigger จึงไม่ยิงกลับ ไม่วนลูป
+--   3. สำคัญที่สุด — ทดสอบแล้วว่าปลอดภัยแม้ recursive_triggers เปิดอยู่
+--      แบบ NEW.dirty = OLD.dirty พังทันทีถ้า pragma เปิด (too many levels of trigger recursion)
+--      แบบนี้ recursion ลึกสุดแค่ 2 ชั้นแล้วหยุดเอง จึงไม่ต้องพึ่งค่า pragma
+--
+-- strftime('%s') คืนค่าเป็นวินาที ตรงกับที่ drizzle mode 'timestamp' คาดหวัง ห้ามคูณพัน
+
+CREATE TRIGGER IF NOT EXISTS trg_profile_dirty AFTER UPDATE ON profile
+FOR EACH ROW WHEN OLD.dirty = 0
+BEGIN
+  UPDATE profile SET updated_at = strftime('%s','now'), dirty = 1 WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_foods_dirty AFTER UPDATE ON foods
+FOR EACH ROW WHEN OLD.dirty = 0
+BEGIN
+  UPDATE foods SET updated_at = strftime('%s','now'), dirty = 1 WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_meal_entries_dirty AFTER UPDATE ON meal_entries
+FOR EACH ROW WHEN OLD.dirty = 0
+BEGIN
+  UPDATE meal_entries SET updated_at = strftime('%s','now'), dirty = 1 WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_workouts_dirty AFTER UPDATE ON workouts
+FOR EACH ROW WHEN OLD.dirty = 0
+BEGIN
+  UPDATE workouts SET updated_at = strftime('%s','now'), dirty = 1 WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_workout_plans_dirty AFTER UPDATE ON workout_plans
+FOR EACH ROW WHEN OLD.dirty = 0
+BEGIN
+  UPDATE workout_plans SET updated_at = strftime('%s','now'), dirty = 1 WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_workout_plan_completions_dirty AFTER UPDATE ON workout_plan_completions
+FOR EACH ROW WHEN OLD.dirty = 0
+BEGIN
+  UPDATE workout_plan_completions SET updated_at = strftime('%s','now'), dirty = 1 WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_weights_dirty AFTER UPDATE ON weights
+FOR EACH ROW WHEN OLD.dirty = 0
+BEGIN
+  UPDATE weights SET updated_at = strftime('%s','now'), dirty = 1 WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_measurements_dirty AFTER UPDATE ON measurements
+FOR EACH ROW WHEN OLD.dirty = 0
+BEGIN
+  UPDATE measurements SET updated_at = strftime('%s','now'), dirty = 1 WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_meal_templates_dirty AFTER UPDATE ON meal_templates
+FOR EACH ROW WHEN OLD.dirty = 0
+BEGIN
+  UPDATE meal_templates SET updated_at = strftime('%s','now'), dirty = 1 WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_chat_messages_dirty AFTER UPDATE ON chat_messages
+FOR EACH ROW WHEN OLD.dirty = 0
+BEGIN
+  UPDATE chat_messages SET updated_at = strftime('%s','now'), dirty = 1 WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_app_settings_dirty AFTER UPDATE ON app_settings
+FOR EACH ROW WHEN OLD.dirty = 0
+BEGIN
+  UPDATE app_settings SET updated_at = strftime('%s','now'), dirty = 1 WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_water_intakes_dirty AFTER UPDATE ON water_intakes
+FOR EACH ROW WHEN OLD.dirty = 0
+BEGIN
+  UPDATE water_intakes SET updated_at = strftime('%s','now'), dirty = 1 WHERE rowid = NEW.rowid;
+END;
+
 CREATE TABLE IF NOT EXISTS sync_meta (
   table_name TEXT PRIMARY KEY,
   last_pulled_at INTEGER NOT NULL DEFAULT 0
@@ -309,8 +385,11 @@ async function migrateWaterLogs(): Promise<void> {
     );
   }
   await sqliteDb.runAsync(
+    // หารพันเพราะ drizzle mode 'timestamp' เก็บเป็น "วินาที" ไม่ใช่มิลลิวินาที
+    // (sqlite-core/columns/integer.js — mapToDriverValue ทำ Math.floor(unix / 1e3))
+    // ถ้าใส่ Date.now() ตรง ๆ เวลาที่อ่านกลับมาจะกลายเป็นปี 57000
     `INSERT OR REPLACE INTO app_settings (key, value, updated_at, dirty) VALUES ('water_migrated_v2', '1', ?, 0)`,
-    [Date.now()],
+    [Math.floor(Date.now() / 1000)],
   );
 }
 

@@ -183,25 +183,45 @@ pull:  GET rows WHERE server_updated_at > sync_meta.last_pulled_at
 
 ---
 
-## 7. ช่องว่างที่รู้อยู่แล้ว — ต้องปิดก่อนเปิด sync จริง
+## 7. ทุกการ UPDATE ต้องทำให้แถวเป็น dirty เอง — ใช้ trigger
 
-`updated_at` ใช้ `$defaultFn` ของ drizzle ซึ่ง **ทำงานเฉพาะตอน insert เท่านั้น**
-ทุกจุดที่ `UPDATE` ยังต้องเซ็ต `updatedAt` และ `dirty = 1` เอง ซึ่งลืมได้ง่ายมาก
-และถ้าลืม แถวนั้นจะไม่ถูก push ขึ้นเซิร์ฟเวอร์เลยโดยไม่มี error ให้เห็น
-
-ทางแก้ที่ตั้งใจจะใช้คือ **SQLite trigger ต่อตาราง**
+`updated_at` ใช้ `$defaultFn` ของ drizzle ซึ่งครอบคลุมแค่ `INSERT` ถ้าปล่อยให้ทุกจุดที่ `UPDATE`
+เซ็ต `dirty` เอง จะลืมได้ง่ายมาก และถ้าลืม **แถวนั้นจะไม่ถูก push ขึ้นเซิร์ฟเวอร์เลยโดยไม่มี error**
+จึงยกงานนี้ให้ฐานข้อมูลทำแทน ไม่ต้องพึ่งวินัยของคนเขียนโค้ด
 
 ```sql
 CREATE TRIGGER trg_<table>_dirty AFTER UPDATE ON <table>
-FOR EACH ROW WHEN NEW.dirty = OLD.dirty   -- ไม่ยิงตอน sync engine ล้างธงเอง (1 -> 0)
+FOR EACH ROW WHEN OLD.dirty = 0
 BEGIN
-  UPDATE <table> SET updated_at = CAST(strftime('%s','now') AS INTEGER) * 1000, dirty = 1
-   WHERE rowid = NEW.rowid;
+  UPDATE <table> SET updated_at = strftime('%s','now'), dirty = 1 WHERE rowid = NEW.rowid;
 END;
 ```
 
-ยังไม่ใส่ใน PR นี้เพราะต้องทดสอบเรื่อง `recursive_triggers` ของ expo-sqlite ให้แน่ก่อน
-(ค่าเริ่มต้นของ SQLite คือปิด ซึ่งทำให้ปลอดภัย แต่ไม่ควรพึ่ง pragma โดยไม่ยืนยัน)
+### ทำไมเงื่อนไขเป็น `OLD.dirty = 0`
+
+ร่างแรกของเอกสารนี้เขียนไว้เป็น `WHEN NEW.dirty = OLD.dirty` **ซึ่งผิด** ทดสอบแล้วพบว่า
+ถ้า `recursive_triggers` เปิดอยู่ การแก้แถวที่ `dirty = 1` อยู่แล้วจะวนไม่รู้จบจนได้
+`Error: stepping, too many levels of trigger recursion` และการแก้นั้นล้มเหลวทั้งคำสั่ง
+
+`OLD.dirty = 0` แก้ปัญหาทั้งหมดพร้อมกัน
+
+1. แถวที่ dirty อยู่แล้วไม่มีอะไรต้องทำ เดี๋ยวก็ถูก push อยู่ดี
+2. ตอน sync engine ล้างธง (1 → 0) `OLD.dirty = 1` trigger จึงไม่ยิงกลับ
+3. **recursion ลึกสุดแค่ 2 ชั้นแล้วหยุดเอง** จึงปลอดภัยไม่ว่า `recursive_triggers` จะเปิดหรือปิด
+   ไม่ต้องพึ่งค่า pragma ซึ่งเป็นสิ่งที่ควบคุมไม่ได้จากฝั่งเรา
+
+ทดสอบทั้ง 4 สถานการณ์ (แก้แถวสะอาด · แก้แถวที่ dirty แล้ว · ล้างธง · soft delete)
+ในทั้งสองโหมดของ pragma ผ่านหมด
+
+### หน่วยเวลา — วินาที ไม่ใช่มิลลิวินาที
+
+`strftime('%s')` คืนค่าเป็น**วินาที** ซึ่งตรงกับที่ drizzle คาดหวัง
+`integer({ mode: 'timestamp' })` แปลงด้วย `Math.floor(unix / 1e3)` ตอนเขียนและ `value * 1e3`
+ตอนอ่าน (`sqlite-core/columns/integer.js`) **ห้ามคูณพัน** ถ้าเผลอใส่ ms ลงไป
+เวลาที่อ่านกลับมาจะกลายเป็นปี 57000
+
+(ร่างแรกของเอกสารนี้เขียน `* 1000` ไว้ผิด และ `migrateWaterLogs` ก็เคยใส่ `Date.now()`
+ลงคอลัมน์นี้ตรง ๆ แก้ทั้งสองจุดแล้ว)
 
 ---
 
