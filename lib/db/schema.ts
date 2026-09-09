@@ -10,8 +10,40 @@ export interface ExerciseSet {
   sets: { kg: number; reps: number }[];
 }
 
+/**
+ * คอลัมน์ที่ทุกตารางซึ่ง sync ต้องมี — ดู docs/sync-design.md
+ *
+ * เป็นฟังก์ชันไม่ใช่ค่าคงที่ เพราะ column builder ของ drizzle เก็บ state ไว้ในตัว
+ * ถ้า spread object เดิมซ้ำหลายตารางจะใช้ builder ตัวเดียวกันแล้วนิยามตารางเพี้ยน
+ */
+function syncCols() {
+  return {
+    /** null จนกว่าจะล็อกอิน */
+    userId: text('user_id'),
+    /**
+     * เวลาจากเครื่อง ใช้แสดงผลเท่านั้น ห้ามใช้ตัดสินว่าแถวไหนใหม่กว่า (นาฬิกามือถือเชื่อไม่ได้)
+     *
+     * $defaultFn ไว้เพื่อให้ insert ทุกจุดในแอปได้ค่านี้เองโดยไม่ต้องไล่แก้ทีละที่
+     * และที่สำคัญกว่าคือลืมไม่ได้ — แถวที่ไม่มี updated_at จะ sync ไม่ถูกต้อง
+     *
+     * ข้อจำกัดที่ยังเหลือ: $defaultFn ทำงานเฉพาะตอน insert ส่วน UPDATE ยังต้องเซ็ต
+     * updatedAt กับ dirty เองอยู่ ดู docs/sync-design.md หัวข้อ "ยังไม่ตัดสิน"
+     */
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    /** เวลาจากเซิร์ฟเวอร์ เป็นตัวตัดสินการชนและเป็น cursor ตอน pull */
+    serverUpdatedAt: integer('server_updated_at', { mode: 'timestamp' }),
+    /** หลุมศพ — ลบจริงไม่ได้ ไม่งั้นแถวจะฟื้นกลับมาตอน pull รอบถัดไป */
+    deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+    /** ยังไม่ได้ push — ตั้งต้นเป็น true เพื่อให้ข้อมูลเดิมในเครื่องถูกส่งขึ้นครบในรอบแรก */
+    dirty: integer('dirty', { mode: 'boolean' }).notNull().default(true),
+  };
+}
+
 // โปรไฟล์ — มีแถวเดียว id = 1 เสมอ เพราะเป็นแอปใช้คนเดียว
 export const profile = sqliteTable('profile', {
+  ...syncCols(),
   id: integer('id').primaryKey(),
   sex: text('sex', { enum: ['male', 'female'] }).notNull(),
   birthYear: integer('birth_year').notNull(),
@@ -36,12 +68,14 @@ export const profile = sqliteTable('profile', {
 // ค่าตั้งค่าระดับแอป (เช่นธีม) แยกจาก profile เพราะต้องใช้ได้ก่อนผู้ใช้กรอกโปรไฟล์ครบด้วย
 // (profile มีคอลัมน์ NOT NULL หลายตัวที่ยังไม่มีค่าตอนเพิ่งเปิดแอปครั้งแรก)
 export const appSettings = sqliteTable('app_settings', {
+  ...syncCols(),
   key: text('key').primaryKey(),
   value: text('value').notNull(),
 });
 
 // อาหารในคลัง — ทั้งที่มาจาก seed และที่ผู้ใช้สร้างเอง
 export const foods = sqliteTable('foods', {
+  ...syncCols(),
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   nameEn: text('name_en'),
@@ -60,6 +94,7 @@ export const foods = sqliteTable('foods', {
 });
 
 export const mealEntries = sqliteTable('meal_entries', {
+  ...syncCols(),
   id: text('id').primaryKey(),
   foodId: text('food_id').references(() => foods.id),
   // snapshot ชื่อไว้ เผื่อ food ถูกลบหรือแก้ทีหลัง ประวัติจะได้ไม่เพี้ยน
@@ -82,6 +117,7 @@ export const mealEntries = sqliteTable('meal_entries', {
 });
 
 export const workouts = sqliteTable('workouts', {
+  ...syncCols(),
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   category: text('category', {
@@ -121,6 +157,7 @@ export interface WorkoutPlanDay {
 
 // แผนออกกำลังกายที่ AI ออกแบบให้ — คนละมิติกับ workouts (ที่นั่นคือ log ว่าออกไปแล้วจริง ๆ)
 export const workoutPlans = sqliteTable('workout_plans', {
+  ...syncCols(),
   id: text('id').primaryKey(),
   title: text('title').notNull(),
   rationale: text('rationale').notNull(),
@@ -131,6 +168,7 @@ export const workoutPlans = sqliteTable('workout_plans', {
 
 // บันทึกว่าวันไหนในแผน ทำไปแล้วเมื่อไหร่ — ผูกกับ workouts แถวจริงที่สร้างตอนกดทำ เพื่อให้ไปนับกิจกรรมวันนั้นด้วย
 export const workoutPlanCompletions = sqliteTable('workout_plan_completions', {
+  ...syncCols(),
   id: text('id').primaryKey(),
   planId: text('plan_id').notNull().references(() => workoutPlans.id),
   dayIndex: integer('day_index').notNull(),
@@ -140,6 +178,7 @@ export const workoutPlanCompletions = sqliteTable('workout_plan_completions', {
 });
 
 export const weights = sqliteTable('weights', {
+  ...syncCols(),
   id: text('id').primaryKey(),
   weightKg: real('weight_kg').notNull(),
   bodyFatPct: real('body_fat_pct'),
@@ -150,6 +189,7 @@ export const weights = sqliteTable('weights', {
 
 // สัดส่วนร่างกาย — วันละครั้งเหมือน weights เพราะวัดถี่กว่านั้นไม่มีความหมาย
 export const measurements = sqliteTable('measurements', {
+  ...syncCols(),
   id: text('id').primaryKey(),
   waistCm: real('waist_cm'),
   chestCm: real('chest_cm'),
@@ -175,6 +215,7 @@ export interface TemplateItem {
 
 // มื้อชุด — ชุดอาหารที่กินซ้ำบ่อย กดครั้งเดียวได้ทั้งมื้อ
 export const mealTemplates = sqliteTable('meal_templates', {
+  ...syncCols(),
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   mealType: text('meal_type', {
@@ -186,16 +227,36 @@ export const mealTemplates = sqliteTable('meal_templates', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 
-// น้ำดื่ม — เก็บยอดรวมของวัน ไม่ได้เก็บทีละแก้ว
-// เพราะสิ่งที่คนอยากรู้คือวันนี้ดื่มไปเท่าไหร่แล้ว ไม่ใช่ดื่มตอนกี่โมงบ้าง
-export const waterLogs = sqliteTable('water_logs', {
+/**
+ * น้ำดื่ม — เก็บ "ทีละครั้งที่กด" ไม่ใช่ยอดรวมของวัน
+ *
+ * เดิมเก็บยอดรวมไว้แถวเดียวต่อวัน id เป็น water_2026-09-09 ซึ่งถูกต้องสำหรับแอปเครื่องเดียว
+ * แต่พังทันทีที่มี sync เพราะสองเครื่องเขียน id เดียวกันด้วยค่า "ยอดรวม" ไม่ใช่ "ส่วนต่าง"
+ * มือถือ +500 แท็บเล็ตออฟไลน์ +750 พอ sync แล้ว last-write-wins เลือก 750 มาทับ
+ * น้ำ 500 หายไปเงียบ ๆ ทั้งที่ควรได้ 1250
+ *
+ * เปลี่ยนเป็นแถวต่อครั้งที่กด id สุ่ม ยอดของวันคือ SUM(ml) สองเครื่องได้คนละแถว ทั้งคู่รอด
+ * นี่คือรูปแบบมาตรฐานของการทำตัวนับให้ sync ได้ — เปลี่ยนตัวนับเป็น log แล้วรวมตอนอ่าน
+ * ปุ่มลบเก็บเป็นแถวค่าติดลบ ผลรวมยังถูก และได้ของแถมคือรู้ว่าดื่มตอนกี่โมง
+ */
+export const waterIntakes = sqliteTable('water_intakes', {
+  ...syncCols(),
   id: text('id').primaryKey(),
-  localDate: text('local_date').notNull().unique(),
-  ml: integer('ml').notNull().default(0),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  localDate: text('local_date').notNull(),
+  /** ติดลบได้ เพราะปุ่มลบ 250 ก็เก็บเป็นแถวหนึ่งเหมือนกัน */
+  ml: integer('ml').notNull(),
+  drankAt: integer('drank_at', { mode: 'timestamp' }).notNull(),
+});
+
+/** cursor ของการ pull แยกตามตาราง — ไม่ sync ตัวเอง */
+export const syncMeta = sqliteTable('sync_meta', {
+  tableName: text('table_name').primaryKey(),
+  /** server_updated_at สูงสุดที่ดึงมาแล้ว */
+  lastPulledAt: integer('last_pulled_at', { mode: 'timestamp' }).notNull(),
 });
 
 export const chatMessages = sqliteTable('chat_messages', {
+  ...syncCols(),
   id: text('id').primaryKey(),
   role: text('role', { enum: ['user', 'assistant', 'tool'] }).notNull(),
   content: text('content').notNull(),

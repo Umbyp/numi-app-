@@ -1,4 +1,4 @@
-import { eq, desc, like, or, and, gte, lte, isNotNull, sql } from 'drizzle-orm';
+import { eq, desc, like, or, and, gte, lte, isNotNull, isNull, sql } from 'drizzle-orm';
 import { db } from './client';
 import type { ExerciseSet, TemplateItem } from './schema';
 import {
@@ -13,7 +13,7 @@ import {
   chatMessages,
   measurements,
   mealTemplates,
-  waterLogs,
+  waterIntakes,
   type WorkoutPlanDay,
 } from './schema';
 import { localDateString } from '../nutrition';
@@ -686,27 +686,33 @@ export async function deleteMealTemplate(id: string) {
 // ---------- น้ำดื่ม ----------
 
 export async function getWaterForDate(localDate: string): Promise<number> {
-  const rows = await db.select().from(waterLogs).where(eq(waterLogs.localDate, localDate));
-  return rows[0]?.ml ?? 0;
+  // รวมทุกแถวของวันนั้น ไม่ใช่อ่านยอดรวมจากแถวเดียวเหมือนเดิม — ดู docs/sync-design.md
+  const rows = await db
+    .select({ total: sql<number>`coalesce(sum(${waterIntakes.ml}), 0)` })
+    .from(waterIntakes)
+    .where(and(eq(waterIntakes.localDate, localDate), isNull(waterIntakes.deletedAt)));
+  return Math.max(0, rows[0]?.total ?? 0);
 }
 
 /**
- * บวก/ลบปริมาณน้ำของวันนี้ คืนยอดรวมใหม่
- * อ่านค่าเดิมมาบวกใน JS แทนการใช้ ml = ml + ? ใน SQL เพราะต้อง clamp ไม่ให้ติดลบ
- * และแอปนี้ใช้คนเดียวจึงไม่มีการเขียนพร้อมกันให้ต้องกังวล
+ * บันทึกการดื่มหนึ่งครั้ง คืนยอดรวมใหม่ของวัน
+ *
+ * เก็บเป็นแถวใหม่ทุกครั้งที่กด ไม่ใช่เขียนทับยอดรวม เพราะยอดรวมทำให้ข้อมูลหายตอน sync
+ * (สองเครื่องออฟไลน์เขียนยอดรวมทับกัน ดื่มจากอีกเครื่องหายทั้งก้อน)
+ * ปุ่มลบส่ง delta ติดลบเข้ามา ก็เก็บเป็นแถวค่าติดลบเหมือนกัน
+ *
+ * clamp ยอดรวมตอนอ่านแทนตอนเขียน เพราะถ้า clamp ตอนเขียนจะต้องอ่านยอดเดิมมาก่อน
+ * ซึ่งพาปัญหา read-modify-write กลับมาอีก
  */
 export async function addWaterMl(deltaMl: number, localDate = localDateString()): Promise<number> {
-  const current = await getWaterForDate(localDate);
-  const next = Math.max(0, Math.min(20000, current + deltaMl));
   const now = new Date();
-  await db
-    .insert(waterLogs)
-    .values({ id: `water_${localDate}`, localDate, ml: next, updatedAt: now })
-    .onConflictDoUpdate({
-      target: waterLogs.localDate,
-      set: { ml: next, updatedAt: now },
-    });
-  return next;
+  await db.insert(waterIntakes).values({
+    id: `water_${Date.now()}_${Math.round(Math.random() * 1e6)}`,
+    localDate,
+    ml: Math.round(deltaMl),
+    drankAt: now,
+  });
+  return getWaterForDate(localDate);
 }
 
 // ---------- ตั้งค่าการเตือน ----------
