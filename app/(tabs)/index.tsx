@@ -9,6 +9,7 @@ import { GoalIcon, FoodIcon, ActivityIcon } from '../../components/icons/nav-ico
 import { DayTypeIcon, dayTypeTint } from '../../components/icons/workout-icons';
 import { MascotGreeting } from '../../components/mascot-greeting';
 import { CalorieCardSkeleton } from '../../components/skeleton';
+import { FadeInView } from '../../components/fade-in';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { useNumiStore, sumTotals } from '../../lib/store';
 import {
@@ -21,7 +22,7 @@ import {
 import type { WorkoutPlanDay } from '../../lib/db/schema';
 import { localDateString, calcBMI, bmiCategory } from '../../lib/nutrition';
 import { type } from '../../lib/fonts';
-import { radius, cardShadow } from '../../lib/theme';
+import { radius, cardShadow, motion } from '../../lib/theme';
 import { Squish } from '../../components/squish';
 
 const THAI_MONTHS = [
@@ -89,6 +90,7 @@ export default function DashboardScreen() {
         </View>
 
         {loaded && (
+          <FadeInView delay={0}>
           <MascotGreeting
             hasAnyLog={todayEntries.length > 0 || activityKcal > 0}
             consumedKcal={totals.kcal}
@@ -101,9 +103,11 @@ export default function DashboardScreen() {
             }}
             onPress={() => router.push('/chat')}
           />
+          </FadeInView>
         )}
 
         {!profile && (
+          <FadeInView delay={motion.stagger}>
           <Squish scaleTo={0.98}
             style={[styles.setupBanner, { backgroundColor: c.surface, borderColor: c.line }]}
             onPress={() => router.push('/account-edit')}
@@ -113,8 +117,10 @@ export default function DashboardScreen() {
               กรอกน้ำหนัก ส่วนสูง อายุ เพื่อคำนวณเป้าหมายที่เหมาะกับคุณ
             </Text>
           </Squish>
+          </FadeInView>
         )}
 
+        <FadeInView delay={motion.stagger * 2}>
         <View style={cardStyle}>
           {!loaded ? (
             <CalorieCardSkeleton />
@@ -147,10 +153,14 @@ export default function DashboardScreen() {
           </>
           )}
         </View>
+        </FadeInView>
 
-        <WaterCard />
+        <FadeInView delay={motion.stagger * 3}>
+          <WaterCard />
+        </FadeInView>
 
         {suggestedWorkout && (
+          <FadeInView delay={motion.stagger * 4}>
           <Squish scaleTo={0.98}
             style={cardStyle}
             onPress={() => router.push({ pathname: '/workout-plan-detail', params: { id: suggestedWorkout.planId } })}
@@ -175,9 +185,11 @@ export default function DashboardScreen() {
             </View>
             <Text style={[type.row, { color: c.brand, fontSize: 13 }]}>ไปเล่นเลย →</Text>
           </Squish>
+          </FadeInView>
         )}
 
         {profile && (
+          <FadeInView delay={motion.stagger * 5}>
           <View style={cardStyle}>
             <HealthRow
               label="ดัชนีมวลกาย"
@@ -202,6 +214,7 @@ export default function DashboardScreen() {
               onPress={goToBasicInfo}
             />
           </View>
+          </FadeInView>
         )}
 
         <View style={{ height: 100 }} />

@@ -1,12 +1,11 @@
-import { useEffect, useRef } from 'react';
-import { View, Text, Animated, Easing, StyleSheet } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { View, Text, Animated, StyleSheet } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
+import { useCelebration } from '../lib/hooks/use-celebration';
 import { Mascot } from './mascot';
 import { pickMood, type DayState } from '../lib/mascot-pose';
 import { type } from '../lib/fonts';
-import { radius, MIN_TOUCH, motion } from '../lib/theme';
+import { radius, MIN_TOUCH } from '../lib/theme';
 import { Squish } from './squish';
 
 interface Props extends DayState {
@@ -33,22 +32,14 @@ export function MascotGreeting({ allowCelebrate = false, onCelebrated, onPress, 
   const c = useTheme();
   const mood = pickMood(state);
 
-  const bounce = useRef(new Animated.Value(0)).current;
-  const celebrated = useRef(false);
-
-  useEffect(() => {
-    if (!mood.celebrate || !allowCelebrate || celebrated.current) return;
-    celebrated.current = true;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    Animated.sequence([
-      Animated.timing(bounce, { toValue: 1, duration: motion.duration.base, easing: Easing.out(Easing.back(2.4)), useNativeDriver: true }),
-      Animated.spring(bounce, { toValue: 0, ...motion.spring.celebrate, useNativeDriver: true }),
-    ]).start(() => onCelebrated?.());
-  }, [mood.celebrate, allowCelebrate]);
-
-  const scale = bounce.interpolate({ inputRange: [0, 1], outputRange: [1, 1.22] });
-  const lift = bounce.interpolate({ inputRange: [0, 1], outputRange: [0, -10] });
-  const rock = bounce.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-7deg'] });
+  // fireOnMount เพราะแดชบอร์ดจำ celebrated_date ไว้ใน DB แล้วส่งมาเป็น allowCelebrate
+  // ตัวคุมว่าซ้ำหรือเปล่าอยู่ข้างนอก hook จึงยิงได้ตั้งแต่เฟรมแรก
+  const celebration = useCelebration({
+    when: mood.celebrate,
+    allow: allowCelebrate,
+    fireOnMount: true,
+    onDone: onCelebrated,
+  });
 
   const accent =
     mood.pose === 'goal' ? c.brand : mood.pose === 'rest' ? c.fat : mood.pose === 'start' ? c.carb : c.muted;
@@ -61,7 +52,7 @@ export function MascotGreeting({ allowCelebrate = false, onCelebrated, onPress, 
       scaleTo={0.98}
       style={styles.wrap}
     >
-      <Animated.View style={{ transform: [{ scale }, { translateY: lift }, { rotate: rock }] }}>
+      <Animated.View style={celebration.style}>
         <Mascot size={74} pose={mood.pose} />
       </Animated.View>
 
