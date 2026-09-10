@@ -1,6 +1,6 @@
 import { eq, desc, like, or, and, gte, lte, isNotNull, isNull, sql } from 'drizzle-orm';
 import { db } from './client';
-import type { ExerciseSet, TemplateItem } from './schema';
+import type { ExerciseSet, ServingUnit, TemplateItem } from './schema';
 import {
   profile,
   foods,
@@ -168,6 +168,39 @@ export async function createUserFood(input: {
     carbPer100: input.carbPer100 ?? 0,
     fatPer100: input.fatPer100 ?? 0,
     source: 'user',
+    createdAt: new Date(),
+  });
+  return id;
+}
+
+/** นำเข้าเมนูที่ผ่านการตรวจแล้วจากฐานอาหารชุมชน (community_foods ฝั่ง server) มาไว้ในคลังของตัวเอง */
+export async function importCommunityFood(input: {
+  communityFoodId: string;
+  name: string;
+  nameEn?: string | null;
+  brand?: string | null;
+  kcalPer100: number;
+  proteinPer100?: number;
+  carbPer100?: number;
+  fatPer100?: number;
+  fiberPer100?: number | null;
+  sodiumPer100?: number | null;
+  servingUnits?: ServingUnit[] | null;
+}) {
+  const id = `community_${input.communityFoodId}`;
+  await db.insert(foods).values({
+    id,
+    name: input.name,
+    nameEn: input.nameEn ?? null,
+    brand: input.brand ?? null,
+    kcalPer100: input.kcalPer100,
+    proteinPer100: input.proteinPer100 ?? 0,
+    carbPer100: input.carbPer100 ?? 0,
+    fatPer100: input.fatPer100 ?? 0,
+    fiberPer100: input.fiberPer100 ?? 0,
+    sodiumPer100: input.sodiumPer100 ?? 0,
+    servingUnits: input.servingUnits ?? null,
+    source: 'community',
     createdAt: new Date(),
   });
   return id;

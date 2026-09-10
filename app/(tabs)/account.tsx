@@ -1,8 +1,8 @@
-import { useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Target, PieChart, Activity, TrendingUp, RefreshCw, Palette, type LucideIcon } from 'lucide-react-native';
+import { User, Target, PieChart, Activity, TrendingUp, RefreshCw, Palette, Users, Heart, Soup, ClipboardCheck, Trophy, type LucideIcon } from 'lucide-react-native';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { useNumiStore } from '../../lib/store';
 import { type } from '../../lib/fonts';
@@ -10,6 +10,8 @@ import { radius, cardShadow } from '../../lib/theme';
 import { Mascot } from '../../components/mascot';
 import { ReminderSettings } from '../../components/reminder-settings';
 import { Squish } from '../../components/squish';
+import { getPrivacySettings, updatePrivacySettings, type PrivacySettings } from '../../lib/social/friends';
+import { isModerator } from '../../lib/social/community-foods';
 
 // bgKey/fgKey จับคู่กันเสมอ (พื้นอ่อน + ตัวอักษร/ไอคอนเข้ม สีเดียวกัน) ไล่สีตามหมวดจริง ไม่ใช่สุ่ม:
 // น้ำเงิน (brand) = ตัวตนกับเป้าหมาย, ม่วง (dinner) = กิจกรรม, ทอง (fat) = แนวโน้มน้ำหนัก,
@@ -19,8 +21,16 @@ const ROWS: {
   icon: LucideIcon;
   bgKey: 'brandTint' | 'dinnerBg' | 'fatBg' | 'carbBg' | 'surfaceAlt';
   fgKey: 'brand' | 'dinner' | 'fatText' | 'carbText' | 'muted';
-  route?: '/account-edit' | '/weight-history' | '/activity-history' | '/sync-account';
-  editStep?: 'basic' | 'goal' | 'macros' | 'summary';
+  route?:
+    | '/account-edit'
+    | '/weight-history'
+    | '/activity-history'
+    | '/sync-account'
+    | '/friends'
+    | '/community-foods'
+    | '/food-review-queue'
+    | '/leaderboard';
+  editStep?: 'basic' | 'goal' | 'macros';
   disabled?: boolean;
 }[] = [
   { label: 'ข้อมูลส่วนตัว', icon: User, bgKey: 'brandTint', fgKey: 'brand', route: '/account-edit', editStep: 'basic' },
@@ -28,21 +38,70 @@ const ROWS: {
   { label: 'เป้าหมายสารอาหาร', icon: PieChart, bgKey: 'brandTint', fgKey: 'brand', route: '/account-edit', editStep: 'macros' },
   { label: 'ประวัติกิจกรรม', icon: Activity, bgKey: 'dinnerBg', fgKey: 'dinner', route: '/activity-history' },
   { label: 'ประวัติน้ำหนัก', icon: TrendingUp, bgKey: 'fatBg', fgKey: 'fatText', route: '/weight-history' },
-  { label: 'ซิงค์ข้ามอุปกรณ์', icon: RefreshCw, bgKey: 'carbBg', fgKey: 'carbText', route: '/sync-account' },
-  { label: 'ตั้งค่าแอป · ธีม', icon: Palette, bgKey: 'surfaceAlt', fgKey: 'muted', route: '/account-edit', editStep: 'summary' },
+  { label: 'เพื่อน', icon: Users, bgKey: 'dinnerBg', fgKey: 'dinner', route: '/friends' },
+  { label: 'อาหารจากชุมชน', icon: Soup, bgKey: 'fatBg', fgKey: 'fatText', route: '/community-foods' },
+  { label: 'ตารางอันดับ', icon: Trophy, bgKey: 'dinnerBg', fgKey: 'dinner', route: '/leaderboard' },
+  { label: 'ล็อกอิน', icon: RefreshCw, bgKey: 'carbBg', fgKey: 'carbText', route: '/sync-account' },
+];
+
+const MODERATOR_ROW: (typeof ROWS)[number] = {
+  label: 'คิวตรวจสอบอาหาร',
+  icon: ClipboardCheck,
+  bgKey: 'surfaceAlt',
+  fgKey: 'muted',
+  route: '/food-review-queue',
+};
+
+const THEME_OPTIONS: { key: 'system' | 'light' | 'dark'; label: string }[] = [
+  { key: 'system', label: 'ตามระบบ' },
+  { key: 'light', label: 'สว่าง' },
+  { key: 'dark', label: 'มืด' },
+];
+
+const ON_OFF_OPTIONS: { key: boolean; label: string }[] = [
+  { key: false, label: 'ปิด' },
+  { key: true, label: 'เปิด' },
+];
+
+const WEIGHT_MODE_OPTIONS: { key: 'relative' | 'exact'; label: string }[] = [
+  { key: 'relative', label: 'แนวโน้มเท่านั้น' },
+  { key: 'exact', label: 'ตัวเลขจริง' },
 ];
 
 export default function AccountScreen() {
   const c = useTheme();
   const scheme = useScheme();
   const router = useRouter();
-  const { profile, latestWeightKg, goals, refresh } = useNumiStore();
+  const { profile, latestWeightKg, goals, refresh, themePreference, setThemePreference } = useNumiStore();
+  const [privacy, setPrivacy] = useState<PrivacySettings | null>(null);
+  const [moderator, setModerator] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       refresh();
+      // ไม่มี session (ยังไม่ล็อกอิน) หรือยังไม่ได้รัน migration ฝั่ง server ก็แค่ซ่อน section นี้ไป
+      getPrivacySettings()
+        .then(setPrivacy)
+        .catch(() => setPrivacy(null));
+      isModerator()
+        .then(setModerator)
+        .catch(() => setModerator(false));
     }, [])
   );
+
+  const rows = useMemo(() => (moderator ? [...ROWS, MODERATOR_ROW] : ROWS), [moderator]);
+
+  async function updatePrivacy(patch: Partial<PrivacySettings>) {
+    if (!privacy) return;
+    const prev = privacy;
+    setPrivacy({ ...prev, ...patch });
+    try {
+      await updatePrivacySettings(patch);
+    } catch (e) {
+      setPrivacy(prev);
+      Alert.alert('บันทึกไม่สำเร็จ', e instanceof Error ? e.message : String(e));
+    }
+  }
 
   const goalWeight = profile?.goalWeightKg;
   const remainingKg = goalWeight != null && latestWeightKg != null ? Math.abs(latestWeightKg - goalWeight) : null;
@@ -87,10 +146,10 @@ export default function AccountScreen() {
         <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4, paddingLeft: 6 }]}>เกี่ยวกับคุณ</Text>
 
         <View style={[styles.listCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
-          {ROWS.map((row, i) => (
+          {rows.map((row, i) => (
             <Squish scaleTo={0.98}
               key={row.label}
-              style={[styles.row, i < ROWS.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line }]}
+              style={[styles.row, i < rows.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line }]}
               disabled={row.disabled || !row.route}
               onPress={() => {
                 if (!row.route) return;
@@ -110,6 +169,132 @@ export default function AccountScreen() {
             </Squish>
           ))}
         </View>
+
+        <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4, paddingLeft: 6 }]}>การแสดงผล</Text>
+        <View style={[styles.themeCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+          <View style={styles.themeHeader}>
+            <View style={[styles.rowIcon, { backgroundColor: c.surfaceAlt }]}>
+              <Palette size={16} color={c.muted} strokeWidth={2.25} />
+            </View>
+            <Text style={[type.row, { color: c.text, fontSize: 14 }]}>ธีม</Text>
+          </View>
+          <View style={[styles.segmented, { backgroundColor: c.surfaceAlt }]}>
+            {THEME_OPTIONS.map((opt) => {
+              const active = opt.key === themePreference;
+              return (
+                <Squish
+                  key={opt.key}
+                  onPress={() => setThemePreference(opt.key)}
+                  style={[styles.segment, active && { backgroundColor: c.surface }]}
+                >
+                  <Text style={[type.row, { color: active ? c.text : c.muted, fontSize: 13 }]}>{opt.label}</Text>
+                </Squish>
+              );
+            })}
+          </View>
+        </View>
+
+        {privacy && (
+          <>
+            <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4, paddingLeft: 6 }]}>ความเป็นส่วนตัว</Text>
+
+            <View style={[styles.themeCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+              <View style={styles.themeHeader}>
+                <View style={[styles.rowIcon, { backgroundColor: c.surfaceAlt }]}>
+                  <Users size={16} color={c.muted} strokeWidth={2.25} />
+                </View>
+                <Text style={[type.row, { color: c.text, fontSize: 14 }]}>แชร์กิจกรรมกับเพื่อน</Text>
+              </View>
+              <View style={[styles.segmented, { backgroundColor: c.surfaceAlt }]}>
+                {ON_OFF_OPTIONS.map((opt) => {
+                  const active = opt.key === privacy.shareActivity;
+                  return (
+                    <Squish
+                      key={String(opt.key)}
+                      onPress={() => updatePrivacy(opt.key ? { shareActivity: true } : { shareActivity: false, shareWeight: false })}
+                      style={[styles.segment, active && { backgroundColor: c.surface }]}
+                    >
+                      <Text style={[type.row, { color: active ? c.text : c.muted, fontSize: 13 }]}>{opt.label}</Text>
+                    </Squish>
+                  );
+                })}
+              </View>
+              <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>
+                เพื่อนที่ตอบรับแล้วจะเห็นบันทึกออกกำลังกายของคุณ และให้กำลังใจได้
+              </Text>
+            </View>
+
+            <View style={[styles.themeCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme), !privacy.shareActivity && { opacity: 0.5 }]}>
+              <View style={styles.themeHeader}>
+                <View style={[styles.rowIcon, { backgroundColor: c.surfaceAlt }]}>
+                  <Heart size={16} color={c.muted} strokeWidth={2.25} />
+                </View>
+                <Text style={[type.row, { color: c.text, fontSize: 14 }]}>แชร์น้ำหนัก</Text>
+              </View>
+              <View style={[styles.segmented, { backgroundColor: c.surfaceAlt }]}>
+                {ON_OFF_OPTIONS.map((opt) => {
+                  const active = opt.key === privacy.shareWeight;
+                  return (
+                    <Squish
+                      key={String(opt.key)}
+                      disabled={!privacy.shareActivity}
+                      onPress={() => updatePrivacy({ shareWeight: opt.key })}
+                      style={[styles.segment, active && { backgroundColor: c.surface }]}
+                    >
+                      <Text style={[type.row, { color: active ? c.text : c.muted, fontSize: 13 }]}>{opt.label}</Text>
+                    </Squish>
+                  );
+                })}
+              </View>
+              {privacy.shareWeight && (
+                <View style={[styles.segmented, { backgroundColor: c.surfaceAlt }]}>
+                  {WEIGHT_MODE_OPTIONS.map((opt) => {
+                    const active = opt.key === privacy.weightShareMode;
+                    return (
+                      <Squish
+                        key={opt.key}
+                        onPress={() => updatePrivacy({ weightShareMode: opt.key })}
+                        style={[styles.segment, active && { backgroundColor: c.surface }]}
+                      >
+                        <Text style={[type.row, { color: active ? c.text : c.muted, fontSize: 13 }]}>{opt.label}</Text>
+                      </Squish>
+                    );
+                  })}
+                </View>
+              )}
+              <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>
+                ต้องเปิดแชร์กิจกรรมก่อนถึงจะแชร์น้ำหนักได้ · "แนวโน้มเท่านั้น" ให้เพื่อนเห็นแค่ทิศทาง (ขึ้น/ลง/คงที่) ไม่เห็นตัวเลขจริง
+              </Text>
+            </View>
+
+            <View style={[styles.themeCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+              <View style={styles.themeHeader}>
+                <View style={[styles.rowIcon, { backgroundColor: c.surfaceAlt }]}>
+                  <Trophy size={16} color={c.muted} strokeWidth={2.25} />
+                </View>
+                <Text style={[type.row, { color: c.text, fontSize: 14 }]}>เข้าร่วมตารางอันดับ</Text>
+              </View>
+              <View style={[styles.segmented, { backgroundColor: c.surfaceAlt }]}>
+                {ON_OFF_OPTIONS.map((opt) => {
+                  const active = opt.key === privacy.leaderboardOptIn;
+                  return (
+                    <Squish
+                      key={String(opt.key)}
+                      onPress={() => updatePrivacy({ leaderboardOptIn: opt.key })}
+                      style={[styles.segment, active && { backgroundColor: c.surface }]}
+                    >
+                      <Text style={[type.row, { color: active ? c.text : c.muted, fontSize: 13 }]}>{opt.label}</Text>
+                    </Squish>
+                  );
+                })}
+              </View>
+              <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>
+                ปิดได้ทุกเมื่อ — ปิดแล้วหายจากตารางอันดับทุกอันทันที ไม่ต้องรอ
+              </Text>
+            </View>
+          </>
+        )}
+
         <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4, paddingLeft: 6 }]}>การเตือน</Text>
         <ReminderSettings />
 
@@ -138,4 +323,8 @@ const styles = StyleSheet.create({
   listCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 52, paddingHorizontal: 16 },
   rowIcon: { width: 30, height: 30, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  themeCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 12 },
+  themeHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  segmented: { flexDirection: 'row', borderRadius: radius.pill, padding: 4 },
+  segment: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: radius.iconBox },
 });

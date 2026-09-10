@@ -16,6 +16,8 @@ import { type as textType, fontFamily } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
 import type { foods as foodsTable } from '../lib/db/schema';
 import { Squish } from '../components/squish';
+import { supabase } from '../lib/auth/client';
+import { submitFoodForReview } from '../lib/social/community-foods';
 
 type Food = typeof foodsTable.$inferSelect;
 
@@ -39,6 +41,8 @@ export default function AddFoodScreen() {
   const [manualProtein, setManualProtein] = useState('');
   const [manualCarb, setManualCarb] = useState('');
   const [manualFat, setManualFat] = useState('');
+  const [shareWithCommunity, setShareWithCommunity] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -46,6 +50,10 @@ export default function AddFoodScreen() {
     }, 250);
     return () => clearTimeout(timer);
   }, [query]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setLoggedIn(!!data.session));
+  }, []);
 
   function pickFood(food: Food) {
     setSelected(food);
@@ -93,6 +101,10 @@ export default function AddFoodScreen() {
         fatPer100: parseFloat(manualFat) || 0,
       };
       const foodId = await createUserFood(foodInput);
+      if (shareWithCommunity) {
+        // แยก concern จากการบันทึก local — ส่งไม่สำเร็จ (ออฟไลน์/เน็ตมีปัญหา) ไม่ควรบล็อกการบันทึกมื้ออาหาร
+        submitFoodForReview(foodInput).catch(() => {});
+      }
       const scaled = scaleFood(foodInput, amountG);
       await addMealEntry({
         foodId,
@@ -255,6 +267,21 @@ export default function AddFoodScreen() {
               <AmountStepper value={amountG} onChange={setAmountG} />
             </View>
 
+            {loggedIn && (
+              <Squish
+                scaleTo={0.98}
+                onPress={() => setShareWithCommunity((v) => !v)}
+                style={[styles.shareToggle, { backgroundColor: shareWithCommunity ? c.brandTint : c.surfaceAlt }]}
+              >
+                <View style={[styles.checkbox, { borderColor: shareWithCommunity ? c.brand : c.line, backgroundColor: shareWithCommunity ? c.brand : 'transparent' }]}>
+                  {shareWithCommunity && <Text style={{ color: '#fff', fontSize: 11 }}>✓</Text>}
+                </View>
+                <Text style={[textType.label, { color: shareWithCommunity ? c.brand : c.subtext, fontSize: 12.5, flex: 1 }]}>
+                  แชร์เมนูนี้ให้คนอื่นเห็นด้วย (ต้องผ่านการตรวจก่อน)
+                </Text>
+              </Squish>
+            )}
+
             <Squish scaleTo={0.97}
               style={[styles.saveBtn, { backgroundColor: c.brand }, saving && { opacity: 0.6 }]}
               disabled={saving || !manualName.trim() || !manualKcal}
@@ -349,4 +376,14 @@ const styles = StyleSheet.create({
   saveBtnText: { color: '#fff', fontSize: 15 },
   manualForm: { padding: 16 },
   input: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.iconBox, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
+  shareToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: radius.iconBox,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginTop: 14,
+  },
+  checkbox: { width: 18, height: 18, borderRadius: 5, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
 });

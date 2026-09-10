@@ -45,7 +45,7 @@ export default function AccountEditScreen() {
   const scheme = useScheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ step?: string }>();
-  const { profile, latestWeightKg, refresh, themePreference, setThemePreference } = useNumiStore();
+  const { profile, latestWeightKg, refresh } = useNumiStore();
 
   const [step, setStep] = useState(() => {
     const idx = STEP_KEYS.indexOf((params.step as StepKey) ?? 'basic');
@@ -339,19 +339,6 @@ export default function AccountEditScreen() {
 
           {STEP_KEYS[step] === 'summary' && (
             <>
-              <Field label="ธีม" color={c.subtext}>
-                <Segmented
-                  options={[
-                    { key: 'system', label: 'ตามระบบ' },
-                    { key: 'light', label: 'สว่าง' },
-                    { key: 'dark', label: 'มืด' },
-                  ]}
-                  value={themePreference}
-                  onChange={(v) => setThemePreference(v as 'system' | 'light' | 'dark')}
-                  c={c}
-                />
-              </Field>
-
               {preview && (
                 <View style={[styles.previewCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
                   <Text style={[textType.label, { color: c.muted, fontSize: 12 }]}>
