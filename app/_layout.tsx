@@ -18,6 +18,8 @@ import { useNumiStore } from '../lib/store';
 import { useScheme } from '../lib/hooks/use-theme';
 import { colors } from '../lib/theme';
 import { ErrorBoundary } from '../components/error-boundary';
+import { supabase } from '../lib/auth/client';
+import { syncAll } from '../lib/sync/engine';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -52,6 +54,15 @@ function RootLayoutInner() {
       configureNotificationHandler();
       await refresh();
       setDbReady(true);
+
+      // ซิงค์เบื้องหลังถ้าเคยล็อกอินไว้ — ไม่บล็อกหน้าจอ splash เพราะพึ่งเน็ตเวิร์กที่อาจช้า/ล่ม
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        await syncAll();
+        await refresh(); // ให้ UI เห็นข้อมูลที่เพิ่ง pull มาทันที
+      }
     })();
   }, []);
 
@@ -80,6 +91,7 @@ function RootLayoutInner() {
         <Stack.Screen name="activity-history" options={{ presentation: 'modal', headerShown: true, title: 'ประวัติกิจกรรม' }} />
         <Stack.Screen name="scan-barcode" options={{ presentation: 'modal', headerShown: true, title: 'สแกนบาร์โค้ด' }} />
         <Stack.Screen name="workout-plan-detail" options={{ presentation: 'modal', headerShown: true, title: 'รายละเอียดแผน' }} />
+        <Stack.Screen name="sync-account" options={{ presentation: 'modal', headerShown: true, title: 'ซิงค์ข้ามอุปกรณ์' }} />
       </Stack>
     </>
   );

@@ -13,7 +13,7 @@ import { Squish } from '../../components/squish';
 const ROWS: {
   label: string;
   bgKey: 'brandTint' | 'dinnerBg' | 'surfaceAlt';
-  route?: '/account-edit' | '/weight-history' | '/activity-history';
+  route?: '/account-edit' | '/weight-history' | '/activity-history' | '/sync-account';
   editStep?: 'basic' | 'goal' | 'macros' | 'summary';
   disabled?: boolean;
 }[] = [
@@ -22,6 +22,7 @@ const ROWS: {
   { label: 'เป้าหมายสารอาหาร', bgKey: 'brandTint', route: '/account-edit', editStep: 'macros' },
   { label: 'ประวัติกิจกรรม', bgKey: 'dinnerBg', route: '/activity-history' },
   { label: 'ประวัติน้ำหนัก', bgKey: 'brandTint', route: '/weight-history' },
+  { label: 'ซิงค์ข้ามอุปกรณ์', bgKey: 'dinnerBg', route: '/sync-account' },
   { label: 'ตั้งค่าแอป · ธีม', bgKey: 'surfaceAlt', route: '/account-edit', editStep: 'summary' },
 ];
 

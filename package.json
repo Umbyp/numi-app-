@@ -5,6 +5,8 @@
   "dependencies": {
     "@expo-google-fonts/noto-sans-thai": "^0.4.2",
     "@expo/metro-runtime": "~57.0.15",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@supabase/supabase-js": "^2.116.0",
     "drizzle-orm": "^0.45.2",
     "expo": "~57.0.20",
     "expo-camera": "~57.0.4",
@@ -26,6 +28,7 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-svg": "15.15.4",
+    "react-native-url-polyfill": "^4.0.0",
     "react-native-web": "^0.21.2",
     "zod": "^4.5.4",
     "zustand": "^5.0.15"
