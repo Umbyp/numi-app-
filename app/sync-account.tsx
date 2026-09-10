@@ -1,23 +1,38 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Session } from '@supabase/supabase-js';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { type as textType, fontFamily } from '../lib/fonts';
-import { radius, cardShadow } from '../lib/theme';
+import { radius, motion, cardShadow } from '../lib/theme';
 import { Squish } from '../components/squish';
-import { supabase } from '../lib/auth/client';
+import { Mascot } from '../components/mascot';
+import { FadeInView } from '../components/fade-in';
+import { supabase, signInWithGoogle } from '../lib/auth/client';
 import { syncAll } from '../lib/sync/engine';
+
+type Mode = 'login' | 'signup';
 
 export default function SyncAccountScreen() {
   const c = useTheme();
   const scheme = useScheme();
 
   const [session, setSession] = useState<Session | null | undefined>(undefined); // undefined = ยังไม่รู้สถานะ
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
@@ -40,8 +55,6 @@ export default function SyncAccountScreen() {
     }
     setBusy(true);
     setError(null);
-    // ห้ามแยก supabase.auth.signUp ออกมาเป็นตัวแปรเฉยๆ แล้วเรียกทีหลัง — จะหลุด `this` binding
-    // ของ GoTrueClient ทำให้ error จริง (เช่น flowType) ถูกกลืนแล้วโยน "reading 'storage'" แทน
     const { error: authError } =
       mode === 'signup'
         ? await supabase.auth.signUp({ email: email.trim(), password })
@@ -53,6 +66,18 @@ export default function SyncAccountScreen() {
     }
     setPassword('');
     runSyncAfterAuth();
+  }
+
+  async function handleGoogle() {
+    setGoogleBusy(true);
+    setError(null);
+    try {
+      const result = await signInWithGoogle();
+      if (!result.cancelled) runSyncAfterAuth();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ');
+    }
+    setGoogleBusy(false);
   }
 
   function handleLogout() {
@@ -81,18 +106,28 @@ export default function SyncAccountScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scroll}>
-          <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
-            <Text style={[textType.label, { color: c.muted, fontSize: 12 }]}>ล็อกอินอยู่ในชื่อ</Text>
-            <Text style={[textType.cardTitle, { color: c.text, fontSize: 16, marginTop: 2 }]}>{session.user.email}</Text>
-          </View>
+          <FadeInView>
+            <Bubble c={c} scheme={scheme} pose="goal" accent={c.brand}>
+              <Text style={[textType.cardTitle, { color: c.text, fontSize: 16 }]}>ซิงค์พร้อมใช้งานแล้ว</Text>
+              <Text style={[textType.label, { color: c.subtext, fontSize: 12.5, marginTop: 3 }]}>{session.user.email}</Text>
+            </Bubble>
+          </FadeInView>
 
-          <Squish style={[styles.button, { backgroundColor: c.brand }]} onPress={runSyncAfterAuth}>
-            <Text style={[textType.row, { color: '#fff', fontSize: 15 }]}>ซิงค์เดี๋ยวนี้</Text>
-          </Squish>
-          {syncMsg && <Text style={[textType.label, { color: c.muted, fontSize: 12, textAlign: 'center' }]}>{syncMsg}</Text>}
+          <FadeInView delay={motion.stagger}>
+            <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+              <Squish style={[styles.primaryButton, { backgroundColor: c.brand }]} onPress={runSyncAfterAuth}>
+                <Text style={[textType.row, { color: '#fff', fontSize: 15 }]}>ซิงค์เดี๋ยวนี้</Text>
+              </Squish>
+              {syncMsg && (
+                <Text style={[textType.label, { color: c.muted, fontSize: 12, textAlign: 'center', marginTop: 10 }]}>
+                  {syncMsg}
+                </Text>
+              )}
+            </View>
+          </FadeInView>
 
-          <Squish style={[styles.button, { backgroundColor: c.surfaceAlt, marginTop: 8 }]} onPress={handleLogout}>
-            <Text style={[textType.row, { color: c.text, fontSize: 15 }]}>ออกจากระบบ</Text>
+          <Squish onPress={handleLogout} style={styles.logoutLink}>
+            <Text style={[textType.label, { color: c.danger, fontSize: 13 }]}>ออกจากระบบ</Text>
           </Squish>
         </ScrollView>
       </SafeAreaView>
@@ -103,12 +138,29 @@ export default function SyncAccountScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <Text style={[textType.label, { color: c.muted, fontSize: 13 }]}>
-            ล็อกอินเพื่อสำรองข้อมูลไว้บนเซิร์ฟเวอร์ และใช้ข้อมูลเดียวกันได้ทุกเครื่อง — ไม่ล็อกอินก็ใช้แอปได้ตามปกติ
-            ข้อมูลจะอยู่ในเครื่องนี้เครื่องเดียว
-          </Text>
+          <FadeInView>
+            <Bubble c={c} scheme={scheme} pose="idle" accent={c.carb}>
+              <Text style={[textType.cardTitle, { color: c.text, fontSize: 16 }]}>เก็บข้อมูลของคุณไว้ให้ปลอดภัย</Text>
+              <Text style={[textType.label, { color: c.subtext, fontSize: 12.5, marginTop: 3, lineHeight: 18 }]}>
+                สำรองไว้บนเซิร์ฟเวอร์ แล้วใช้ข้อมูลเดียวกันได้ทุกเครื่อง — ไม่สมัครก็ใช้แอปได้ตามปกติ
+              </Text>
+            </Bubble>
+          </FadeInView>
 
-          <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+          <FadeInView delay={motion.stagger} style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+            <Segmented
+              c={c}
+              value={mode}
+              onChange={(m) => {
+                setMode(m);
+                setError(null);
+              }}
+              options={[
+                { key: 'login', label: 'เข้าสู่ระบบ' },
+                { key: 'signup', label: 'สร้างบัญชีใหม่' },
+              ]}
+            />
+
             <TextInput
               value={email}
               onChangeText={setEmail}
@@ -128,9 +180,13 @@ export default function SyncAccountScreen() {
               secureTextEntry
               style={[styles.input, { color: c.text, backgroundColor: c.surfaceAlt, fontFamily: fontFamily(500) }]}
             />
-            {error && <Text style={[textType.label, { color: '#e5484d', fontSize: 12 }]}>{error}</Text>}
+            {error && (
+              <View style={[styles.errorBox, { backgroundColor: c.dangerBg }]}>
+                <Text style={[textType.label, { color: c.danger, fontSize: 12.5 }]}>{error}</Text>
+              </View>
+            )}
 
-            <Squish style={[styles.button, { backgroundColor: c.brand }]} onPress={handleSubmit} disabled={busy}>
+            <Squish style={[styles.primaryButton, { backgroundColor: c.brand, marginTop: error ? 10 : 14 }]} onPress={handleSubmit} disabled={busy}>
               {busy ? (
                 <ActivityIndicator color="#fff" />
               ) : (
@@ -140,22 +196,126 @@ export default function SyncAccountScreen() {
               )}
             </Squish>
 
-            <Squish onPress={() => setMode(mode === 'signup' ? 'login' : 'signup')} style={{ alignItems: 'center', paddingVertical: 10 }}>
-              <Text style={[textType.label, { color: c.brand, fontSize: 13 }]}>
-                {mode === 'signup' ? 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบ' : 'ยังไม่มีบัญชี? สร้างบัญชีใหม่'}
-              </Text>
+            <View style={styles.dividerRow}>
+              <View style={[styles.dividerLine, { backgroundColor: c.line }]} />
+              <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>หรือ</Text>
+              <View style={[styles.dividerLine, { backgroundColor: c.line }]} />
+            </View>
+
+            <Squish
+              style={[styles.googleButton, { backgroundColor: c.surface, borderColor: c.line }]}
+              onPress={handleGoogle}
+              disabled={googleBusy}
+            >
+              {googleBusy ? (
+                <ActivityIndicator color={c.text} />
+              ) : (
+                <>
+                  <GoogleMark />
+                  <Text style={[textType.row, { color: c.text, fontSize: 14 }]}>ดำเนินการต่อด้วย Google</Text>
+                </>
+              )}
             </Squish>
-          </View>
+          </FadeInView>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
+/** ฟองคำพูดของมาสคอต — ใช้ลายเดียวกับ MascotGreeting บนแดชบอร์ด ให้หน้านี้รู้สึกเป็นส่วนเดียวกับแอป ไม่ใช่ฟอร์มแปะเพิ่ม */
+function Bubble({
+  c,
+  scheme,
+  pose,
+  accent,
+  children,
+}: {
+  c: ReturnType<typeof useTheme>;
+  scheme: 'light' | 'dark';
+  pose: 'idle' | 'goal';
+  accent: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.bubbleWrap}>
+      <Mascot size={56} pose={pose} />
+      <View style={[styles.bubble, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+        <View style={[styles.bubbleAccent, { backgroundColor: accent }]} />
+        <View style={{ flex: 1, minWidth: 0 }}>{children}</View>
+      </View>
+    </View>
+  );
+}
+
+function Segmented({
+  options,
+  value,
+  onChange,
+  c,
+}: {
+  options: { key: Mode; label: string }[];
+  value: Mode;
+  onChange: (v: Mode) => void;
+  c: ReturnType<typeof useTheme>;
+}) {
+  return (
+    <View style={[styles.segmented, { backgroundColor: c.surfaceAlt }]}>
+      {options.map((opt) => {
+        const active = opt.key === value;
+        return (
+          <Squish key={opt.key} onPress={() => onChange(opt.key)} style={[styles.segment, active && { backgroundColor: c.surface }]}>
+            <Text style={[textType.row, { color: active ? c.text : c.muted, fontSize: 13 }]}>{opt.label}</Text>
+          </Squish>
+        );
+      })}
+    </View>
+  );
+}
+
+/** ตัว G แบบย่อ 4 สีของ Google — วงกลมเล็กพอไม่ต้องพึ่งไฟล์โลโก้จริง */
+function GoogleMark() {
+  return (
+    <View style={googleMarkStyles.ring}>
+      <Text style={googleMarkStyles.letter}>G</Text>
+    </View>
+  );
+}
+
+const googleMarkStyles = StyleSheet.create({
+  ring: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#4285F4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  letter: { color: '#fff', fontSize: 12, fontWeight: '700', fontFamily: Platform.select({ ios: 'Helvetica', default: 'sans-serif' }) },
+});
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { padding: 18, gap: 14 },
-  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 10 },
-  input: { height: 48, borderRadius: radius.cardInner, paddingHorizontal: 14, fontSize: 15 },
-  button: { height: 48, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  bubbleWrap: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 2 },
+  bubble: { flex: 1, flexDirection: 'row', gap: 10, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 14, marginTop: 6 },
+  bubbleAccent: { width: 3, borderRadius: 2, alignSelf: 'stretch' },
+  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16 },
+  segmented: { flexDirection: 'row', borderRadius: radius.pill, padding: 4, marginBottom: 14 },
+  segment: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: radius.iconBox },
+  input: { height: 48, borderRadius: radius.cardInner, paddingHorizontal: 14, fontSize: 15, marginBottom: 10 },
+  errorBox: { borderRadius: radius.iconBox, padding: 10, marginTop: 2 },
+  primaryButton: { height: 48, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18, marginBottom: 14 },
+  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth },
+  googleButton: {
+    height: 48,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  logoutLink: { alignItems: 'center', paddingVertical: 12 },
 });
