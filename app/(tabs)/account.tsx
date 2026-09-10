@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { User, Target, PieChart, Activity, TrendingUp, RefreshCw, Palette, type LucideIcon } from 'lucide-react-native';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { useNumiStore } from '../../lib/store';
 import { type } from '../../lib/fonts';
@@ -10,20 +11,25 @@ import { Mascot } from '../../components/mascot';
 import { ReminderSettings } from '../../components/reminder-settings';
 import { Squish } from '../../components/squish';
 
+// bgKey/fgKey จับคู่กันเสมอ (พื้นอ่อน + ตัวอักษร/ไอคอนเข้ม สีเดียวกัน) ไล่สีตามหมวดจริง ไม่ใช่สุ่ม:
+// น้ำเงิน (brand) = ตัวตนกับเป้าหมาย, ม่วง (dinner) = กิจกรรม, ทอง (fat) = แนวโน้มน้ำหนัก,
+// เขียว (carb) = ซิงค์/เชื่อมต่อ (สีเดียวกับที่แถบคาร์บใช้ในวงแหวนแคลอรี่ ให้ความรู้สึก "ไหลต่อกัน")
 const ROWS: {
   label: string;
-  bgKey: 'brandTint' | 'dinnerBg' | 'surfaceAlt';
+  icon: LucideIcon;
+  bgKey: 'brandTint' | 'dinnerBg' | 'fatBg' | 'carbBg' | 'surfaceAlt';
+  fgKey: 'brand' | 'dinner' | 'fatText' | 'carbText' | 'muted';
   route?: '/account-edit' | '/weight-history' | '/activity-history' | '/sync-account';
   editStep?: 'basic' | 'goal' | 'macros' | 'summary';
   disabled?: boolean;
 }[] = [
-  { label: 'ข้อมูลส่วนตัว', bgKey: 'brandTint', route: '/account-edit', editStep: 'basic' },
-  { label: 'เป้าหมายน้ำหนัก', bgKey: 'brandTint', route: '/account-edit', editStep: 'goal' },
-  { label: 'เป้าหมายสารอาหาร', bgKey: 'brandTint', route: '/account-edit', editStep: 'macros' },
-  { label: 'ประวัติกิจกรรม', bgKey: 'dinnerBg', route: '/activity-history' },
-  { label: 'ประวัติน้ำหนัก', bgKey: 'brandTint', route: '/weight-history' },
-  { label: 'ซิงค์ข้ามอุปกรณ์', bgKey: 'dinnerBg', route: '/sync-account' },
-  { label: 'ตั้งค่าแอป · ธีม', bgKey: 'surfaceAlt', route: '/account-edit', editStep: 'summary' },
+  { label: 'ข้อมูลส่วนตัว', icon: User, bgKey: 'brandTint', fgKey: 'brand', route: '/account-edit', editStep: 'basic' },
+  { label: 'เป้าหมายน้ำหนัก', icon: Target, bgKey: 'brandTint', fgKey: 'brand', route: '/account-edit', editStep: 'goal' },
+  { label: 'เป้าหมายสารอาหาร', icon: PieChart, bgKey: 'brandTint', fgKey: 'brand', route: '/account-edit', editStep: 'macros' },
+  { label: 'ประวัติกิจกรรม', icon: Activity, bgKey: 'dinnerBg', fgKey: 'dinner', route: '/activity-history' },
+  { label: 'ประวัติน้ำหนัก', icon: TrendingUp, bgKey: 'fatBg', fgKey: 'fatText', route: '/weight-history' },
+  { label: 'ซิงค์ข้ามอุปกรณ์', icon: RefreshCw, bgKey: 'carbBg', fgKey: 'carbText', route: '/sync-account' },
+  { label: 'ตั้งค่าแอป · ธีม', icon: Palette, bgKey: 'surfaceAlt', fgKey: 'muted', route: '/account-edit', editStep: 'summary' },
 ];
 
 export default function AccountScreen() {
@@ -92,7 +98,9 @@ export default function AccountScreen() {
                 else router.push(row.route);
               }}
             >
-              <View style={[styles.rowIcon, { backgroundColor: c[row.bgKey] }]} />
+              <View style={[styles.rowIcon, { backgroundColor: c[row.bgKey] }]}>
+                <row.icon size={16} color={row.disabled ? c.faint : c[row.fgKey]} strokeWidth={2.25} />
+              </View>
               <Text style={[type.row, { color: row.disabled ? c.faint : c.text, fontSize: 14, flex: 1 }]}>{row.label}</Text>
               {row.disabled ? (
                 <Text style={[type.badge, { color: c.faint, fontSize: 10 }]}>เร็ว ๆ นี้</Text>
@@ -129,5 +137,5 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.cardInner, padding: 13, gap: 2 },
   listCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 52, paddingHorizontal: 16 },
-  rowIcon: { width: 30, height: 30, borderRadius: 11 },
+  rowIcon: { width: 30, height: 30, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
 });
