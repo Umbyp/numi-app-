@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { useNumiStore } from '../lib/store';
 import { saveProfile, addOrUpdateWeightToday } from '../lib/db/queries';
@@ -34,6 +34,17 @@ const STEP_TITLES: Record<StepKey, string> = {
   summary: 'สรุปผล',
 };
 
+// เข้าจากเมนู "ข้อมูลส่วนตัว" / "เป้าหมายน้ำหนัก" / "เป้าหมายสารอาหาร" ควรแก้แค่เรื่องนั้นแล้วบันทึกได้เลย
+// ไม่ใช่ต้องไล่ Next ผ่านทุกขั้นของ wizard onboarding — เฉพาะตอนเข้าแบบไม่ระบุ step (ปุ่ม "แก้ไข" บนสุด) ถึงจะได้ wizard เต็ม
+const FOCUSED_HEADER_TITLE: Record<StepKey, string> = {
+  basic: 'ข้อมูลส่วนตัว',
+  goal: 'เป้าหมายน้ำหนัก',
+  activity: 'ระดับกิจกรรม',
+  muscle: 'จุดประสงค์พิเศษ',
+  macros: 'เป้าหมายสารอาหาร',
+  summary: 'สรุปผล',
+};
+
 const MACRO_RATIONALE: Record<GoalType, string> = {
   lose: 'โปรตีนสูงขึ้นเพื่อรักษามวลกล้ามเนื้อระหว่างแคลอรี่ขาด',
   maintain: 'สัดส่วนสมดุลกลาง ๆ เหมาะกับการรักษาน้ำหนักคงที่ (TDEE)',
@@ -51,6 +62,9 @@ export default function AccountEditScreen() {
     const idx = STEP_KEYS.indexOf((params.step as StepKey) ?? 'basic');
     return idx >= 0 ? idx : 0;
   });
+  // มี step param แปลว่าเข้ามาแก้เรื่องเดียวจากเมนูบัญชี — โชว์แค่ step นั้นแล้วบันทึกได้เลย
+  // ไม่มี step param (ปุ่ม "แก้ไข" บนสุด) แปลว่าเป็น wizard เต็มแบบตอน onboarding ไล่ Next ทีละขั้น
+  const focusedEdit = !!params.step && STEP_KEYS.includes(params.step as StepKey);
 
   const [sex, setSex] = useState<Sex>('female');
   const [birthYear, setBirthYear] = useState('1995');
@@ -160,20 +174,25 @@ export default function AccountEditScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['bottom']}>
+      <Stack.Screen
+        options={{ title: focusedEdit ? FOCUSED_HEADER_TITLE[STEP_KEYS[step]] : 'แก้ไขโปรไฟล์และเป้าหมาย' }}
+      />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <View style={styles.progressWrap}>
-          <View style={[styles.progressTrack, { backgroundColor: c.surfaceAlt }]}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${((step + 1) / STEP_KEYS.length) * 100}%`, backgroundColor: c.brand },
-              ]}
-            />
+        {!focusedEdit && (
+          <View style={styles.progressWrap}>
+            <View style={[styles.progressTrack, { backgroundColor: c.surfaceAlt }]}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${((step + 1) / STEP_KEYS.length) * 100}%`, backgroundColor: c.brand },
+                ]}
+              />
+            </View>
+            <Text style={[textType.label, { color: c.muted, fontSize: 12, marginTop: 6 }]}>
+              ขั้นตอน {step + 1} จาก {STEP_KEYS.length} · {STEP_TITLES[STEP_KEYS[step]]}
+            </Text>
           </View>
-          <Text style={[textType.label, { color: c.muted, fontSize: 12, marginTop: 6 }]}>
-            ขั้นตอน {step + 1} จาก {STEP_KEYS.length} · {STEP_TITLES[STEP_KEYS[step]]}
-          </Text>
-        </View>
+        )}
 
         <ScrollView contentContainerStyle={styles.scroll}>
           {STEP_KEYS[step] === 'basic' && (
@@ -338,55 +357,91 @@ export default function AccountEditScreen() {
           )}
 
           {STEP_KEYS[step] === 'summary' && (
-            <>
-              {preview && (
-                <View style={[styles.previewCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
-                  <Text style={[textType.label, { color: c.muted, fontSize: 12 }]}>
-                    BMR {Math.round(preview.bmr)} kcal · TDEE {Math.round(preview.tdee)} kcal
-                  </Text>
-                  <Text style={[textType.metric, styles.previewTarget, { color: c.text }]}>
-                    {preview.target.toLocaleString()} kcal/วัน
-                  </Text>
-                  {preview.clamped && (
-                    <Text style={[textType.label, { color: c.muted, fontSize: 12 }]}>
-                      ปรับขึ้นเป็นพื้นขั้นต่ำ {preview.floor} kcal เพื่อความปลอดภัย
-                    </Text>
-                  )}
-                  <Text style={[textType.label, { color: c.muted, fontSize: 12, marginTop: 6 }]}>
-                    P {preview.macros.proteinG}g · C {preview.macros.carbG}g · F {preview.macros.fatG}g
-                  </Text>
-                </View>
-              )}
-            </>
+            <PreviewCard preview={preview} c={c} scheme={scheme} />
+          )}
+
+          {focusedEdit && STEP_KEYS[step] !== 'summary' && (
+            <PreviewCard preview={preview} c={c} scheme={scheme} />
           )}
         </ScrollView>
 
         <View style={styles.footerRow}>
-          {step > 0 && (
-            <Squish style={[styles.ghostBtn, { backgroundColor: c.surfaceAlt }]} onPress={goBack}>
-              <Text style={[textType.row, { color: c.subtext, fontSize: 14 }]}>ย้อนกลับ</Text>
-            </Squish>
-          )}
-          {step < STEP_KEYS.length - 1 ? (
+          {focusedEdit ? (
             <Squish scaleTo={0.97}
-              style={[styles.primaryBtn, { backgroundColor: c.brand }, nextDisabled && { opacity: 0.5 }]}
-              disabled={nextDisabled}
-              onPress={goNext}
-            >
-              <Text style={[textType.row, styles.saveBtnText]}>ถัดไป</Text>
-            </Squish>
-          ) : (
-            <Squish scaleTo={0.97}
-              style={[styles.primaryBtn, { backgroundColor: c.brand }, (saving || !preview) && { opacity: 0.6 }]}
-              disabled={saving || !preview}
+              style={[styles.primaryBtn, { flex: 1, backgroundColor: c.brand }, (saving || !preview || (STEP_KEYS[step] === 'goal' && rateUnsafe)) && { opacity: 0.6 }]}
+              disabled={saving || !preview || (STEP_KEYS[step] === 'goal' && rateUnsafe)}
               onPress={handleSave}
             >
-              <Text style={[textType.row, styles.saveBtnText]}>{saving ? 'กำลังบันทึก...' : 'บันทึกเป้าหมาย'}</Text>
+              <Text style={[textType.row, styles.saveBtnText]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
             </Squish>
+          ) : (
+            <>
+              {step > 0 && (
+                <Squish style={[styles.ghostBtn, { backgroundColor: c.surfaceAlt }]} onPress={goBack}>
+                  <Text style={[textType.row, { color: c.subtext, fontSize: 14 }]}>ย้อนกลับ</Text>
+                </Squish>
+              )}
+              {step < STEP_KEYS.length - 1 ? (
+                <Squish scaleTo={0.97}
+                  style={[styles.primaryBtn, { backgroundColor: c.brand }, nextDisabled && { opacity: 0.5 }]}
+                  disabled={nextDisabled}
+                  onPress={goNext}
+                >
+                  <Text style={[textType.row, styles.saveBtnText]}>ถัดไป</Text>
+                </Squish>
+              ) : (
+                <Squish scaleTo={0.97}
+                  style={[styles.primaryBtn, { backgroundColor: c.brand }, (saving || !preview) && { opacity: 0.6 }]}
+                  disabled={saving || !preview}
+                  onPress={handleSave}
+                >
+                  <Text style={[textType.row, styles.saveBtnText]}>{saving ? 'กำลังบันทึก...' : 'บันทึกเป้าหมาย'}</Text>
+                </Squish>
+              )}
+            </>
           )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+interface PreviewData {
+  bmr: number;
+  tdee: number;
+  target: number;
+  clamped: boolean;
+  floor: number;
+  macros: { proteinG: number; carbG: number; fatG: number };
+}
+
+function PreviewCard({
+  preview,
+  c,
+  scheme,
+}: {
+  preview: PreviewData | null;
+  c: ReturnType<typeof useTheme>;
+  scheme: ReturnType<typeof useScheme>;
+}) {
+  if (!preview) return null;
+  return (
+    <View style={[styles.previewCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+      <Text style={[textType.label, { color: c.muted, fontSize: 12 }]}>
+        BMR {Math.round(preview.bmr)} kcal · TDEE {Math.round(preview.tdee)} kcal
+      </Text>
+      <Text style={[textType.metric, styles.previewTarget, { color: c.text }]}>
+        {preview.target.toLocaleString()} kcal/วัน
+      </Text>
+      {preview.clamped && (
+        <Text style={[textType.label, { color: c.muted, fontSize: 12 }]}>
+          ปรับขึ้นเป็นพื้นขั้นต่ำ {preview.floor} kcal เพื่อความปลอดภัย
+        </Text>
+      )}
+      <Text style={[textType.label, { color: c.muted, fontSize: 12, marginTop: 6 }]}>
+        P {preview.macros.proteinG}g · C {preview.macros.carbG}g · F {preview.macros.fatG}g
+      </Text>
+    </View>
   );
 }
 
