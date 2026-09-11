@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.enablebrain.numi"
+      "bundleIdentifier": "com.enablebrain.numi",
+      "appleTeamId": "XH8KHJL4LS"
     },
     "android": {
       "package": "com.enablebrain.numi",
