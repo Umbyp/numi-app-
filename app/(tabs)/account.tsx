@@ -4,6 +4,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, Target, PieChart, Activity, TrendingUp, RefreshCw, Palette, Users, Heart, Soup, ClipboardCheck, Trophy, type LucideIcon } from 'lucide-react-native';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
+import { getErrorMessage } from '../../lib/errors';
 import { useNumiStore } from '../../lib/store';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
@@ -99,7 +100,7 @@ export default function AccountScreen() {
       await updatePrivacySettings(patch);
     } catch (e) {
       setPrivacy(prev);
-      Alert.alert('บันทึกไม่สำเร็จ', e instanceof Error ? e.message : String(e));
+      Alert.alert('บันทึกไม่สำเร็จ', getErrorMessage(e));
     }
   }
 

@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Flag, Download } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
+import { getErrorMessage } from '../lib/errors';
 import { type as textType, fontFamily } from '../lib/fonts';
 import { radius } from '../lib/theme';
 import { Squish } from '../components/squish';
@@ -33,7 +34,7 @@ export default function CommunityFoodsScreen() {
     setLoading(true);
     browseApprovedFoods(q)
       .then(setResults)
-      .catch((e) => Alert.alert('ค้นหาไม่สำเร็จ', e instanceof Error ? e.message : String(e)))
+      .catch((e) => Alert.alert('ค้นหาไม่สำเร็จ', getErrorMessage(e)))
       .finally(() => setLoading(false));
   }, []);
 
@@ -41,7 +42,7 @@ export default function CommunityFoodsScreen() {
     setLoading(true);
     getMySubmissions()
       .then(setMine)
-      .catch((e) => Alert.alert('โหลดไม่สำเร็จ', e instanceof Error ? e.message : String(e)))
+      .catch((e) => Alert.alert('โหลดไม่สำเร็จ', getErrorMessage(e)))
       .finally(() => setLoading(false));
   }, []);
 
@@ -74,7 +75,7 @@ export default function CommunityFoodsScreen() {
       });
       setImportedIds((prev) => new Set(prev).add(food.id));
     } catch (e) {
-      Alert.alert('นำเข้าไม่สำเร็จ', e instanceof Error ? e.message : String(e));
+      Alert.alert('นำเข้าไม่สำเร็จ', getErrorMessage(e));
     }
   }
 
@@ -89,7 +90,7 @@ export default function CommunityFoodsScreen() {
             await reportFood(food.id);
             Alert.alert('รายงานแล้ว', 'ขอบคุณที่ช่วยตรวจสอบ');
           } catch (e) {
-            Alert.alert('รายงานไม่สำเร็จ', e instanceof Error ? e.message : String(e));
+            Alert.alert('รายงานไม่สำเร็จ', getErrorMessage(e));
           }
         },
       },

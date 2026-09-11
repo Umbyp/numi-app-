@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, X } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
+import { getErrorMessage } from '../lib/errors';
 import { type as textType, fontFamily } from '../lib/fonts';
 import { radius } from '../lib/theme';
 import { Squish } from '../components/squish';
@@ -29,7 +30,7 @@ export default function FoodReviewQueueScreen() {
       }
       setItems(await listPendingForReview());
     } catch (e) {
-      Alert.alert('โหลดคิวไม่สำเร็จ', e instanceof Error ? e.message : String(e));
+      Alert.alert('โหลดคิวไม่สำเร็จ', getErrorMessage(e));
       router.back();
     } finally {
       setLoading(false);
@@ -47,7 +48,7 @@ export default function FoodReviewQueueScreen() {
       await approveFood(id);
       setItems((prev) => prev.filter((i) => i.id !== id));
     } catch (e) {
-      Alert.alert('อนุมัติไม่สำเร็จ', e instanceof Error ? e.message : String(e));
+      Alert.alert('อนุมัติไม่สำเร็จ', getErrorMessage(e));
     }
   }
 
@@ -59,7 +60,7 @@ export default function FoodReviewQueueScreen() {
       setRejectingId(null);
       setReason('');
     } catch (e) {
-      Alert.alert('ปฏิเสธไม่สำเร็จ', e instanceof Error ? e.message : String(e));
+      Alert.alert('ปฏิเสธไม่สำเร็จ', getErrorMessage(e));
     }
   }
 

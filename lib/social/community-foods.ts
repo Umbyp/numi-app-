@@ -77,6 +77,7 @@ export async function submitFoodForReview(input: SubmitFoodInput): Promise<void>
 }
 
 export async function browseApprovedFoods(query: string, limit = 30): Promise<CommunityFood[]> {
+  await currentUserId();
   let q = supabase.from('community_foods').select(SELECT_COLUMNS).eq('status', 'approved').limit(limit);
   const trimmed = query.trim();
   if (trimmed) q = q.or(`name.ilike.%${trimmed}%,name_en.ilike.%${trimmed}%`);

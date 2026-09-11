@@ -4,6 +4,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { UserPlus, Check, X } from 'lucide-react-native';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
+import { getErrorMessage } from '../lib/errors';
 import { type as textType, fontFamily } from '../lib/fonts';
 import { radius, cardShadow, MIN_TOUCH } from '../lib/theme';
 import { Squish } from '../components/squish';
@@ -36,7 +37,7 @@ export default function FriendsScreen() {
       setIncoming(requests.incoming);
       setOutgoing(requests.outgoing);
     } catch (e) {
-      Alert.alert('โหลดข้อมูลเพื่อนไม่สำเร็จ', e instanceof Error ? e.message : String(e));
+      Alert.alert('โหลดข้อมูลเพื่อนไม่สำเร็จ', getErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -57,7 +58,7 @@ export default function FriendsScreen() {
       await load();
       Alert.alert('ส่งคำขอแล้ว');
     } catch (e) {
-      Alert.alert('ส่งคำขอไม่สำเร็จ', e instanceof Error ? e.message : String(e));
+      Alert.alert('ส่งคำขอไม่สำเร็จ', getErrorMessage(e));
     } finally {
       setSending(false);
     }
@@ -68,7 +69,7 @@ export default function FriendsScreen() {
       await respondToRequest(requestId, accept);
       await load();
     } catch (e) {
-      Alert.alert('ดำเนินการไม่สำเร็จ', e instanceof Error ? e.message : String(e));
+      Alert.alert('ดำเนินการไม่สำเร็จ', getErrorMessage(e));
     }
   }
 

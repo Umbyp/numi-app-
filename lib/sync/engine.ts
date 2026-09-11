@@ -1,4 +1,5 @@
 import { supabase } from '../auth/client';
+import { getErrorMessage } from '../errors';
 import { sqliteDb } from '../db/client';
 import { SYNC_TABLES, type SyncTableConfig } from './config';
 
@@ -120,7 +121,7 @@ export async function syncAll(): Promise<SyncResult> {
       for (const cfg of SYNC_TABLES) await pullTable(cfg, userId);
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : String(e) };
+      return { ok: false, error: getErrorMessage(e) };
     }
   })();
   try {

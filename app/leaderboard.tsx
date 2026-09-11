@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../lib/hooks/use-theme';
+import { getErrorMessage } from '../lib/errors';
 import { type as textType } from '../lib/fonts';
 import { radius } from '../lib/theme';
 import { Squish } from '../components/squish';
@@ -38,7 +39,7 @@ export default function LeaderboardScreen() {
       setChallenges(list);
       setSelectedId((prev) => prev ?? list[0]?.id ?? null);
     } catch (e) {
-      Alert.alert('โหลดไม่สำเร็จ', e instanceof Error ? e.message : String(e));
+      Alert.alert('โหลดไม่สำเร็จ', getErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -54,7 +55,7 @@ export default function LeaderboardScreen() {
     if (!selectedId) return;
     getLeaderboard(selectedId)
       .then(setEntries)
-      .catch((e) => Alert.alert('โหลดตารางอันดับไม่สำเร็จ', e instanceof Error ? e.message : String(e)));
+      .catch((e) => Alert.alert('โหลดตารางอันดับไม่สำเร็จ', getErrorMessage(e)));
   }, [selectedId]);
 
   async function handleOptIn() {
@@ -62,7 +63,7 @@ export default function LeaderboardScreen() {
       await updatePrivacySettings({ leaderboardOptIn: true });
       await load();
     } catch (e) {
-      Alert.alert('เปิดใช้งานไม่สำเร็จ', e instanceof Error ? e.message : String(e));
+      Alert.alert('เปิดใช้งานไม่สำเร็จ', getErrorMessage(e));
     }
   }
 

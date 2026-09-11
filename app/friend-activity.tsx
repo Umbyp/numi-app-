@@ -4,6 +4,7 @@ import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Heart } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
+import { getErrorMessage } from '../lib/errors';
 import { type as textType } from '../lib/fonts';
 import { radius, MIN_TOUCH } from '../lib/theme';
 import { Squish } from '../components/squish';
@@ -40,7 +41,7 @@ export default function FriendActivityScreen() {
         setWorkouts(w);
         setTrend(t);
       })
-      .catch((e) => Alert.alert('โหลดข้อมูลไม่สำเร็จ', e instanceof Error ? e.message : String(e)))
+      .catch((e) => Alert.alert('โหลดข้อมูลไม่สำเร็จ', getErrorMessage(e)))
       .finally(() => setLoading(false));
   }, [friendId]);
 
@@ -52,7 +53,7 @@ export default function FriendActivityScreen() {
       await giveKudos(workoutId, friendId);
       setGiven((prev) => new Set(prev).add(workoutId));
     } catch (e) {
-      Alert.alert('ให้กำลังใจไม่สำเร็จ', e instanceof Error ? e.message : String(e));
+      Alert.alert('ให้กำลังใจไม่สำเร็จ', getErrorMessage(e));
     }
   }
 
