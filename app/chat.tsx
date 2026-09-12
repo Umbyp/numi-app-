@@ -121,7 +121,7 @@ export default function ChatScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }} keyboardVerticalOffset={90}>
         <View style={[styles.header, { borderBottomColor: c.line }]}>
-          <Mascot size={40} pose="idle" />
+          <Mascot size={40} pose="start" />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={[type.cardTitle, { color: c.text, fontSize: 16 }]}>Numi</Text>
             <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>เห็นบันทึกวันนี้ของคุณ</Text>

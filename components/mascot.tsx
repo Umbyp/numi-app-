@@ -26,7 +26,6 @@ const SOURCES: Record<MascotPose, ReturnType<typeof require>> = {
   goal: require('../assets/mascot-goal.png'),
   heart: require('../assets/mascot-heart.png'),
   peace: require('../assets/mascot-peace.png'),
-  wave: require('../assets/mascot-wave.png'),
 };
 /* eslint-enable @typescript-eslint/no-require-imports */
 
