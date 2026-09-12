@@ -20,7 +20,7 @@ interface Props {
  */
 /* eslint-disable @typescript-eslint/no-require-imports */
 const SOURCES: Record<MascotPose, ReturnType<typeof require>> = {
-  idle: require('../assets/mascot.png'),
+  idle: require('../assets/mascot-start.png'),
   start: require('../assets/mascot-start.png'),
   rest: require('../assets/mascot-rest.png'),
   goal: require('../assets/mascot-goal.png'),
