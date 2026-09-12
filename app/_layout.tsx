@@ -20,16 +20,19 @@ import { colors } from '../lib/theme';
 import { ErrorBoundary } from '../components/error-boundary';
 import { supabase } from '../lib/auth/client';
 import { syncAll } from '../lib/sync/engine';
+import { Sentry } from '../lib/sentry';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <ErrorBoundary>
       <RootLayoutInner />
     </ErrorBoundary>
   );
 }
+
+export default Sentry.wrap(RootLayout);
 
 function RootLayoutInner() {
   const router = useRouter();

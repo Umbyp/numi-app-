@@ -43,7 +43,8 @@
           "microphonePermission": false
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "@sentry/react-native"
     ]
   }
 }
