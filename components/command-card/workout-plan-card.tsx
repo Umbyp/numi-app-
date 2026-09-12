@@ -62,9 +62,19 @@ export function WorkoutPlanCard({ card, onConfirm, onDismiss }: Props) {
                 <Text style={[type.badge, { color: dTint.icon }]}>{DAY_TYPE_LABEL[day.day_type]}</Text>
               </View>
             </View>
-            {day.warmup && <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>ก่อนเล่น: {day.warmup}</Text>}
+            {day.warmup && (
+              <View style={[styles.guidanceBox, { backgroundColor: c.brandTint }]}>
+                <Text style={[type.badge, { color: c.brand }]}>ก่อนเล่น</Text>
+                <Text style={[type.label, { color: c.text, fontSize: 12, lineHeight: 17 }]}>{day.warmup}</Text>
+              </View>
+            )}
             {day.during_note && <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>ระหว่างเล่น: {day.during_note}</Text>}
-            {day.cooldown && <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>หลังเล่น: {day.cooldown}</Text>}
+            {day.cooldown && (
+              <View style={[styles.guidanceBox, { backgroundColor: c.dinnerBg }]}>
+                <Text style={[type.badge, { color: c.dinner }]}>หลังเล่น</Text>
+                <Text style={[type.label, { color: c.text, fontSize: 12, lineHeight: 17 }]}>{day.cooldown}</Text>
+              </View>
+            )}
 
             {day.exercises.map((ex, exIdx) => {
               const eTint = categoryTint(ex.category, c);
@@ -130,6 +140,7 @@ function Badge({ label, bg, text }: { label: string; bg: string; text: string })
 
 const styles = StyleSheet.create({
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 14, marginVertical: 6, gap: 10 },
+  guidanceBox: { borderRadius: radius.cardInner, padding: 9, gap: 2 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   eyebrow: { letterSpacing: 0.4 },
   divider: { height: 1 },

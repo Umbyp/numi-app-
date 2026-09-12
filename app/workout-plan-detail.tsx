@@ -450,9 +450,19 @@ export default function WorkoutPlanDetailScreen() {
                   <Text style={[textType.badge, { color: dTint.icon }]}>{DAY_TYPE_LABEL[day.dayType]}</Text>
                 </View>
               </View>
-              {day.warmup && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>ก่อนเล่น: {day.warmup}</Text>}
+              {day.warmup && (
+                <View style={[styles.guidanceBox, { backgroundColor: c.brandTint }]}>
+                  <Text style={[textType.badge, { color: c.brand }]}>ก่อนเล่น</Text>
+                  <Text style={[textType.label, { color: c.text, fontSize: 12.5, lineHeight: 18 }]}>{day.warmup}</Text>
+                </View>
+              )}
               {day.duringNote && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>ระหว่างเล่น: {day.duringNote}</Text>}
-              {day.cooldown && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>หลังเล่น: {day.cooldown}</Text>}
+              {day.cooldown && (
+                <View style={[styles.guidanceBox, { backgroundColor: c.dinnerBg }]}>
+                  <Text style={[textType.badge, { color: c.dinner }]}>หลังเล่น</Text>
+                  <Text style={[textType.label, { color: c.text, fontSize: 12.5, lineHeight: 18 }]}>{day.cooldown}</Text>
+                </View>
+              )}
 
               {day.exercises.map((ex, exIdx) => (
                 <PlanExerciseCard
@@ -517,6 +527,7 @@ export default function WorkoutPlanDetailScreen() {
 const styles = StyleSheet.create({
   scroll: { padding: 18, gap: 14 },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 10 },
+  guidanceBox: { borderRadius: radius.cardInner, padding: 10, gap: 3 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   editPill: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: radius.pill, paddingHorizontal: 12, height: 32 },
   dayHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

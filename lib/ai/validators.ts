@@ -35,9 +35,11 @@ const workoutPlanExerciseSchema = z.object({
 const workoutPlanDaySchema = z.object({
   label: z.string().min(1).max(120),
   day_type: z.enum(['cardio', 'strength', 'both']),
-  warmup: z.string().max(500).optional(),
+  // บังคับให้มีเนื้อหาจริง (ไม่ใช่แค่ "warm-up 5 นาที") — ผู้ใช้ต้องได้คำแนะนำที่ทำตามได้จริง
+  // ไม่ครบก็ safeParse fail แล้วระบบขอให้ AI ส่งใหม่เอง (ดู lib/hooks/use-chat.ts) ผู้ใช้ไม่เห็นความผิดพลาดนี้เลย
+  warmup: z.string().min(25).max(500),
   during_note: z.string().max(500).optional(),
-  cooldown: z.string().max(500).optional(),
+  cooldown: z.string().min(25).max(500),
   exercises: z.array(workoutPlanExerciseSchema).min(1).max(15),
 });
 

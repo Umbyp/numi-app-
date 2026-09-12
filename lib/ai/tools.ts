@@ -42,9 +42,17 @@ export const TOOLS = [
                   enum: ['cardio', 'strength', 'both'],
                   description: 'ประเภทของวันนี้ ตัดสินจากเป้าหมายและระดับกิจกรรมของผู้ใช้',
                 },
-                warmup: { type: 'string', description: 'สิ่งที่ควรทำก่อนเริ่มเล่น เช่น warm-up 5-10 นาที' },
+                warmup: {
+                  type: 'string',
+                  description:
+                    'ท่าเตรียมร่างกายก่อนเล่นแบบเจาะจง ไม่ใช่แค่บอกเวลา ต้องระบุท่า/การเคลื่อนไหวจริง 2-4 อย่างที่เหมาะกับ day_type และกลุ่มกล้ามเนื้อของวันนั้น เช่น "เดินเร็ว 3 นาที + arm circle 10 ครั้ง + bodyweight squat 10 ครั้ง + hip circle 10 ครั้งต่อข้าง"',
+                },
                 during_note: { type: 'string', description: 'คำแนะนำภาพรวมระหว่างเล่น เช่น เน้นฟอร์ม พักเพิ่มถ้าจำเป็น' },
-                cooldown: { type: 'string', description: 'สิ่งที่ควรทำหลังเล่น เช่น ยืดเหยียดกล้ามเนื้อที่ใช้ไป' },
+                cooldown: {
+                  type: 'string',
+                  description:
+                    'ท่ายืดเหยียดหลังเล่นแบบเจาะจง ต้องครอบคลุมทุกกลุ่มกล้ามเนื้อหลักที่ใช้ไปในวันนั้น (ดูจาก muscle_group ของแต่ละท่า) ระบุชื่อท่ายืดจริงและเวลาค้าง เช่น "ยืดหน้าอก (doorway stretch) ค้าง 20 วิ + ยืดหลังไหล่ (cross-body shoulder stretch) ค้าง 20 วิต่อข้าง + child\'s pose ยืดหลังล่าง 30 วิ"',
+                },
                 exercises: {
                   type: 'array',
                   items: {
@@ -68,7 +76,7 @@ export const TOOLS = [
                   },
                 },
               },
-              required: ['label', 'day_type', 'exercises'],
+              required: ['label', 'day_type', 'warmup', 'cooldown', 'exercises'],
             },
           },
         },
