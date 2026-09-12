@@ -13,6 +13,7 @@ import { ReminderSettings } from '../../components/reminder-settings';
 import { Squish } from '../../components/squish';
 import { getPrivacySettings, updatePrivacySettings, type PrivacySettings } from '../../lib/social/friends';
 import { isModerator } from '../../lib/social/community-foods';
+import { SOCIAL_FEATURES_ENABLED, NOTIFICATION_REMINDERS_ENABLED } from '../../lib/feature-flags';
 
 // bgKey/fgKey จับคู่กันเสมอ (พื้นอ่อน + ตัวอักษร/ไอคอนเข้ม สีเดียวกัน) ไล่สีตามหมวดจริง ไม่ใช่สุ่ม:
 // น้ำเงิน (brand) = ตัวตนกับเป้าหมาย, ม่วง (dinner) = กิจกรรม, ทอง (fat) = แนวโน้มน้ำหนัก,
@@ -39,9 +40,13 @@ const ROWS: {
   { label: 'เป้าหมายสารอาหาร', icon: PieChart, bgKey: 'brandTint', fgKey: 'brand', route: '/account-edit', editStep: 'macros' },
   { label: 'ประวัติกิจกรรม', icon: Activity, bgKey: 'dinnerBg', fgKey: 'dinner', route: '/activity-history' },
   { label: 'ประวัติน้ำหนัก', icon: TrendingUp, bgKey: 'fatBg', fgKey: 'fatText', route: '/weight-history' },
-  { label: 'เพื่อน', icon: Users, bgKey: 'dinnerBg', fgKey: 'dinner', route: '/friends' },
-  { label: 'อาหารจากชุมชน', icon: Soup, bgKey: 'fatBg', fgKey: 'fatText', route: '/community-foods' },
-  { label: 'ตารางอันดับ', icon: Trophy, bgKey: 'dinnerBg', fgKey: 'dinner', route: '/leaderboard' },
+  ...(SOCIAL_FEATURES_ENABLED
+    ? ([
+        { label: 'เพื่อน', icon: Users, bgKey: 'dinnerBg', fgKey: 'dinner', route: '/friends' },
+        { label: 'อาหารจากชุมชน', icon: Soup, bgKey: 'fatBg', fgKey: 'fatText', route: '/community-foods' },
+        { label: 'ตารางอันดับ', icon: Trophy, bgKey: 'dinnerBg', fgKey: 'dinner', route: '/leaderboard' },
+      ] as const)
+    : []),
   { label: 'ล็อกอิน', icon: RefreshCw, bgKey: 'carbBg', fgKey: 'carbText', route: '/sync-account' },
 ];
 
@@ -90,7 +95,10 @@ export default function AccountScreen() {
     }, [])
   );
 
-  const rows = useMemo(() => (moderator ? [...ROWS, MODERATOR_ROW] : ROWS), [moderator]);
+  const rows = useMemo(
+    () => (SOCIAL_FEATURES_ENABLED && moderator ? [...ROWS, MODERATOR_ROW] : ROWS),
+    [moderator]
+  );
 
   async function updatePrivacy(patch: Partial<PrivacySettings>) {
     if (!privacy) return;
@@ -195,7 +203,7 @@ export default function AccountScreen() {
           </View>
         </View>
 
-        {privacy && (
+        {SOCIAL_FEATURES_ENABLED && privacy && (
           <>
             <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4, paddingLeft: 6 }]}>ความเป็นส่วนตัว</Text>
 
@@ -296,8 +304,12 @@ export default function AccountScreen() {
           </>
         )}
 
-        <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4, paddingLeft: 6 }]}>การเตือน</Text>
-        <ReminderSettings />
+        {NOTIFICATION_REMINDERS_ENABLED && (
+          <>
+            <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4, paddingLeft: 6 }]}>การเตือน</Text>
+            <ReminderSettings />
+          </>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>

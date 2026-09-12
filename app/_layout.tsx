@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, ActivityIndicator, useColorScheme } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import {
@@ -12,7 +12,7 @@ import {
   NotoSansThai_800ExtraBold,
 } from '@expo-google-fonts/noto-sans-thai';
 import { migrateDb } from '../lib/db/client';
-import { syncSeedFoods } from '../lib/db/queries';
+import { syncSeedFoods, getAppSetting } from '../lib/db/queries';
 import { configureNotificationHandler } from '../lib/notifications';
 import { useNumiStore } from '../lib/store';
 import { useScheme } from '../lib/hooks/use-theme';
@@ -32,7 +32,9 @@ export default function RootLayout() {
 }
 
 function RootLayoutInner() {
+  const router = useRouter();
   const [dbReady, setDbReady] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
   const [fontsLoaded] = useFonts({
     NotoSansThai_400Regular,
     NotoSansThai_500Medium,
@@ -43,7 +45,7 @@ function RootLayoutInner() {
   const refresh = useNumiStore((s) => s.refresh);
   const systemScheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const scheme = useScheme(); // เคารพ theme preference ที่ผู้ใช้เลือกเอง (โหลดเสร็จก่อน ready เสมอ)
-  const ready = dbReady && fontsLoaded;
+  const ready = dbReady && fontsLoaded && needsOnboarding !== null;
   const c = colors[ready ? scheme : systemScheme];
 
   useEffect(() => {
@@ -53,6 +55,8 @@ function RootLayoutInner() {
       // ต้องตั้งก่อนแจ้งเตือนตัวแรกมาถึง ไม่งั้นแบนเนอร์จะไม่ขึ้นตอนแอปเปิดอยู่
       configureNotificationHandler();
       await refresh();
+      const seen = await getAppSetting('onboarding_seen');
+      setNeedsOnboarding(!seen);
       setDbReady(true);
 
       // ซิงค์เบื้องหลังถ้าเคยล็อกอินไว้ — ไม่บล็อกหน้าจอ splash เพราะพึ่งเน็ตเวิร์กที่อาจช้า/ล่ม
@@ -67,7 +71,9 @@ function RootLayoutInner() {
   }, []);
 
   useEffect(() => {
-    if (ready) SplashScreen.hideAsync();
+    if (!ready) return;
+    SplashScreen.hideAsync();
+    if (needsOnboarding) router.replace('/onboarding');
   }, [ready]);
 
   if (!ready) {
@@ -83,6 +89,7 @@ function RootLayoutInner() {
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
         <Stack.Screen name="add-food" options={{ presentation: 'modal', headerShown: true, title: 'เพิ่มอาหาร' }} />
         <Stack.Screen name="chat" options={{ presentation: 'modal' }} />
         <Stack.Screen name="account-edit" options={{ presentation: 'modal', headerShown: true, title: 'แก้ไขโปรไฟล์และเป้าหมาย' }} />
