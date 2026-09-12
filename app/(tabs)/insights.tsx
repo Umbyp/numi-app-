@@ -143,7 +143,7 @@ export default function InsightsScreen() {
           </View>
 
           <View style={[styles.calloutRow, { backgroundColor: c.brandTint }]}>
-            <Mascot size={40} />
+            <Mascot size={40} pose="heart" />
             <Text style={[type.row, { color: c.text, fontSize: 12, flex: 1, lineHeight: 18 }]}>{insightText}</Text>
           </View>
           </>

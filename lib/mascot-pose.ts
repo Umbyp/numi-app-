@@ -5,7 +5,7 @@
 // (React Native ต้องใช้ require แบบ static จะเขียน path เป็นตัวแปรไม่ได้
 //  จึงต้องมีไฟล์อยู่จริงตั้งแต่ตอน build)
 
-export type MascotPose = 'idle' | 'start' | 'rest' | 'goal';
+export type MascotPose = 'idle' | 'start' | 'rest' | 'goal' | 'heart' | 'peace';
 
 export interface DayState {
   /** บันทึกอาหารหรือออกกำลังกายอะไรไปแล้วหรือยังในวันนี้ */

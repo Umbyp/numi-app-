@@ -121,7 +121,7 @@ export default function AccountScreen() {
         <Text style={[type.greeting, { color: c.text, fontSize: 24 }]}>บัญชี</Text>
 
         <View style={[styles.headerCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
-          <Mascot size={56} />
+          <Mascot size={56} pose="peace" />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={[type.cardTitle, { color: c.text, fontSize: 16 }]}>
               {latestWeightKg ? `${latestWeightKg.toFixed(1)} กก.` : 'ยังไม่มีน้ำหนัก'}
