@@ -18,8 +18,9 @@ import { radius, motion, cardShadow } from '../lib/theme';
 import { Squish } from '../components/squish';
 import { Mascot } from '../components/mascot';
 import { FadeInView } from '../components/fade-in';
-import { supabase, signInWithGoogle } from '../lib/auth/client';
+import { supabase, signInWithGoogle, deleteAccount } from '../lib/auth/client';
 import { syncAll } from '../lib/sync/engine';
+import { getErrorMessage } from '../lib/errors';
 
 type Mode = 'login' | 'signup';
 
@@ -35,6 +36,7 @@ export default function SyncAccountScreen() {
   const [googleBusy, setGoogleBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -94,6 +96,40 @@ export default function SyncAccountScreen() {
     ]);
   }
 
+  function handleDeleteAccount() {
+    Alert.alert(
+      'ลบบัญชีถาวร',
+      'ข้อมูลบนเซิร์ฟเวอร์ (โปรไฟล์ เพื่อน เมนูที่แชร์ ฯลฯ) จะถูกลบทันทีและกู้คืนไม่ได้ ข้อมูลในเครื่องนี้จะยังอยู่แต่หยุดซิงค์',
+      [
+        { text: 'ยกเลิก', style: 'cancel' },
+        {
+          text: 'ลบบัญชี',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('ยืนยันอีกครั้ง', 'แน่ใจนะว่าจะลบบัญชีถาวร?', [
+              { text: 'ยกเลิก', style: 'cancel' },
+              {
+                text: 'ลบถาวร',
+                style: 'destructive',
+                onPress: async () => {
+                  setDeleting(true);
+                  try {
+                    await deleteAccount();
+                    setSyncMsg(null);
+                  } catch (e) {
+                    Alert.alert('ลบบัญชีไม่สำเร็จ', getErrorMessage(e));
+                  } finally {
+                    setDeleting(false);
+                  }
+                },
+              },
+            ]);
+          },
+        },
+      ]
+    );
+  }
+
   if (session === undefined) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center' }]}>
@@ -128,6 +164,14 @@ export default function SyncAccountScreen() {
 
           <Squish onPress={handleLogout} style={styles.logoutLink}>
             <Text style={[textType.label, { color: c.danger, fontSize: 13 }]}>ออกจากระบบ</Text>
+          </Squish>
+
+          <Squish onPress={deleting ? undefined : handleDeleteAccount} style={styles.logoutLink}>
+            {deleting ? (
+              <ActivityIndicator color={c.faint} size="small" />
+            ) : (
+              <Text style={[textType.label, { color: c.faint, fontSize: 12 }]}>ลบบัญชีถาวร</Text>
+            )}
           </Squish>
         </ScrollView>
       </SafeAreaView>

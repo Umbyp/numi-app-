@@ -65,3 +65,35 @@ export async function signInWithGoogle() {
   if (setSessionError) throw setSessionError;
   return { cancelled: false };
 }
+
+/**
+ * ลบบัญชีถาวร — ต้องผ่าน Worker เพราะการลบ auth.users จริงต้องใช้ service_role key
+ * ซึ่งห้ามฝังในแอป (ดู worker/src/index.ts route /delete-account)
+ * ตารางอื่นของ user นี้ (profiles, community_foods, ฯลฯ) ตั้ง ON DELETE CASCADE ไว้แล้ว
+ * เลยลบแถวเดียวที่ GoTrue แล้วข้อมูลที่เหลือหายตามหมดโดยไม่ต้องลบทีละตาราง
+ */
+export async function deleteAccount() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) throw new Error('ต้องล็อกอินก่อนใช้ฟีเจอร์นี้');
+
+  const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
+  const appToken = process.env.EXPO_PUBLIC_APP_TOKEN;
+  if (!workerUrl || !appToken) {
+    throw new Error('ยังไม่ได้ตั้งค่า EXPO_PUBLIC_WORKER_URL / EXPO_PUBLIC_APP_TOKEN');
+  }
+
+  const res = await fetch(`${workerUrl}/delete-account`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      'x-app-token': appToken,
+    },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error ?? 'ลบบัญชีไม่สำเร็จ');
+  }
+  await supabase.auth.signOut();
+}
