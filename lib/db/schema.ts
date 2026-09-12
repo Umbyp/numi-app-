@@ -89,7 +89,7 @@ export const foods = sqliteTable('foods', {
   sodiumPer100: real('sodium_per_100').default(0),
   // หน่วยที่คนไทยใช้จริง เช่น [{"label":"1 จาน","grams":320}]
   servingUnits: text('serving_units', { mode: 'json' }).$type<ServingUnit[]>(),
-  source: text('source', { enum: ['seed', 'user', 'ai'] }).notNull().default('user'),
+  source: text('source', { enum: ['seed', 'user', 'ai', 'community'] }).notNull().default('user'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 

@@ -2,8 +2,12 @@ import * as SQLite from 'expo-sqlite';
 import { drizzle } from 'drizzle-orm/expo-sqlite';
 import * as schema from './schema';
 
-export const sqliteDb = SQLite.openDatabaseSync('numi.db');
-export const db = drizzle(sqliteDb, { schema });
+function makeDb(sqliteDb: SQLite.SQLiteDatabase) {
+  return drizzle(sqliteDb, { schema });
+}
+
+export let sqliteDb: SQLite.SQLiteDatabase = undefined as unknown as SQLite.SQLiteDatabase;
+export let db: ReturnType<typeof makeDb> = undefined as unknown as ReturnType<typeof makeDb>;
 
 const CREATE_TABLES = `
 CREATE TABLE IF NOT EXISTS profile (
@@ -320,6 +324,8 @@ let migrated: Promise<void> | null = null;
 export function migrateDb(): Promise<void> {
   if (!migrated) {
     migrated = (async () => {
+      sqliteDb = await SQLite.openDatabaseAsync('numi.db');
+      db = makeDb(sqliteDb);
       await sqliteDb.execAsync(CREATE_TABLES);
       for (const stmt of COLUMN_MIGRATIONS) {
         try {

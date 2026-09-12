@@ -1,6 +1,6 @@
 import { eq, desc, like, or, and, gte, lte, isNotNull, isNull, sql } from 'drizzle-orm';
 import { db } from './client';
-import type { ExerciseSet, TemplateItem } from './schema';
+import type { ExerciseSet, ServingUnit, TemplateItem } from './schema';
 import {
   profile,
   foods,
@@ -16,7 +16,7 @@ import {
   waterIntakes,
   type WorkoutPlanDay,
 } from './schema';
-import { localDateString } from '../nutrition';
+import { localDateString, scaleFood } from '../nutrition';
 import seedFoods from '../../data/foods-th.json';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -140,6 +140,11 @@ export async function syncSeedFoods() {
   }
 }
 
+export async function getFoodById(id: string) {
+  const rows = await db.select().from(foods).where(eq(foods.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
 export async function searchFoods(query: string, limit = 30) {
   const q = `%${query.trim()}%`;
   if (!query.trim()) {
@@ -150,6 +155,41 @@ export async function searchFoods(query: string, limit = 30) {
     .from(foods)
     .where(or(like(foods.name, q), like(foods.nameEn, q)))
     .limit(limit);
+}
+
+export interface FoodSuggestion {
+  food: typeof foods.$inferSelect;
+  grams: number;
+  kcal: number;
+  proteinG: number;
+}
+
+/**
+ * แนะนำเมนูที่พอดีกับแคลอรี่/โปรตีนที่ยังเหลือของวันนี้ (ใช้ตอนกินไปแล้วบางมื้อแต่ยังไม่ถึงเป้า)
+ * เลือกจากเมนู seed เท่านั้น (คุมคุณภาพ/ปริมาณต่อหน่วยได้แน่นอนกว่าเมนูที่ผู้ใช้พิมพ์เอง)
+ */
+export async function suggestFoodForRemaining(
+  remainingKcal: number,
+  remainingProteinG: number
+): Promise<FoodSuggestion | null> {
+  if (remainingKcal < 150) return null;
+
+  const rows = await db.select().from(foods).where(eq(foods.source, 'seed'));
+  const candidates = rows
+    .map((food) => {
+      const grams = food.servingUnits?.[0]?.grams ?? 100;
+      const scaled = scaleFood(food, grams);
+      return { food, grams, kcal: scaled.kcal, proteinG: scaled.proteinG };
+    })
+    .filter((cand) => cand.kcal > 0 && cand.kcal <= remainingKcal);
+
+  if (candidates.length === 0) return null;
+
+  candidates.sort((a, b) =>
+    remainingProteinG > 0 ? b.proteinG - a.proteinG : b.kcal - a.kcal
+  );
+
+  return candidates[0];
 }
 
 export async function createUserFood(input: {
@@ -168,6 +208,39 @@ export async function createUserFood(input: {
     carbPer100: input.carbPer100 ?? 0,
     fatPer100: input.fatPer100 ?? 0,
     source: 'user',
+    createdAt: new Date(),
+  });
+  return id;
+}
+
+/** นำเข้าเมนูที่ผ่านการตรวจแล้วจากฐานอาหารชุมชน (community_foods ฝั่ง server) มาไว้ในคลังของตัวเอง */
+export async function importCommunityFood(input: {
+  communityFoodId: string;
+  name: string;
+  nameEn?: string | null;
+  brand?: string | null;
+  kcalPer100: number;
+  proteinPer100?: number;
+  carbPer100?: number;
+  fatPer100?: number;
+  fiberPer100?: number | null;
+  sodiumPer100?: number | null;
+  servingUnits?: ServingUnit[] | null;
+}) {
+  const id = `community_${input.communityFoodId}`;
+  await db.insert(foods).values({
+    id,
+    name: input.name,
+    nameEn: input.nameEn ?? null,
+    brand: input.brand ?? null,
+    kcalPer100: input.kcalPer100,
+    proteinPer100: input.proteinPer100 ?? 0,
+    carbPer100: input.carbPer100 ?? 0,
+    fatPer100: input.fatPer100 ?? 0,
+    fiberPer100: input.fiberPer100 ?? 0,
+    sodiumPer100: input.sodiumPer100 ?? 0,
+    servingUnits: input.servingUnits ?? null,
+    source: 'community',
     createdAt: new Date(),
   });
   return id;
