@@ -57,7 +57,7 @@ export function ChatBubble({ role, text, imageUri, lastOfRun, firstOfRun }: Prop
   // ฝั่ง Numi มีรูปมาสคอตนำ ทำให้รู้ว่าใครพูด ของเดิมเป็นฟองลอย ๆ ไม่มีเจ้าของ
   return (
     <View style={styles.assistantRow}>
-      {firstOfRun ? <Mascot size={30} pose="idle" animated={false} /> : <View style={styles.avatarSpacer} />}
+      {firstOfRun ? <Mascot size={30} pose="idle" /> : <View style={styles.avatarSpacer} />}
       {bubble}
     </View>
   );

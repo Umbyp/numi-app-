@@ -27,7 +27,7 @@ const SOURCES: Record<MascotPose, ReturnType<typeof require>> = {
 };
 /* eslint-enable @typescript-eslint/no-require-imports */
 
-export function Mascot({ size = 44, pose = 'idle', style, animated = true }: Props) {
+export function Mascot({ size = 44, pose = 'idle', style, animated = false }: Props) {
   const breath = useRef(new Animated.Value(0)).current;
 
   // หายใจเบา ๆ ตลอดเวลา — ใช้ motion.duration.breath ตัวเดียวกับที่ token ไว้ให้ "ของที่ยังไม่พร้อม"
