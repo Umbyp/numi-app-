@@ -67,6 +67,16 @@ export async function signInWithGoogle() {
 }
 
 /**
+ * ส่งอีเมลลิงก์รีเซ็ตรหัสผ่าน — ลิงก์พาเข้าแอปโดยตรงผ่าน numi://auth-callback
+ * (app/auth-callback.tsx เป็นคนตรวจว่า type=recovery แล้วพาไปหน้าตั้งรหัสผ่านใหม่)
+ */
+export async function requestPasswordReset(email: string) {
+  const redirectTo = Linking.createURL('auth-callback');
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) throw error;
+}
+
+/**
  * ลบบัญชีถาวร — ต้องผ่าน Worker เพราะการลบ auth.users จริงต้องใช้ service_role key
  * ซึ่งห้ามฝังในแอป (ดู worker/src/index.ts route /delete-account)
  * ตารางอื่นของ user นี้ (profiles, community_foods, ฯลฯ) ตั้ง ON DELETE CASCADE ไว้แล้ว

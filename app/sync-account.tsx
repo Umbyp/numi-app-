@@ -18,7 +18,7 @@ import { radius, motion, cardShadow } from '../lib/theme';
 import { Squish } from '../components/squish';
 import { Mascot } from '../components/mascot';
 import { FadeInView } from '../components/fade-in';
-import { supabase, signInWithGoogle, deleteAccount } from '../lib/auth/client';
+import { supabase, signInWithGoogle, deleteAccount, requestPasswordReset } from '../lib/auth/client';
 import { syncAll } from '../lib/sync/engine';
 import { getErrorMessage } from '../lib/errors';
 
@@ -37,6 +37,7 @@ export default function SyncAccountScreen() {
   const [error, setError] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -80,6 +81,22 @@ export default function SyncAccountScreen() {
       setError(e instanceof Error ? e.message : 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ');
     }
     setGoogleBusy(false);
+  }
+
+  async function handleForgotPassword() {
+    if (!email.trim()) {
+      setError('กรอกอีเมลที่ใช้สมัครก่อน แล้วกด "ลืมรหัสผ่าน?" อีกครั้ง');
+      return;
+    }
+    setResetBusy(true);
+    setError(null);
+    try {
+      await requestPasswordReset(email.trim());
+      Alert.alert('ส่งอีเมลแล้ว', 'เช็คกล่องจดหมายแล้วกดลิงก์เพื่อตั้งรหัสผ่านใหม่');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'ส่งอีเมลรีเซ็ตรหัสผ่านไม่สำเร็จ');
+    }
+    setResetBusy(false);
   }
 
   function handleLogout() {
@@ -224,6 +241,17 @@ export default function SyncAccountScreen() {
               secureTextEntry
               style={[styles.input, { color: c.text, backgroundColor: c.surfaceAlt, fontFamily: fontFamily(500) }]}
             />
+
+            {mode === 'login' && (
+              <Squish onPress={resetBusy ? undefined : handleForgotPassword} style={styles.forgotLink}>
+                {resetBusy ? (
+                  <ActivityIndicator color={c.faint} size="small" />
+                ) : (
+                  <Text style={[textType.label, { color: c.brand, fontSize: 12.5 }]}>ลืมรหัสผ่าน?</Text>
+                )}
+              </Squish>
+            )}
+
             {error && (
               <View style={[styles.errorBox, { backgroundColor: c.dangerBg }]}>
                 <Text style={[textType.label, { color: c.danger, fontSize: 12.5 }]}>{error}</Text>
@@ -341,6 +369,7 @@ const googleMarkStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { padding: 18, gap: 14 },
+  forgotLink: { alignSelf: 'flex-end', paddingVertical: 4 },
   bubbleWrap: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 2 },
   bubble: { flex: 1, flexDirection: 'row', gap: 10, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 14, marginTop: 6 },
   bubbleAccent: { width: 3, borderRadius: 2, alignSelf: 'stretch' },

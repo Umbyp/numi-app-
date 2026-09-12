@@ -99,6 +99,8 @@ function RootLayoutInner() {
         <Stack.Screen name="scan-barcode" options={{ presentation: 'modal', headerShown: true, title: 'สแกนบาร์โค้ด' }} />
         <Stack.Screen name="workout-plan-detail" options={{ presentation: 'modal', headerShown: true, title: 'รายละเอียดแผน' }} />
         <Stack.Screen name="sync-account" options={{ presentation: 'modal', headerShown: true, title: 'ซิงค์ข้ามอุปกรณ์' }} />
+        <Stack.Screen name="auth-callback" options={{ headerShown: false }} />
+        <Stack.Screen name="reset-password" options={{ presentation: 'modal', headerShown: true, title: 'ตั้งรหัสผ่านใหม่' }} />
         <Stack.Screen name="friends" options={{ presentation: 'modal', headerShown: true, title: 'เพื่อน' }} />
         <Stack.Screen name="friend-activity" options={{ presentation: 'modal', headerShown: true, title: 'กิจกรรมของเพื่อน' }} />
         <Stack.Screen name="community-foods" options={{ presentation: 'modal', headerShown: true, title: 'อาหารจากชุมชน' }} />
