@@ -10,7 +10,7 @@ import { MealTypeIcon } from '../components/icons/meal-type-icons';
 import { FoodVisual } from '../components/food-visual';
 import { FadeInView } from '../components/fade-in';
 import { MEAL_TYPES, detectMealType, type MealType } from '../lib/meal-type';
-import { searchFoods, addMealEntry, createUserFood } from '../lib/db/queries';
+import { searchFoods, addMealEntry, createUserFood, getFoodById } from '../lib/db/queries';
 import { scaleFood } from '../lib/nutrition';
 import { type as textType, fontFamily } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
@@ -25,7 +25,7 @@ export default function AddFoodScreen() {
   const c = useTheme();
   const scheme = useScheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ mealType?: MealType; mode?: 'search' | 'manual' }>();
+  const params = useLocalSearchParams<{ mealType?: MealType; mode?: 'search' | 'manual'; prefillFoodId?: string }>();
 
   const [mealType, setMealType] = useState<MealType>(params.mealType ?? detectMealType());
   const [query, setQuery] = useState('');
@@ -54,6 +54,13 @@ export default function AddFoodScreen() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setLoggedIn(!!data.session));
   }, []);
+
+  useEffect(() => {
+    if (!params.prefillFoodId) return;
+    getFoodById(params.prefillFoodId).then((food) => {
+      if (food) pickFood(food);
+    });
+  }, [params.prefillFoodId]);
 
   function pickFood(food: Food) {
     setSelected(food);

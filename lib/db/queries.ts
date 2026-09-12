@@ -16,7 +16,7 @@ import {
   waterIntakes,
   type WorkoutPlanDay,
 } from './schema';
-import { localDateString } from '../nutrition';
+import { localDateString, scaleFood } from '../nutrition';
 import seedFoods from '../../data/foods-th.json';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -140,6 +140,11 @@ export async function syncSeedFoods() {
   }
 }
 
+export async function getFoodById(id: string) {
+  const rows = await db.select().from(foods).where(eq(foods.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
 export async function searchFoods(query: string, limit = 30) {
   const q = `%${query.trim()}%`;
   if (!query.trim()) {
@@ -150,6 +155,41 @@ export async function searchFoods(query: string, limit = 30) {
     .from(foods)
     .where(or(like(foods.name, q), like(foods.nameEn, q)))
     .limit(limit);
+}
+
+export interface FoodSuggestion {
+  food: typeof foods.$inferSelect;
+  grams: number;
+  kcal: number;
+  proteinG: number;
+}
+
+/**
+ * แนะนำเมนูที่พอดีกับแคลอรี่/โปรตีนที่ยังเหลือของวันนี้ (ใช้ตอนกินไปแล้วบางมื้อแต่ยังไม่ถึงเป้า)
+ * เลือกจากเมนู seed เท่านั้น (คุมคุณภาพ/ปริมาณต่อหน่วยได้แน่นอนกว่าเมนูที่ผู้ใช้พิมพ์เอง)
+ */
+export async function suggestFoodForRemaining(
+  remainingKcal: number,
+  remainingProteinG: number
+): Promise<FoodSuggestion | null> {
+  if (remainingKcal < 150) return null;
+
+  const rows = await db.select().from(foods).where(eq(foods.source, 'seed'));
+  const candidates = rows
+    .map((food) => {
+      const grams = food.servingUnits?.[0]?.grams ?? 100;
+      const scaled = scaleFood(food, grams);
+      return { food, grams, kcal: scaled.kcal, proteinG: scaled.proteinG };
+    })
+    .filter((cand) => cand.kcal > 0 && cand.kcal <= remainingKcal);
+
+  if (candidates.length === 0) return null;
+
+  candidates.sort((a, b) =>
+    remainingProteinG > 0 ? b.proteinG - a.proteinG : b.kcal - a.kcal
+  );
+
+  return candidates[0];
 }
 
 export async function createUserFood(input: {
