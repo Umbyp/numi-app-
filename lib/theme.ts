@@ -3,9 +3,12 @@ import { Platform } from 'react-native';
 // Token สีจาก Numi Design System — ห้าม hardcode สีในคอมโพเนนต์ เพราะแอปนี้ถูกเปิดตอนกลางคืนบ่อย
 export const colors = {
   light: {
-    bg: '#E4EFFC',
+    bg: '#E8EFF9',
     surface: '#FFFFFF',
     surfaceAlt: '#F7F9FC',
+    // การ์ดเตือน/ทิปแบบอุ่น ๆ (เช่นกล่องคำแนะนำใน onboarding, insights) — คู่กับ creamText เสมอ
+    cream: '#FFF6E9',
+    creamText: '#6B5636',
     text: '#16233D',
     subtext: '#5C6C85',
     muted: '#8593A8',
@@ -48,6 +51,8 @@ export const colors = {
     border: '#232F4B',
     brand: '#5C9BFF',
     brandTint: '#18223A',
+    cream: '#2A2216',
+    creamText: '#E8C989',
     protein: '#FF6B72',
     proteinBg: 'rgba(255,107,114,0.18)',
     proteinText: '#FF8B91',
@@ -176,9 +181,9 @@ export function fabShadow(scheme: Scheme, brandColor: string) {
   return Platform.select({
     ios: {
       shadowColor: brandColor,
-      shadowOpacity: 0.42,
-      shadowRadius: 16,
-      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.45,
+      shadowRadius: 22,
+      shadowOffset: { width: 0, height: 10 },
     },
     android: { elevation: 8 },
     default: {},
