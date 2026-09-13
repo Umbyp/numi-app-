@@ -8,7 +8,7 @@ import { useNumiStore } from '../../lib/store';
 import { getMealTotalsByDateRange, getWeightHistory, getEarliestWeight, type DayTotalsWithDate } from '../../lib/db/queries';
 import { localDateString, calcWeightProgress } from '../../lib/nutrition';
 import { type } from '../../lib/fonts';
-import { radius, cardShadow } from '../../lib/theme';
+import { radius, cardShadow, MIN_TOUCH } from '../../lib/theme';
 import { Mascot } from '../../components/mascot';
 import { EmptyState } from '../../components/empty-state';
 import { Squish } from '../../components/squish';
@@ -80,7 +80,7 @@ export default function InsightsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={[type.greeting, { color: c.text, fontSize: 24 }]}>ข้อมูลเชิงลึก</Text>
+        <Text style={[type.greeting, { color: c.text, fontSize: 22 }]}>ข้อมูลเชิงลึก</Text>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
           {PERIODS.map((p) => {
@@ -116,12 +116,11 @@ export default function InsightsScreen() {
                 <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>เฉลี่ย/วัน</Text>
               </View>
             </View>
-          </View>
-
-          <View style={styles.legendRow}>
-            <LegendDot color={c.protein} label="โปรตีน" c={c} />
-            <LegendDot color={c.carb} label="คาร์บ" c={c} />
-            <LegendDot color={c.fat} label="ไขมัน" c={c} />
+            <View style={styles.legendCol}>
+              <LegendDot color={c.protein} label="โปรตีน" c={c} />
+              <LegendDot color={c.carb} label="คาร์บ" c={c} />
+              <LegendDot color={c.fat} label="ไขมัน" c={c} />
+            </View>
           </View>
 
           <View style={styles.chartRow}>
@@ -142,9 +141,9 @@ export default function InsightsScreen() {
             })}
           </View>
 
-          <View style={[styles.calloutRow, { backgroundColor: c.brandTint }]}>
-            <Mascot size={40} pose="heart" />
-            <Text style={[type.row, { color: c.text, fontSize: 12, flex: 1, lineHeight: 18 }]}>{insightText}</Text>
+          <View style={[styles.calloutRow, { backgroundColor: c.cream }]}>
+            <Mascot size={42} pose="heart" />
+            <Text style={[type.row, { color: c.creamText, fontSize: 12.5, flex: 1, lineHeight: 19 }]}>{insightText}</Text>
           </View>
           </>
           )}
@@ -152,18 +151,23 @@ export default function InsightsScreen() {
 
         <View style={cardStyle}>
           <View style={styles.rowBetween}>
-            <Text style={[type.cardTitle, { color: c.text, fontSize: 14 }]}>น้ำหนัก</Text>
-            <View style={styles.baselineRow}>
-              <Text style={[type.cardTitle, { color: c.text, fontSize: 22 }]}>
-                {weightHistory.length ? weightHistory[weightHistory.length - 1].weightKg.toFixed(1) : '—'}
-              </Text>
-              {weightHistory.length >= 2 && (
-                <Text style={[type.row, { color: c.brand, fontSize: 12 }]}>
+            <View>
+              <Text style={[type.cardTitle, { color: c.text, fontSize: 14 }]}>น้ำหนักล่าสุด</Text>
+              <View style={styles.baselineRow}>
+                <Text style={[type.metric, { color: c.text, fontSize: 32 }]}>
+                  {weightHistory.length ? weightHistory[weightHistory.length - 1].weightKg.toFixed(1) : '—'}
+                </Text>
+                <Text style={[type.label, { color: c.muted, fontSize: 13 }]}>กก.</Text>
+              </View>
+            </View>
+            {weightHistory.length >= 2 && (
+              <View style={[styles.deltaPill, { backgroundColor: c.brandTint }]}>
+                <Text style={[type.row, { color: c.brand, fontSize: 12.5 }]}>
                   {weightDelta > 0 ? '+' : ''}
                   {weightDelta.toFixed(1)} กก.
                 </Text>
-              )}
-            </View>
+              </View>
+            )}
           </View>
           <WeightChart history={weightHistory} color={c.brand} />
 
@@ -182,7 +186,7 @@ export default function InsightsScreen() {
               </View>
             </View>
           ) : (
-            <Squish onPress={() => router.push('/account-edit')}>
+            <Squish onPress={() => router.push('/account-edit')} hitSlop={13}>
               <Text style={[type.label, { color: c.brand, fontSize: 12 }]}>
                 {goalWeight ? 'บันทึกน้ำหนักเพื่อดูความคืบหน้า' : 'ตั้งเป้าหมายน้ำหนักเพื่อดูความคืบหน้า'}
               </Text>
@@ -230,17 +234,19 @@ function WeightChart({ history, color }: { history: { weightKg: number }[]; colo
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { padding: 18, gap: 14 },
-  periodChip: { height: 36, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  periodChip: { height: MIN_TOUCH, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 12 },
   rowBetween: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   baselineRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
   legendRow: { flexDirection: 'row', gap: 14 },
+  legendCol: { gap: 5, alignItems: 'flex-end' },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot: { width: 10, height: 10, borderRadius: 3 },
   chartRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 140 },
   barCol: { flex: 1, alignItems: 'center', gap: 6 },
   barStack: { width: '100%', flexDirection: 'column-reverse', borderRadius: 6, overflow: 'hidden' },
   calloutRow: { flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: radius.cardInner, padding: 12 },
-  progressTrack: { height: 8, borderRadius: radius.pill, overflow: 'hidden' },
+  deltaPill: { height: 32, paddingHorizontal: 12, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
+  progressTrack: { height: 10, borderRadius: radius.pill, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: radius.pill },
 });
