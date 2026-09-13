@@ -184,22 +184,31 @@ export default function ScanBarcodeScreen() {
             </View>
 
             <View style={styles.amountRow}>
-              <Text style={[textType.label, { color: c.subtext }]}>ปริมาณ</Text>
-              <AmountStepper value={amountG} onChange={setAmountG} />
+              <Text style={[textType.row, { color: c.text, fontSize: 13.5 }]}>ปริมาณ</Text>
+              <AmountStepper value={amountG} onChange={setAmountG} large />
             </View>
 
             {(() => {
               const scaled = scaleFood(product, amountG);
               return (
-                <Text style={[textType.row, { color: c.text, fontSize: 13 }]}>
-                  {Math.round(scaled.kcal)} kcal · P {scaled.proteinG.toFixed(1)}g · C {scaled.carbG.toFixed(1)}g · F{' '}
-                  {scaled.fatG.toFixed(1)}g
-                </Text>
+                <View style={[styles.previewBox, { backgroundColor: c.surfaceAlt }]}>
+                  <View style={styles.previewBaseline}>
+                    <Text style={[textType.metric, { color: c.text, fontSize: 30, letterSpacing: -0.8 }]}>
+                      {Math.round(scaled.kcal)}
+                    </Text>
+                    <Text style={[textType.row, { color: c.muted, fontSize: 12.5 }]}>kcal</Text>
+                  </View>
+                  <View style={styles.previewMacroRow}>
+                    <Text style={[textType.label, { color: c.subtext, fontSize: 11.5 }]}>โปรตีน {scaled.proteinG.toFixed(1)} ก.</Text>
+                    <Text style={[textType.label, { color: c.subtext, fontSize: 11.5 }]}>คาร์บ {scaled.carbG.toFixed(1)} ก.</Text>
+                    <Text style={[textType.label, { color: c.subtext, fontSize: 11.5 }]}>ไขมัน {scaled.fatG.toFixed(1)} ก.</Text>
+                  </View>
+                </View>
               );
             })()}
 
             <Squish scaleTo={0.97}
-              style={[styles.primaryBtn, { backgroundColor: c.brand }, saving && { opacity: 0.6 }, cardShadow(scheme)]}
+              style={[styles.primaryBtn, { backgroundColor: c.brand, height: 56 }, saving && { opacity: 0.6 }, cardShadow(scheme)]}
               disabled={saving}
               onPress={handleSave}
             >
@@ -224,6 +233,9 @@ const styles = StyleSheet.create({
   overlayText: { color: '#fff', fontFamily: fontFamily(600), fontSize: 15, textAlign: 'center' },
   resultSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '70%', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   mealRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  mealPill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 36, paddingHorizontal: 12, borderRadius: radius.pill },
+  mealPill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 40, paddingHorizontal: 12, borderRadius: radius.pill },
   amountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  previewBox: { borderRadius: radius.cardInner, padding: 14, gap: 9 },
+  previewBaseline: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  previewMacroRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
 });

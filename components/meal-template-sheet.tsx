@@ -22,7 +22,7 @@ import {
   type MealType,
 } from '../lib/db/queries';
 import { type } from '../lib/fonts';
-import { radius, cardShadow } from '../lib/theme';
+import { radius, cardShadow, MIN_TOUCH } from '../lib/theme';
 import { Squish } from './squish';
 
 type Template = Awaited<ReturnType<typeof getMealTemplates>>[number];
@@ -113,7 +113,8 @@ export function MealTemplateSheet({ visible, mode, mealType, mealLabel, localDat
             style={[styles.sheet, { backgroundColor: c.surface }, cardShadow(scheme)]}
             onPress={(e) => e.stopPropagation()}
           >
-            <Text style={[type.cardTitle, { color: c.text, fontSize: 16 }]}>
+            <View style={[styles.handle, { backgroundColor: c.line }]} />
+            <Text style={[type.cardTitle, { color: c.text, fontSize: 17 }]}>
               {mode === 'pick' ? `เลือกมื้อชุดลงมื้อ${mealLabel}` : `เก็บมื้อ${mealLabel}นี้เป็นมื้อชุด`}
             </Text>
 
@@ -146,17 +147,17 @@ export function MealTemplateSheet({ visible, mode, mealType, mealLabel, localDat
                   const kcal = tpl.items.reduce((s, x) => s + x.kcal, 0);
                   return (
                     <View key={tpl.id} style={[styles.row, { backgroundColor: c.surfaceAlt }]}>
-                      <Squish style={{ flex: 1 }} disabled={busy} onPress={() => handleApply(tpl)}>
-                        <Text style={[type.row, { color: c.text, fontSize: 14 }]} numberOfLines={1}>
+                      <Squish style={{ flex: 1, minWidth: 0 }} disabled={busy} onPress={() => handleApply(tpl)}>
+                        <Text style={[type.cardTitle, { color: c.text, fontSize: 15 }]} numberOfLines={1}>
                           {tpl.name}
                         </Text>
-                        <Text style={[type.label, { color: c.muted, fontSize: 11 }]} numberOfLines={1}>
+                        <Text style={[type.label, { color: c.muted, fontSize: 11.5, marginTop: 2 }]} numberOfLines={1}>
                           {tpl.items.length} รายการ · {Math.round(kcal)} kcal
                           {tpl.useCount > 0 ? ` · ใช้ไป ${tpl.useCount} ครั้ง` : ''}
                         </Text>
                       </Squish>
-                      <Squish hitSlop={10} onPress={() => handleDelete(tpl)}>
-                        <Trash2 size={15} color={c.faint} />
+                      <Squish hitSlop={15} onPress={() => handleDelete(tpl)}>
+                        <Trash2 size={16} color={c.faint} />
                       </Squish>
                     </View>
                   );
@@ -164,8 +165,8 @@ export function MealTemplateSheet({ visible, mode, mealType, mealLabel, localDat
               </ScrollView>
             )}
 
-            <Squish onPress={onClose} style={styles.cancelBtn}>
-              <Text style={[type.row, { color: c.subtext, fontSize: 14 }]}>ปิด</Text>
+            <Squish onPress={onClose} style={[styles.cancelBtn, { backgroundColor: c.surfaceAlt }]}>
+              <Text style={[type.row, { color: c.text, fontSize: 15 }]}>ปิด</Text>
             </Squish>
           </Pressable>
         </KeyboardAvoidingView>
@@ -176,17 +177,18 @@ export function MealTemplateSheet({ visible, mode, mealType, mealLabel, localDat
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  sheet: { width: '100%', maxWidth: 420, borderRadius: radius.card, padding: 20, gap: 12 },
-  input: { borderRadius: radius.iconBox, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15 },
-  primaryBtn: { borderRadius: radius.iconBox, paddingVertical: 13, alignItems: 'center' },
+  sheet: { width: '100%', maxWidth: 420, borderRadius: radius.card, padding: 18, gap: 14 },
+  handle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 3, marginBottom: -4 },
+  input: { height: MIN_TOUCH, borderRadius: radius.cardInner, paddingHorizontal: 14, fontSize: 15 },
+  primaryBtn: { height: 52, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    borderRadius: radius.row,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 6,
+    gap: 11,
+    borderRadius: radius.cardInner,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 8,
   },
-  cancelBtn: { alignItems: 'center', paddingVertical: 4 },
+  cancelBtn: { height: 54, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
 });
