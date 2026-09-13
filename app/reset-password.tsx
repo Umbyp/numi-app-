@@ -76,7 +76,7 @@ export default function ResetPasswordScreen() {
               </View>
             )}
             <Squish
-              style={[styles.primaryButton, { backgroundColor: c.brand, marginTop: error ? 10 : 14 }]}
+              style={[styles.primaryButton, { backgroundColor: c.brand, marginTop: error ? 10 : 14 }, cardShadow(scheme)]}
               onPress={handleSubmit}
               disabled={busy}
             >
@@ -92,7 +92,7 @@ export default function ResetPasswordScreen() {
 const styles = StyleSheet.create({
   scroll: { padding: 18 },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 10 },
-  input: { borderRadius: radius.iconBox, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14 },
-  errorBox: { borderRadius: radius.iconBox, padding: 10 },
-  primaryButton: { borderRadius: radius.iconBox, paddingVertical: 14, alignItems: 'center' },
+  input: { height: 50, borderRadius: radius.cardInner, paddingHorizontal: 14, fontSize: 15 },
+  errorBox: { borderRadius: radius.cardInner, padding: 10 },
+  primaryButton: { height: 54, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
 });

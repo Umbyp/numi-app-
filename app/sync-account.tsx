@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Session } from '@supabase/supabase-js';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { type as textType, fontFamily } from '../lib/fonts';
-import { radius, motion, cardShadow } from '../lib/theme';
+import { radius, motion, cardShadow, MIN_TOUCH } from '../lib/theme';
 import { Squish } from '../components/squish';
 import { Mascot } from '../components/mascot';
 import { FadeInView } from '../components/fade-in';
@@ -168,7 +168,7 @@ export default function SyncAccountScreen() {
 
           <FadeInView delay={motion.stagger}>
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
-              <Squish style={[styles.primaryButton, { backgroundColor: c.brand }]} onPress={runSyncAfterAuth}>
+              <Squish style={[styles.primaryButton, { backgroundColor: c.brand }, cardShadow(scheme)]} onPress={runSyncAfterAuth}>
                 <Text style={[textType.row, { color: '#fff', fontSize: 15 }]}>ซิงค์เดี๋ยวนี้</Text>
               </Squish>
               {syncMsg && (
@@ -179,17 +179,34 @@ export default function SyncAccountScreen() {
             </View>
           </FadeInView>
 
-          <Squish onPress={handleLogout} style={styles.logoutLink}>
-            <Text style={[textType.label, { color: c.danger, fontSize: 13 }]}>ออกจากระบบ</Text>
-          </Squish>
+          <FadeInView delay={motion.stagger * 2}>
+            <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line, padding: 0 }, cardShadow(scheme)]}>
+              <Squish style={styles.settingsRow} onPress={handleLogout}>
+                <Text style={[textType.row, { color: c.subtext, fontSize: 14.5, flex: 1 }]}>ออกจากระบบ</Text>
+                <Text style={{ color: c.faint, fontSize: 18 }}>›</Text>
+              </Squish>
+            </View>
+          </FadeInView>
 
-          <Squish onPress={deleting ? undefined : handleDeleteAccount} style={styles.logoutLink}>
-            {deleting ? (
-              <ActivityIndicator color={c.faint} size="small" />
-            ) : (
-              <Text style={[textType.label, { color: c.faint, fontSize: 12 }]}>ลบบัญชีถาวร</Text>
-            )}
-          </Squish>
+          <FadeInView delay={motion.stagger * 3}>
+            <View style={[styles.dangerCard, { backgroundColor: c.dangerBg }]}>
+              <Text style={[textType.cardTitle, { color: c.danger, fontSize: 14.5 }]}>ลบบัญชีถาวร</Text>
+              <Text style={[textType.label, { color: c.danger, fontSize: 12, lineHeight: 19, opacity: 0.85 }]}>
+                ข้อมูลบนเซิร์ฟเวอร์ (โปรไฟล์ เพื่อน เมนูที่แชร์) จะถูกลบทันทีและกู้คืนไม่ได้ ข้อมูลในเครื่องนี้จะยังอยู่แต่หยุดซิงค์
+              </Text>
+              <Squish
+                style={[styles.dangerBtn, { backgroundColor: c.surface }]}
+                onPress={deleting ? undefined : handleDeleteAccount}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <ActivityIndicator color={c.danger} size="small" />
+                ) : (
+                  <Text style={[textType.row, { color: c.danger, fontSize: 14 }]}>ลบบัญชี</Text>
+                )}
+              </Squish>
+            </View>
+          </FadeInView>
         </ScrollView>
       </SafeAreaView>
     );
@@ -243,7 +260,7 @@ export default function SyncAccountScreen() {
             />
 
             {mode === 'login' && (
-              <Squish onPress={resetBusy ? undefined : handleForgotPassword} style={styles.forgotLink}>
+              <Squish onPress={resetBusy ? undefined : handleForgotPassword} hitSlop={10} style={styles.forgotLink}>
                 {resetBusy ? (
                   <ActivityIndicator color={c.faint} size="small" />
                 ) : (
@@ -258,7 +275,7 @@ export default function SyncAccountScreen() {
               </View>
             )}
 
-            <Squish style={[styles.primaryButton, { backgroundColor: c.brand, marginTop: error ? 10 : 14 }]} onPress={handleSubmit} disabled={busy}>
+            <Squish style={[styles.primaryButton, { backgroundColor: c.brand, marginTop: error ? 10 : 14 }, cardShadow(scheme)]} onPress={handleSubmit} disabled={busy}>
               {busy ? (
                 <ActivityIndicator color="#fff" />
               ) : (
@@ -375,20 +392,22 @@ const styles = StyleSheet.create({
   bubbleAccent: { width: 3, borderRadius: 2, alignSelf: 'stretch' },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16 },
   segmented: { flexDirection: 'row', borderRadius: radius.pill, padding: 4, marginBottom: 14 },
-  segment: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: radius.iconBox },
-  input: { height: 48, borderRadius: radius.cardInner, paddingHorizontal: 14, fontSize: 15, marginBottom: 10 },
-  errorBox: { borderRadius: radius.iconBox, padding: 10, marginTop: 2 },
-  primaryButton: { height: 48, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  segment: { flex: 1, height: MIN_TOUCH, alignItems: 'center', justifyContent: 'center', borderRadius: radius.cardInner },
+  input: { height: MIN_TOUCH, borderRadius: radius.cardInner, paddingHorizontal: 14, fontSize: 15, marginBottom: 10 },
+  errorBox: { borderRadius: radius.cardInner, padding: 10, marginTop: 2 },
+  primaryButton: { height: 54, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18, marginBottom: 14 },
   dividerLine: { flex: 1, height: StyleSheet.hairlineWidth },
   googleButton: {
-    height: 48,
-    borderRadius: radius.pill,
+    height: 54,
+    borderRadius: radius.cardInner,
     borderWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
   },
-  logoutLink: { alignItems: 'center', paddingVertical: 12 },
+  settingsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 54, paddingHorizontal: 16 },
+  dangerCard: { borderRadius: radius.cardInner, padding: 15, gap: 10 },
+  dangerBtn: { height: 48, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
 });
