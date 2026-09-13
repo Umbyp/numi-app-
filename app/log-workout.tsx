@@ -17,7 +17,7 @@ import { WORKOUT_CATEGORIES, metsByCategory, type WorkoutCategory } from '../lib
 import { AmountStepper } from '../components/amount-stepper';
 import { RestTimerModal } from '../components/rest-timer-modal';
 import { type as textType } from '../lib/fonts';
-import { radius, cardShadow } from '../lib/theme';
+import { radius, cardShadow, MIN_TOUCH } from '../lib/theme';
 import {
   bestSetBy1RM,
   exerciseVolume,
@@ -236,8 +236,8 @@ export default function LogWorkoutScreen() {
               </Text>
               <Squish
                 onPress={() => setRestVisible(true)}
-                style={[styles.restBtn, { backgroundColor: c.surfaceAlt }]}
-                hitSlop={6}
+                style={[styles.restBtn, { backgroundColor: c.brandTint }]}
+                hitSlop={8}
               >
                 <Timer size={14} color={c.brand} />
                 <Text style={[textType.label, { color: c.brand, fontSize: 11 }]}>พัก</Text>
@@ -265,6 +265,7 @@ export default function LogWorkoutScreen() {
                   <Squish
                     key={s}
                     onPress={() => addExercise(s)}
+                    hitSlop={7}
                     style={[styles.suggestChip, { backgroundColor: c.surfaceAlt }]}
                   >
                     <Text style={[textType.label, { color: c.text, fontSize: 12 }]}>{s}</Text>
@@ -280,7 +281,7 @@ export default function LogWorkoutScreen() {
                 <View key={`${ex.exercise}-${exIdx}`} style={[styles.exBlock, { borderTopColor: c.line }]}>
                   <View style={styles.exHead}>
                     <Text style={[textType.row, { color: c.text, fontSize: 14, flex: 1 }]}>{ex.exercise}</Text>
-                    <Squish hitSlop={10} onPress={() => setExercises((p) => p.filter((_, i) => i !== exIdx))}>
+                    <Squish hitSlop={15} onPress={() => setExercises((p) => p.filter((_, i) => i !== exIdx))}>
                       <X size={15} color={c.faint} />
                     </Squish>
                   </View>
@@ -309,7 +310,7 @@ export default function LogWorkoutScreen() {
                         style={[styles.input, styles.setInput, { color: c.text, backgroundColor: c.surfaceAlt }]}
                       />
                       <Squish
-                        hitSlop={8}
+                        hitSlop={12}
                         style={styles.setX}
                         disabled={ex.sets.length === 1}
                         onPress={() => removeSet(exIdx, setIdx)}
@@ -320,7 +321,7 @@ export default function LogWorkoutScreen() {
                   ))}
 
                   <View style={styles.exFoot}>
-                    <Squish scaleTo={0.98} onPress={() => addSet(exIdx)} style={styles.addSet} hitSlop={6}>
+                    <Squish scaleTo={0.98} onPress={() => addSet(exIdx)} style={styles.addSet} hitSlop={12}>
                       <Plus size={13} color={c.brand} />
                       <Text style={[textType.label, { color: c.brand, fontSize: 12 }]}>เพิ่มเซต</Text>
                     </Squish>
@@ -344,26 +345,26 @@ export default function LogWorkoutScreen() {
         )}
 
         <View style={[styles.durationCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
-          <Text style={[textType.label, { color: c.muted, fontSize: 12 }]}>ระยะเวลา</Text>
-          <AmountStepper value={durationMin} step={5} unit=" นาที" min={5} onChange={setDurationMin} />
+          <Text style={[textType.row, { color: c.text, fontSize: 13.5, flex: 1 }]}>ใช้เวลาไปเท่าไหร่</Text>
+          <AmountStepper value={durationMin} step={5} unit=" นาที" min={5} onChange={setDurationMin} large />
         </View>
 
-        <View style={[styles.estimateCard, { backgroundColor: c.surfaceAlt }]}>
+        <View style={[styles.estimateCard, { backgroundColor: c.brandTint }]}>
           <View style={{ flex: 1 }}>
-            <Text style={[textType.label, { color: c.muted, fontSize: 12 }]}>Numi ประเมินว่าเผาผลาญ</Text>
+            <Text style={[textType.row, { color: c.subtext, fontSize: 12 }]}>Numi ประเมินว่าเผาผลาญ</Text>
             <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>คำนวณจากน้ำหนัก {weightKg.toFixed(1)} กก.</Text>
           </View>
-          <Text style={[textType.metric, { color: c.brand, fontSize: 26 }]}>{kcalBurned}</Text>
+          <Text style={[textType.metric, { color: c.brand, fontSize: 30, letterSpacing: -0.8 }]}>{kcalBurned}</Text>
         </View>
 
         <Squish scaleTo={0.97}
-          style={[styles.saveBtn, { backgroundColor: c.brand }, (saving || !selected) && { opacity: 0.6 }, cardShadow(scheme)]}
+          style={[styles.saveBtn, { backgroundColor: c.brand, height: 56 }, (saving || !selected) && { opacity: 0.6 }, cardShadow(scheme)]}
           disabled={saving || !selected}
           onPress={handleSave}
         >
           <Text style={[textType.row, { color: '#fff', fontSize: 15 }]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
         </Squish>
-        <Squish style={styles.cancelBtn} onPress={() => router.back()}>
+        <Squish style={styles.cancelBtn} hitSlop={9} onPress={() => router.back()}>
           <Text style={[textType.row, { color: c.subtext, fontSize: 14 }]}>ยกเลิก</Text>
         </Squish>
       </ScrollView>
@@ -376,16 +377,16 @@ export default function LogWorkoutScreen() {
 const styles = StyleSheet.create({
   scroll: { padding: 18, gap: 16 },
   chipRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  catChip: { height: 36, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  catChip: { height: MIN_TOUCH, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   exerciseList: { gap: 6 },
   exerciseRow: { flexDirection: 'row', alignItems: 'center', height: 48, paddingHorizontal: 14, borderRadius: radius.iconBox },
   setsCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 10 },
   setsHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   restBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, height: 28, borderRadius: radius.pill },
   addRow: { flexDirection: 'row', gap: 8 },
-  addBtn: { width: 44, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
+  addBtn: { width: 48, height: 48, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  suggestChip: { paddingHorizontal: 11, height: 30, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  suggestChip: { paddingHorizontal: 11, height: 32, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   exBlock: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 10, gap: 7 },
   exHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   setRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -396,10 +397,11 @@ const styles = StyleSheet.create({
   addSet: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   input: { borderRadius: radius.iconBox, paddingHorizontal: 12, paddingVertical: 9, fontSize: 15 },
   durationCard: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.card,
-    padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.cardInner,
+    padding: 15,
     gap: 10,
   },
   estimateCard: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.cardInner, padding: 14 },
