@@ -79,7 +79,7 @@ export const colors = {
 export type ThemeColors = typeof colors.light;
 export type Scheme = 'light' | 'dark';
 
-// radius scale: badge 9 · pill 16/18 · row 18 · icon box 13/14 · card 26 · FAB 30 · phone/screen 44
+// radius scale: badge 9 · pill 16/18 · row 18 · icon box 13/14 · card 26 · FAB 31 (ปุ่มกลม 62) · phone/screen 44
 export const radius = {
   badge: 9,
   pill: 18,
@@ -88,7 +88,7 @@ export const radius = {
   /** การ์ดที่ซ้อนอยู่ในการ์ด — เดิมกระจายเป็น radius.card - 6 / - 8 คิดเลขหน้างานจนไม่ตรงกันข้ามหน้า */
   cardInner: 18,
   card: 26,
-  fab: 30,
+  fab: 31,
 } as const;
 
 /** เป้ากดขั้นต่ำตามเกณฑ์ iOS (44) และ Android (48) — ใช้กับปุ่มไอคอนทุกตัว */

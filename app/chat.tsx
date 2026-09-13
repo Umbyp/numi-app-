@@ -121,7 +121,7 @@ export default function ChatScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }} keyboardVerticalOffset={90}>
         <View style={[styles.header, { borderBottomColor: c.line }]}>
-          <Mascot size={40} pose="start" />
+          <Mascot size={44} pose="start" />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={[type.cardTitle, { color: c.text, fontSize: 16 }]}>Numi</Text>
             <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>เห็นบันทึกวันนี้ของคุณ</Text>
@@ -144,7 +144,7 @@ export default function ChatScreen() {
           </View>
         ) : rows.length === 0 ? (
           <View style={styles.empty}>
-            <Mascot size={92} pose="start" />
+            <Mascot size={118} pose="start" />
             <Text style={[type.cardTitle, { color: c.text, fontSize: 17, textAlign: 'center' }]}>คุยกับ Numi ได้เลย</Text>
             <Text style={[type.label, { color: c.subtext, fontSize: 12.5, textAlign: 'center', lineHeight: 19 }]}>
               เล่าว่ากินอะไรมา ถ่ายรูปอาหารให้ดู หรือถามเรื่องเป้าหมายของวันนี้
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radius.pill,
     paddingHorizontal: 16,
-    minHeight: MIN_TOUCH,
+    minHeight: 48,
     justifyContent: 'center',
   },
   inputBar: {
