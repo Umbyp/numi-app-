@@ -7,7 +7,7 @@ import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { getErrorMessage } from '../../lib/errors';
 import { useNumiStore } from '../../lib/store';
 import { type } from '../../lib/fonts';
-import { radius, cardShadow } from '../../lib/theme';
+import { radius, cardShadow, MIN_TOUCH } from '../../lib/theme';
 import { Mascot } from '../../components/mascot';
 import { ReminderSettings } from '../../components/reminder-settings';
 import { Squish } from '../../components/squish';
@@ -118,10 +118,10 @@ export default function AccountScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={[type.greeting, { color: c.text, fontSize: 24 }]}>บัญชี</Text>
+        <Text style={[type.greeting, { color: c.text, fontSize: 22 }]}>บัญชี</Text>
 
         <View style={[styles.headerCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
-          <Mascot size={56} pose="peace" />
+          <Mascot size={62} pose="peace" />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={[type.cardTitle, { color: c.text, fontSize: 16 }]}>
               {latestWeightKg ? `${latestWeightKg.toFixed(1)} กก.` : 'ยังไม่มีน้ำหนัก'}
@@ -137,7 +137,7 @@ export default function AccountScreen() {
             </Text>
           </View>
           <Squish style={[styles.editPill, { backgroundColor: c.brandTint }]} onPress={() => router.push('/account-edit')}>
-            <Text style={[type.row, { color: c.brand, fontSize: 12 }]}>แก้ไข</Text>
+            <Text style={[type.row, { color: c.brand, fontSize: 13.5 }]}>แก้ไข</Text>
           </Squish>
         </View>
 
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { padding: 18, gap: 12 },
   headerCard: { flexDirection: 'row', alignItems: 'center', gap: 13, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16 },
-  editPill: { height: 34, paddingHorizontal: 13, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  editPill: { height: MIN_TOUCH, paddingHorizontal: 16, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   statRow: { flexDirection: 'row', gap: 9 },
   statCard: { flex: 1, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.cardInner, padding: 13, gap: 2 },
   listCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card },
@@ -339,5 +339,5 @@ const styles = StyleSheet.create({
   themeCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 12 },
   themeHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   segmented: { flexDirection: 'row', borderRadius: radius.pill, padding: 4 },
-  segment: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: radius.iconBox },
+  segment: { flex: 1, height: MIN_TOUCH, alignItems: 'center', justifyContent: 'center', borderRadius: radius.cardInner },
 });

@@ -48,8 +48,8 @@ export default function OnboardingScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <FadeInView>
           <View style={styles.header}>
-            <Mascot size={72} pose="start" />
-            <Text style={[textType.greeting, { color: c.text, fontSize: 24, marginTop: 14 }]}>
+            <Mascot size={100} pose="start" />
+            <Text style={[textType.greeting, { color: c.text, fontSize: 23, marginTop: 4 }]}>
               ยินดีต้อนรับสู่ Numi
             </Text>
             <Text style={[textType.label, { color: c.subtext, fontSize: 13.5, textAlign: 'center', marginTop: 6 }]}>
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     padding: 14,
   },
-  iconBox: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  primaryBtn: { borderRadius: radius.iconBox, paddingVertical: 15, alignItems: 'center', marginTop: 8 },
+  iconBox: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  primaryBtn: { height: 56, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   skipLink: { alignItems: 'center', paddingVertical: 12 },
 });
