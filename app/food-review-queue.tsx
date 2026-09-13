@@ -3,16 +3,17 @@ import { View, Text, TextInput, FlatList, StyleSheet, Alert } from 'react-native
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, X } from 'lucide-react-native';
-import { useTheme } from '../lib/hooks/use-theme';
+import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { getErrorMessage } from '../lib/errors';
 import { type as textType, fontFamily } from '../lib/fonts';
-import { radius } from '../lib/theme';
+import { radius, cardShadow } from '../lib/theme';
 import { Squish } from '../components/squish';
 import { EmptyState } from '../components/empty-state';
 import { isModerator, listPendingForReview, approveFood, rejectFood, type CommunityFood } from '../lib/social/community-foods';
 
 export default function FoodReviewQueueScreen() {
   const c = useTheme();
+  const scheme = useScheme();
   const router = useRouter();
   const [items, setItems] = useState<CommunityFood[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,33 +71,50 @@ export default function FoodReviewQueueScreen() {
         data={items}
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ padding: 16 }}
+        ListHeaderComponent={
+          items.length > 0 ? (
+            <Text style={[textType.label, { color: c.muted, fontSize: 12.5, marginBottom: 10, paddingHorizontal: 2 }]}>
+              รอ {items.length} รายการ
+            </Text>
+          ) : null
+        }
         ListEmptyComponent={!loading ? <EmptyState title="ไม่มีรายการรอตรวจ" description="เมนูใหม่ที่ผู้ใช้ส่งมาจะโผล่ที่นี่" /> : null}
         renderItem={({ item }) => {
           const rejecting = rejectingId === item.id;
           return (
-            <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }]}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-                <Text style={[textType.cardTitle, { color: c.text, fontSize: 15, flex: 1 }]} numberOfLines={1}>
+            <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                <Text style={[textType.cardTitle, { color: c.text, fontSize: 16, flex: 1 }]} numberOfLines={1}>
                   {item.name}
                 </Text>
                 {item.reportCount > 0 && (
-                  <Text style={[textType.badge, { color: c.danger, fontSize: 10 }]}>ถูกรายงาน {item.reportCount} ครั้ง</Text>
+                  <View style={[styles.reportPill, { backgroundColor: c.dangerBg }]}>
+                    <Text style={[textType.badge, { color: c.danger, fontSize: 10.5 }]}>ถูกรายงาน {item.reportCount} ครั้ง</Text>
+                  </View>
                 )}
               </View>
-              <Text style={[textType.label, { color: c.muted, fontSize: 12, marginTop: 4 }]}>
-                {Math.round(item.kcalPer100)} kcal · P {item.proteinPer100}g · C {item.carbPer100}g · F {item.fatPer100}g (ต่อ 100g)
-              </Text>
+
+              <View style={[styles.macroChipRow, { backgroundColor: c.surfaceAlt }]}>
+                <MacroStat label="kcal/100g" value={Math.round(item.kcalPer100)} c={c} />
+                <MacroStat label="โปรตีน" value={item.proteinPer100} c={c} />
+                <MacroStat label="คาร์บ" value={item.carbPer100} c={c} />
+                <MacroStat label="ไขมัน" value={item.fatPer100} c={c} />
+              </View>
 
               {rejecting ? (
-                <View style={{ gap: 8, marginTop: 10 }}>
-                  <TextInput
-                    value={reason}
-                    onChangeText={setReason}
-                    placeholder="เหตุผลที่ปฏิเสธ"
-                    placeholderTextColor={c.faint}
-                    style={[styles.input, { color: c.text, borderColor: c.line, fontFamily: fontFamily(500) }]}
-                  />
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View style={{ gap: 10 }}>
+                  <View>
+                    <Text style={[textType.row, { color: c.subtext, fontSize: 12, marginBottom: 6 }]}>เหตุผลที่ปฏิเสธ</Text>
+                    <TextInput
+                      value={reason}
+                      onChangeText={setReason}
+                      placeholder="ตัวเลขไม่ตรงกับสูตรทั่วไปของเมนูนี้"
+                      placeholderTextColor={c.faint}
+                      multiline
+                      style={[styles.input, { color: c.text, backgroundColor: c.surfaceAlt, fontFamily: fontFamily(500) }]}
+                    />
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 9 }}>
                     <Squish
                       style={[styles.actionBtn, { backgroundColor: c.surfaceAlt, flex: 1 }]}
                       onPress={() => {
@@ -104,26 +122,26 @@ export default function FoodReviewQueueScreen() {
                         setReason('');
                       }}
                     >
-                      <Text style={[textType.row, { color: c.subtext, fontSize: 13 }]}>ยกเลิก</Text>
+                      <Text style={[textType.row, { color: c.subtext, fontSize: 14 }]}>ยกเลิก</Text>
                     </Squish>
                     <Squish
                       style={[styles.actionBtn, { backgroundColor: c.danger, flex: 1 }, !reason.trim() && { opacity: 0.5 }]}
                       disabled={!reason.trim()}
                       onPress={() => handleReject(item.id)}
                     >
-                      <Text style={[textType.row, { color: '#fff', fontSize: 13 }]}>ยืนยันปฏิเสธ</Text>
+                      <Text style={[textType.row, { color: '#fff', fontSize: 14.5 }]}>ยืนยันปฏิเสธ</Text>
                     </Squish>
                   </View>
                 </View>
               ) : (
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                <View style={{ flexDirection: 'row', gap: 9 }}>
                   <Squish style={[styles.actionBtn, { backgroundColor: c.surfaceAlt, flex: 1 }]} onPress={() => setRejectingId(item.id)}>
                     <X size={15} color={c.muted} />
-                    <Text style={[textType.row, { color: c.text, fontSize: 13 }]}>ปฏิเสธ</Text>
+                    <Text style={[textType.row, { color: c.text, fontSize: 14 }]}>ปฏิเสธ</Text>
                   </Squish>
                   <Squish style={[styles.actionBtn, { backgroundColor: c.brand, flex: 1 }]} onPress={() => handleApprove(item.id)}>
                     <Check size={15} color="#fff" />
-                    <Text style={[textType.row, { color: '#fff', fontSize: 13 }]}>อนุมัติ</Text>
+                    <Text style={[textType.row, { color: '#fff', fontSize: 14.5 }]}>อนุมัติ</Text>
                   </Squish>
                 </View>
               )}
@@ -135,8 +153,19 @@ export default function FoodReviewQueueScreen() {
   );
 }
 
+function MacroStat({ label, value, c }: { label: string; value: number; c: ReturnType<typeof useTheme> }) {
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={[textType.label, { color: c.muted, fontSize: 11 }]}>{label}</Text>
+      <Text style={[textType.cardTitle, { color: c.text, fontSize: 16, marginTop: 2 }]}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 14, marginBottom: 12 },
-  input: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.iconBox, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
-  actionBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', borderRadius: radius.iconBox, paddingVertical: 10 },
+  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, marginBottom: 12, gap: 12 },
+  macroChipRow: { flexDirection: 'row', gap: 12, borderRadius: radius.cardInner, padding: 13 },
+  reportPill: { height: 26, paddingHorizontal: 9, borderRadius: radius.badge, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  input: { minHeight: 58, borderRadius: radius.cardInner, paddingHorizontal: 14, paddingVertical: 12, fontSize: 13.5, textAlignVertical: 'top' },
+  actionBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', borderRadius: radius.cardInner, height: 52 },
 });

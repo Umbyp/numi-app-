@@ -9,6 +9,7 @@ import { type as textType, fontFamily } from '../lib/fonts';
 import { radius, cardShadow, MIN_TOUCH } from '../lib/theme';
 import { Squish } from '../components/squish';
 import { EmptyState } from '../components/empty-state';
+import { PersonAvatar } from '../components/person-avatar';
 import {
   sendFriendRequest,
   listPendingRequests,
@@ -77,7 +78,7 @@ export default function FriendsScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
-          <Text style={[textType.label, { color: c.subtext, marginBottom: 8 }]}>เพิ่มเพื่อนด้วยอีเมล</Text>
+          <Text style={[textType.row, { color: c.subtext, fontSize: 13, marginBottom: 8 }]}>เพิ่มเพื่อนด้วยอีเมล</Text>
           <View style={styles.addRow}>
             <TextInput
               value={email}
@@ -108,11 +109,12 @@ export default function FriendsScreen() {
                   key={r.id}
                   style={[styles.row, i < incoming.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line }]}
                 >
-                  <Text style={[textType.row, { color: c.text, fontSize: 14, flex: 1 }]}>
+                  <PersonAvatar name={r.otherDisplayName ?? 'ผู้ใช้'} />
+                  <Text style={[textType.row, { color: c.text, fontSize: 14.5, flex: 1 }]} numberOfLines={1}>
                     {r.otherDisplayName ?? 'ผู้ใช้'}
                   </Text>
-                  <Squish scaleTo={0.9} onPress={() => handleRespond(r.id, true)} style={[styles.iconBtn, { backgroundColor: c.brandTint }]}>
-                    <Check size={16} color={c.brand} />
+                  <Squish scaleTo={0.9} onPress={() => handleRespond(r.id, true)} style={[styles.iconBtn, { backgroundColor: c.brand }]}>
+                    <Check size={17} color="#fff" />
                   </Squish>
                   <Squish scaleTo={0.9} onPress={() => handleRespond(r.id, false)} style={[styles.iconBtn, { backgroundColor: c.surfaceAlt }]}>
                     <X size={16} color={c.muted} />
@@ -132,7 +134,8 @@ export default function FriendsScreen() {
                   key={r.id}
                   style={[styles.row, i < outgoing.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line }]}
                 >
-                  <Text style={[textType.row, { color: c.text, fontSize: 14, flex: 1 }]}>
+                  <PersonAvatar name={r.otherDisplayName ?? 'ผู้ใช้'} />
+                  <Text style={[textType.row, { color: c.text, fontSize: 14.5, flex: 1 }]} numberOfLines={1}>
                     {r.otherDisplayName ?? 'ผู้ใช้'}
                   </Text>
                   <Text style={[textType.label, { color: c.faint, fontSize: 12 }]}>รอตอบรับ</Text>
@@ -154,7 +157,8 @@ export default function FriendsScreen() {
                 style={[styles.row, i < friends.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line }]}
                 onPress={() => router.push({ pathname: '/friend-activity', params: { friendId: f.userId } })}
               >
-                <Text style={[textType.row, { color: c.text, fontSize: 14, flex: 1 }]}>{f.displayName ?? 'ผู้ใช้'}</Text>
+                <PersonAvatar name={f.displayName ?? 'ผู้ใช้'} />
+                <Text style={[textType.row, { color: c.text, fontSize: 14.5, flex: 1 }]} numberOfLines={1}>{f.displayName ?? 'ผู้ใช้'}</Text>
                 <Text style={{ color: c.faint, fontSize: 17 }}>›</Text>
               </Squish>
             ))}
@@ -172,6 +176,6 @@ const styles = StyleSheet.create({
   input: { flex: 1, borderRadius: radius.iconBox, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15 },
   sendBtn: { width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
   listCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52, paddingHorizontal: 16, paddingVertical: 8 },
-  iconBtn: { width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 11, minHeight: 66, paddingHorizontal: 16, paddingVertical: 8 },
+  iconBtn: { width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
 });

@@ -6,7 +6,7 @@ import { Search, Flag, Download } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
 import { getErrorMessage } from '../lib/errors';
 import { type as textType, fontFamily } from '../lib/fonts';
-import { radius } from '../lib/theme';
+import { radius, MIN_TOUCH } from '../lib/theme';
 import { Squish } from '../components/squish';
 import { FoodVisual } from '../components/food-visual';
 import { EmptyState } from '../components/empty-state';
@@ -103,8 +103,8 @@ export default function CommunityFoodsScreen() {
         {(['browse', 'mine'] as Tab[]).map((t) => {
           const active = t === tab;
           return (
-            <Squish key={t} onPress={() => setTab(t)} style={[styles.tabPill, { backgroundColor: active ? c.brand : c.surfaceAlt }]}>
-              <Text style={[textType.row, { fontSize: 13, color: active ? '#fff' : c.text }]}>
+            <Squish key={t} onPress={() => setTab(t)} style={[styles.tabPill, { backgroundColor: active ? c.brandTint : c.surfaceAlt }]}>
+              <Text style={[textType.row, { fontSize: 13, color: active ? c.brand : c.text }]}>
                 {t === 'browse' ? 'ค้นหา' : 'ที่ฉันส่ง'}
               </Text>
             </Squish>
@@ -157,6 +157,15 @@ export default function CommunityFoodsScreen() {
                 </View>
               );
             }}
+            ListFooterComponent={
+              results.length > 0 ? (
+                <View style={[styles.tipBox, { backgroundColor: c.cream }]}>
+                  <Text style={[textType.label, { color: c.creamText, fontSize: 12.5, lineHeight: 19 }]}>
+                    เมนูที่แชร์ต้องผ่านการตรวจก่อนคนอื่นจะเห็น ตอนกรอกเองติ๊ก "แชร์เมนูนี้" ได้เลย
+                  </Text>
+                </View>
+              ) : null
+            }
           />
         </>
       ) : (
@@ -183,17 +192,27 @@ export default function CommunityFoodsScreen() {
                   <Text style={[textType.label, { color: c.danger, fontSize: 11, marginTop: 2 }]}>เหตุผล: {item.rejectionReason}</Text>
                 )}
               </View>
-              <Text
+              <View
                 style={[
-                  textType.badge,
+                  styles.statusPill,
                   {
-                    fontSize: 10,
-                    color: item.status === 'approved' ? c.brand : item.status === 'rejected' ? c.danger : c.muted,
+                    backgroundColor:
+                      item.status === 'approved' ? c.brandTint : item.status === 'rejected' ? c.dangerBg : c.fatBg,
                   },
                 ]}
               >
-                {STATUS_LABEL[item.status]}
-              </Text>
+                <Text
+                  style={[
+                    textType.badge,
+                    {
+                      fontSize: 10.5,
+                      color: item.status === 'approved' ? c.brand : item.status === 'rejected' ? c.danger : c.fatText,
+                    },
+                  ]}
+                >
+                  {STATUS_LABEL[item.status]}
+                </Text>
+              </View>
             </View>
           )}
         />
@@ -204,19 +223,20 @@ export default function CommunityFoodsScreen() {
 
 const styles = StyleSheet.create({
   tabRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
-  tabPill: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, height: 36 },
+  tabPill: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, height: MIN_TOUCH },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 9,
     marginHorizontal: 16,
     marginBottom: 8,
-    borderRadius: radius.iconBox,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: radius.pill,
+    paddingHorizontal: 14,
+    height: 52,
   },
   searchInput: { flex: 1, fontSize: 15 },
   resultRow: {
+    minHeight: 60,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -224,5 +244,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  iconBtn: { width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  iconBtn: { width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
+  statusPill: { height: 28, paddingHorizontal: 10, borderRadius: radius.badge, alignItems: 'center', justifyContent: 'center' },
+  tipBox: { borderRadius: radius.cardInner, padding: 14, marginHorizontal: 16, marginTop: 4 },
 });
