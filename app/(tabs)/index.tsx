@@ -32,9 +32,10 @@ const THAI_MONTHS = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
 ];
+const THAI_DAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
 
 function thaiDate(d = new Date()): string {
-  return `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`;
+  return `${THAI_DAYS[d.getDay()]} ${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`;
 }
 
 export default function DashboardScreen() {
@@ -104,7 +105,7 @@ export default function DashboardScreen() {
         <View style={styles.headerRow}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>{thaiDate()}</Text>
-            <Text style={[type.greeting, { color: c.text, fontSize: 24 }]}>แดชบอร์ด</Text>
+            <Text style={[type.greeting, { color: c.text, fontSize: 22 }]}>แดชบอร์ด</Text>
           </View>
         </View>
 
@@ -147,7 +148,7 @@ export default function DashboardScreen() {
           <>
           <View style={styles.cardHeaderRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[type.cardTitle, { color: c.text, fontSize: 17 }]}>แคลอรี่</Text>
+              <Text style={[type.cardTitle, { color: c.text, fontSize: 17 }]}>แคลอรี่วันนี้</Text>
               <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>
                 รวมแคลอรี่ที่ออกกำลังกายเผาไปแล้ว
               </Text>
@@ -159,8 +160,8 @@ export default function DashboardScreen() {
 
             <View style={styles.statCol}>
               <StatRow icon={<GoalIcon color={c.brand} size={17} />} bg={c.brandTint} label="เป้าหมาย" value={Math.round(targetKcal)} c={c} />
-              <StatRow icon={<FoodIcon color={c.fatText} size={17} />} bg={c.fatBg} label="อาหาร" value={Math.round(totals.kcal)} c={c} />
-              <StatRow icon={<ActivityIcon color={c.dinner} size={17} />} bg={c.dinnerBg} label="กิจกรรม" value={Math.round(activityKcal)} c={c} />
+              <StatRow icon={<FoodIcon color={c.fatText} size={17} />} bg={c.fatBg} label="กินไปแล้ว" value={Math.round(totals.kcal)} c={c} />
+              <StatRow icon={<ActivityIcon color={c.dinner} size={17} />} bg={c.dinnerBg} label="เผาไปแล้ว" value={Math.round(activityKcal)} c={c} />
             </View>
           </View>
 

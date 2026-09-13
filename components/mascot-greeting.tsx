@@ -56,7 +56,7 @@ export function MascotGreeting({ allowCelebrate = false, onCelebrated, onPress, 
       style={styles.wrap}
     >
       <Animated.View style={celebration.style}>
-        <Mascot size={74} pose={imagePose} />
+        <Mascot size={82} pose={imagePose} />
       </Animated.View>
 
       <View style={styles.bubbleCol}>
@@ -93,9 +93,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    height: 30,
-    paddingLeft: 12,
-    paddingRight: 8,
+    height: 32,
+    paddingLeft: 13,
+    paddingRight: 10,
     borderRadius: radius.pill,
     marginTop: 6,
   },
