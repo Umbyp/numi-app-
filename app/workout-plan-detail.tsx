@@ -248,7 +248,7 @@ export default function WorkoutPlanDetailScreen() {
                   value={day.label}
                   onChangeText={(v) => updateDay(dayIdx, { label: v })}
                 />
-                <Squish hitSlop={10} onPress={() => removeDay(dayIdx)}>
+                <Squish hitSlop={13} onPress={() => removeDay(dayIdx)}>
                   <X size={18} color={c.faint} />
                 </Squish>
               </View>
@@ -259,6 +259,7 @@ export default function WorkoutPlanDetailScreen() {
                   return (
                     <Squish
                       key={opt.key}
+                      hitSlop={6}
                       onPress={() => updateDay(dayIdx, { dayType: opt.key })}
                       style={[styles.chip, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
                     >
@@ -302,7 +303,7 @@ export default function WorkoutPlanDetailScreen() {
                     <Text style={[textType.row, { color: c.text, fontSize: 13, flex: 1 }]} numberOfLines={1}>
                       {ex.name}
                     </Text>
-                    <Squish hitSlop={10} onPress={() => removeExercise(dayIdx, exIdx)}>
+                    <Squish hitSlop={14} onPress={() => removeExercise(dayIdx, exIdx)}>
                       <X size={16} color={c.muted} />
                     </Squish>
                   </View>
@@ -330,6 +331,7 @@ export default function WorkoutPlanDetailScreen() {
                       return (
                         <Squish
                           key={m.key}
+                          hitSlop={9}
                           onPress={() => updateExercise(dayIdx, exIdx, { muscleGroup: active ? undefined : m.key })}
                           style={[styles.muscleChip, { backgroundColor: active ? exTint.bg : c.surfaceAlt }]}
                         >
@@ -350,6 +352,7 @@ export default function WorkoutPlanDetailScreen() {
                       return (
                         <Squish
                           key={cat.key}
+                          hitSlop={6}
                           onPress={() => setPickerCategory(cat.key)}
                           style={[styles.chip, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
                         >
@@ -375,8 +378,8 @@ export default function WorkoutPlanDetailScreen() {
                       </Squish>
                     );
                   })}
-                  <Squish onPress={() => setAddingToDay(null)}>
-                    <Text style={[textType.row, { color: c.subtext, fontSize: 12, textAlign: 'center' }]}>ปิด</Text>
+                  <Squish onPress={() => setAddingToDay(null)} hitSlop={12} style={{ paddingVertical: 6 }}>
+                    <Text style={[textType.row, { color: c.subtext, fontSize: 13, textAlign: 'center' }]}>ปิด</Text>
                   </Squish>
                 </View>
               ) : (
@@ -414,9 +417,9 @@ export default function WorkoutPlanDetailScreen() {
             <Text style={[textType.cardTitle, { color: c.text, fontSize: 20 }]}>{plan.title}</Text>
             <Text style={[textType.label, { color: c.subtext, fontSize: 13, lineHeight: 20 }]}>{plan.rationale}</Text>
           </View>
-          <Squish style={[styles.editPill, { backgroundColor: c.brandTint }]} onPress={startEditing}>
+          <Squish hitSlop={6} style={[styles.editPill, { backgroundColor: c.brandTint }]} onPress={startEditing}>
             <Pencil size={14} color={c.brand} />
-            <Text style={[textType.row, { color: c.brand, fontSize: 12 }]}>แก้ไข</Text>
+            <Text style={[textType.row, { color: c.brand, fontSize: 12.5 }]}>แก้ไข</Text>
           </Squish>
         </View>
 
@@ -506,7 +509,7 @@ export default function WorkoutPlanDetailScreen() {
                       disabled={completingDay === dayIdx}
                       onPress={() => handleCompleteDay(dayIdx)}
                     >
-                      <Text style={[textType.row, { color: '#fff', fontSize: 13 }]}>
+                      <Text style={[textType.row, { color: '#fff', fontSize: 14.5 }]}>
                         {doneSets > 0 && doneSets < totalSets ? `บันทึกวันนี้ (${doneSets}/${totalSets} เซต) ✓` : 'ทำวันนี้ ✓'}
                       </Text>
                     </Squish>
@@ -536,10 +539,10 @@ const styles = StyleSheet.create({
   exerciseRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   noteBox: { borderRadius: radius.cardInner, padding: 11 },
   progressWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 },
-  progressTrack: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 3 },
+  progressTrack: { flex: 1, height: 8, borderRadius: 5, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 5 },
   smallIconBox: { width: 32, height: 32, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
-  doneBtn: { borderRadius: radius.iconBox, paddingVertical: 11, alignItems: 'center', marginTop: 4 },
+  doneBtn: { height: 52, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   input: { borderRadius: radius.iconBox, paddingHorizontal: 14, paddingVertical: 10, fontSize: 13 },
   dayEditHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   chipRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
@@ -550,8 +553,8 @@ const styles = StyleSheet.create({
   stepperRow: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' },
   exerciseOption: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, paddingHorizontal: 10, borderRadius: radius.iconBox },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
-  addRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40, borderRadius: radius.iconBox },
+  addRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 44, borderRadius: radius.cardInner },
   actions: { flexDirection: 'row', gap: 10 },
-  ghostBtn: { flex: 1, borderRadius: radius.iconBox, paddingVertical: 13, alignItems: 'center' },
-  primaryBtn: { flex: 1, borderRadius: radius.iconBox, paddingVertical: 13, alignItems: 'center' },
+  ghostBtn: { flex: 1, height: 52, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
+  primaryBtn: { flex: 1, height: 52, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
 });

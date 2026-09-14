@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useTheme } from '../lib/hooks/use-theme';
 import { type } from '../lib/fonts';
 import { radius } from '../lib/theme';
@@ -25,6 +26,12 @@ export function RestTimerModal({ visible, seconds, onClose }: Props) {
   const [remaining, setRemaining] = useState(seconds);
   const [total, setTotal] = useState(seconds);
   const [done, setDone] = useState(false);
+  const doneSound = useAudioPlayer(require('../assets/sounds/rest-done.wav'));
+
+  useEffect(() => {
+    // เล่นได้แม้เปิดสวิตช์ปิดเสียงไว้ — ระหว่างออกกำลังกายมือถือมักไม่ได้อยู่ในมือ ต้องได้ยินแน่ ๆ
+    setAudioModeAsync({ playsInSilentMode: true });
+  }, []);
 
   useEffect(() => {
     if (!visible) return;
@@ -41,6 +48,8 @@ export function RestTimerModal({ visible, seconds, onClose }: Props) {
           clearInterval(interval);
           setDone(true);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          doneSound.seekTo(0);
+          doneSound.play();
           return 0;
         }
         return r - 1;

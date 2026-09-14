@@ -213,11 +213,11 @@ export default function ScanBarcodeScreen() {
 
             <View style={styles.amountRow}>
               <Text style={[textType.row, { color: c.text, fontSize: 13.5 }]}>ปริมาณ (กรัม)</Text>
-              <AmountStepper value={amountG} onChange={setAmountG} />
+              <AmountStepper value={amountG} onChange={setAmountG} large />
             </View>
 
             <Squish scaleTo={0.97}
-              style={[styles.primaryBtn, { backgroundColor: c.brand }, saving && { opacity: 0.6 }, cardShadow(scheme)]}
+              style={[styles.primaryBtn, { backgroundColor: c.brand, height: 56 }, saving && { opacity: 0.6 }, cardShadow(scheme)]}
               disabled={saving}
               onPress={handleSave}
             >
@@ -267,6 +267,6 @@ const styles = StyleSheet.create({
   secondaryRow: { flexDirection: 'row', gap: 9 },
   secondaryBtn: { flex: 1, height: 48, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   mealRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  mealPill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 36, paddingHorizontal: 12, borderRadius: radius.pill },
+  mealPill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 40, paddingHorizontal: 12, borderRadius: radius.pill },
   amountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });

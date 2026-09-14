@@ -108,7 +108,7 @@ export default function DiaryScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.headerRow}>
-          <Text style={[type.greeting, { color: c.text, fontSize: 24 }]}>ไดอารี่</Text>
+          <Text style={[type.greeting, { color: c.text, fontSize: 22 }]}>ไดอารี่</Text>
           <Squish
             style={[styles.datePill, { backgroundColor: c.surface }, cardShadow(scheme)]}
             onPress={() => setPickerOpen(true)}
@@ -153,7 +153,7 @@ export default function DiaryScreen() {
 
         <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
           <View style={styles.cardHeaderRow}>
-            <Text style={[type.cardTitle, { color: c.text, fontSize: 16 }]}>มื้อวันนี้</Text>
+            <Text style={[type.cardTitle, { color: c.text, fontSize: 16 }]}>มื้อของวันนี้</Text>
             <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>
               รวม <Text style={[type.cardTitle, { color: c.text, fontSize: 12 }]}>{Math.round(totalKcal)}</Text> kcal
             </Text>
@@ -175,6 +175,7 @@ export default function DiaryScreen() {
                   {isToday && (
                     <Squish
                       style={[styles.addPill, { backgroundColor: c.brandTint }]}
+                      hitSlop={8}
                       onPress={() => router.push({ pathname: '/add-food', params: { mealType: meta.key } })}
                     >
                       <Text style={[type.badge, { color: c.brand, fontSize: 12 }]}>+ เพิ่ม</Text>
@@ -215,6 +216,7 @@ export default function DiaryScreen() {
                     {list.length === 0 && yesterdayKcal[meta.key] ? (
                       <Squish
                         style={[styles.shortcutPill, { backgroundColor: c.surface }]}
+                        hitSlop={9}
                         onPress={() => handleRepeat(meta.key)}
                       >
                         <Text style={[type.badge, { color: c.subtext, fontSize: 11 }]}>
@@ -225,6 +227,7 @@ export default function DiaryScreen() {
                     {list.length === 0 ? (
                       <Squish
                         style={[styles.shortcutPill, { backgroundColor: c.surface }]}
+                        hitSlop={9}
                         onPress={() => setSheet({ mode: 'pick', mealType: meta.key, label: meta.label })}
                       >
                         <Text style={[type.badge, { color: c.subtext, fontSize: 11 }]}>มื้อชุด</Text>
@@ -232,6 +235,7 @@ export default function DiaryScreen() {
                     ) : (
                       <Squish
                         style={[styles.shortcutPill, { backgroundColor: c.surface }]}
+                        hitSlop={9}
                         onPress={() => setSheet({ mode: 'save', mealType: meta.key, label: meta.label })}
                       >
                         <Text style={[type.badge, { color: c.subtext, fontSize: 11 }]}>เก็บเป็นมื้อชุด</Text>
@@ -253,7 +257,7 @@ export default function DiaryScreen() {
               </View>
               <Text style={[type.cardTitle, { color: c.dinner, fontSize: 18 }]}>{Math.round(activityKcal)}</Text>
               {isToday && (
-                <Squish onPress={() => router.push('/log-workout')}>
+                <Squish onPress={() => router.push('/log-workout')} hitSlop={13}>
                   <Text style={[type.label, { color: c.brand, fontSize: 11 }]}>+ บันทึก</Text>
                 </Squish>
               )}
@@ -265,7 +269,7 @@ export default function DiaryScreen() {
               </View>
               <Text style={[type.cardTitle, { color: c.text, fontSize: 18 }]}>{dayWeightKg?.toFixed(1) ?? '—'}</Text>
               {isToday && (
-                <Squish onPress={() => router.push('/account-edit')}>
+                <Squish onPress={() => router.push('/account-edit')} hitSlop={13}>
                   <Text style={[type.label, { color: c.brand, fontSize: 11 }]}>+ ชั่งวันนี้</Text>
                 </Squish>
               )}
@@ -297,7 +301,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { padding: 18, gap: 12 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  datePill: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40, paddingHorizontal: 14, borderRadius: radius.pill },
+  datePill: { flexDirection: 'row', alignItems: 'center', gap: 8, height: MIN_TOUCH, paddingHorizontal: 15, borderRadius: radius.pill },
   weekRow: { flexDirection: 'row', gap: 2 },
   dayCol: { flex: 1, height: 70, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center', gap: 5 },
   dayCircle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },

@@ -79,7 +79,7 @@ export function PlanExerciseCard({ exercise, done, onToggleSet, onRest, onEdit }
           </Text>
         </View>
 
-        <Squish hitSlop={10} onPress={onEdit} style={styles.editBtn}>
+        <Squish hitSlop={11} onPress={onEdit} style={styles.editBtn}>
           <Pencil size={14} color={c.faint} />
         </Squish>
       </View>
@@ -92,6 +92,7 @@ export function PlanExerciseCard({ exercise, done, onToggleSet, onRest, onEdit }
         {done.map((isDone, i) => (
           <Squish
             key={i}
+            hitSlop={5}
             onPress={() => handleToggle(i)}
             style={[
               styles.setPill,
@@ -112,6 +113,7 @@ export function PlanExerciseCard({ exercise, done, onToggleSet, onRest, onEdit }
 
         {exercise.restSec ? (
           <Squish
+            hitSlop={7}
             onPress={() => onRest(exercise.restSec!)}
             style={[styles.restBtn, { backgroundColor: c.surface }]}
           >

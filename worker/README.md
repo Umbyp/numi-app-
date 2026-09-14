@@ -1,6 +1,6 @@
 # numi-worker
 
-Cloudflare Worker ที่ทำหน้าที่เดียว: ซ่อน OpenRouter API key ไม่ให้ไปอยู่ใน JS bundle ของแอป และกันบิลบานปลายด้วย rate limit รายวัน ไม่มี business logic — ทั้งหมดอยู่ในแอป
+Cloudflare Worker ที่ทำ 2 อย่าง: (1) ซ่อน OpenRouter API key ไม่ให้ไปอยู่ใน JS bundle ของแอป พร้อมกันบิลบานปลายด้วย rate limit รายวัน (2) route `/delete-account` ให้ผู้ใช้ลบบัญชีตัวเองถาวรได้ (ต้องใช้ service_role key ซึ่งห้ามฝังในแอป)
 
 ## Deploy
 
@@ -15,9 +15,37 @@ npx wrangler kv namespace create RATE_LIMIT
 # ตั้ง secrets
 npx wrangler secret put OPENROUTER_KEY   # จาก https://openrouter.ai/keys
 npx wrangler secret put APP_TOKEN        # สุ่มเอง เช่น: openssl rand -hex 32
+npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY   # ดูวิธีสร้างด้านล่าง
 
 npm run deploy
 ```
+
+### สร้างค่า SUPABASE_SERVICE_ROLE_KEY
+
+เป็น JWT `role: service_role` เซ็นด้วย `GOTRUE_JWT_SECRET` ตัวเดียวกับที่ backend ใช้ (ดูใน
+`~/NaselerProject/numi/.env` บนเซิร์ฟเวอร์) — **ต้องสร้างเองบนเซิร์ฟเวอร์ อย่าคัดลอก JWT_SECRET ออกมานอกเครื่อง**
+เพราะใครถือ service_role JWT ตัวนี้ bypass RLS ทุกตารางได้หมด
+
+SSH เข้าเซิร์ฟเวอร์แล้วรัน:
+
+```bash
+node -e '
+const crypto = require("crypto");
+const fs = require("fs");
+const env = fs.readFileSync(process.env.HOME + "/NaselerProject/numi/.env", "utf8");
+const secret = env.match(/^JWT_SECRET=(.*)$/m)[1].trim();
+function b64url(obj) {
+  return Buffer.from(JSON.stringify(obj)).toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+const header = { alg: "HS256", typ: "JWT" };
+const payload = { role: "service_role", iss: "supabase", iat: 1893456000, exp: 2208816000 };
+const data = b64url(header) + "." + b64url(payload);
+const sig = crypto.createHmac("sha256", secret).update(data).digest("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+console.log(data + "." + sig);
+'
+```
+
+เอา output ที่ได้ (ขึ้นต้นด้วย `eyJ...`) มา `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` จากเครื่อง dev ตามปกติ
 
 Deploy เสร็จจะได้ URL แบบ `https://numi-worker.<your-subdomain>.workers.dev`
 

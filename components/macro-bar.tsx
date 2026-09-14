@@ -23,7 +23,7 @@ export function MacroBar({ label, colorKey, bgKey, currentG, targetG, compact }:
     return (
       <View style={styles.col}>
         <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>
-          {label} {Math.round(currentG)}/{Math.round(targetG)}g
+          {label} {Math.round(currentG)}/{Math.round(targetG)} ก.
         </Text>
         <View style={[styles.track, { backgroundColor: c.line }]}>
           <View style={[styles.fill, { width: `${pct * 100}%`, backgroundColor: color }]} />

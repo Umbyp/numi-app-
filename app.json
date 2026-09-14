@@ -8,9 +8,12 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.enablebrain.numi",
+      "appleTeamId": "XH8KHJL4LS"
     },
     "android": {
+      "package": "com.enablebrain.numi",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -39,7 +42,9 @@
           "photosPermission": false,
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-web-browser",
+      "@sentry/react-native"
     ]
   }
 }

@@ -15,7 +15,7 @@ import { dailySeries, seriesMovingAverage } from '../lib/nutrition';
 import { dateAxis } from '../lib/dates';
 import { TrendChart } from '../components/trend-chart';
 import { type } from '../lib/fonts';
-import { radius, cardShadow } from '../lib/theme';
+import { radius, cardShadow, MIN_TOUCH } from '../lib/theme';
 import { EmptyState } from '../components/empty-state';
 import { Squish } from '../components/squish';
 
@@ -150,6 +150,24 @@ export default function WeightHistoryScreen() {
           }
           ListHeaderComponent={
             <View style={styles.header}>
+              <View style={[styles.metricTabs, { backgroundColor: c.surface }, cardShadow(scheme)]}>
+                {([
+                  { key: 'weight', label: 'น้ำหนัก' },
+                  { key: 'waist', label: 'รอบเอว' },
+                ] as const).map((m) => {
+                  const active = metric === m.key;
+                  return (
+                    <Squish
+                      key={m.key}
+                      onPress={() => setMetric(m.key)}
+                      style={[styles.metricTab, active && { backgroundColor: c.brandTint }]}
+                    >
+                      <Text style={[type.row, { fontSize: 13, color: active ? c.brand : c.subtext }]}>{m.label}</Text>
+                    </Squish>
+                  );
+                })}
+              </View>
+
               <View style={styles.rangeRow}>
                 {RANGES.map((r) => {
                   const active = r === range;
@@ -157,37 +175,15 @@ export default function WeightHistoryScreen() {
                     <Squish
                       key={r}
                       onPress={() => setRange(r)}
-                      style={[styles.rangeChip, { backgroundColor: active ? c.brand : c.surfaceAlt }]}
+                      style={[styles.rangeChip, { backgroundColor: active ? c.surface : 'transparent' }, active && cardShadow(scheme)]}
                     >
-                      <Text style={[type.label, { fontSize: 12, color: active ? '#fff' : c.subtext }]}>{r} วัน</Text>
+                      <Text style={[type.row, { fontSize: 12.5, color: active ? c.text : c.muted }]}>{r} วัน</Text>
                     </Squish>
                   );
                 })}
               </View>
 
               <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
-                <View style={styles.metricTabs}>
-                  {([
-                    { key: 'weight', label: 'น้ำหนัก' },
-                    { key: 'waist', label: 'รอบเอว' },
-                  ] as const).map((m) => {
-                    const active = metric === m.key;
-                    return (
-                      <Squish key={m.key} onPress={() => setMetric(m.key)} hitSlop={6}>
-                        <Text
-                          style={[
-                            type.cardTitle,
-                            { fontSize: 14, color: active ? c.text : c.faint, paddingBottom: 3 },
-                            active && { borderBottomWidth: 2, borderBottomColor: c.brand },
-                          ]}
-                        >
-                          {m.label}
-                        </Text>
-                      </Squish>
-                    );
-                  })}
-                </View>
-
                 <View style={styles.headlineRow}>
                   <View>
                     <Text style={[type.label, { color: c.subtext, fontSize: 12.5 }]}>เฉลี่ย 7 วันล่าสุด</Text>
@@ -231,7 +227,7 @@ export default function WeightHistoryScreen() {
               </View>
 
               <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
-                <Squish scaleTo={0.98} style={styles.toggle} onPress={() => setShowMeasure((v) => !v)} hitSlop={6}>
+                <Squish scaleTo={0.98} style={styles.toggle} onPress={() => setShowMeasure((v) => !v)} hitSlop={12}>
                   <Text style={[type.cardTitle, { color: c.text, fontSize: 14, flex: 1 }]}>สัดส่วน (ซม.)</Text>
                   {showMeasure ? <ChevronUp size={16} color={c.muted} /> : <ChevronDown size={16} color={c.muted} />}
                 </Squish>
@@ -289,10 +285,11 @@ export default function WeightHistoryScreen() {
 const styles = StyleSheet.create({
   list: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 40 },
   header: { gap: 12, paddingBottom: 4 },
+  metricTabs: { flexDirection: 'row', gap: 4, borderRadius: radius.pill, padding: 4 },
+  metricTab: { flex: 1, height: MIN_TOUCH, alignItems: 'center', justifyContent: 'center', borderRadius: radius.cardInner },
   rangeRow: { flexDirection: 'row', gap: 6 },
-  rangeChip: { height: 32, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  rangeChip: { height: MIN_TOUCH, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 10 },
-  metricTabs: { flexDirection: 'row', gap: 14 },
   headlineRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 },
   headlineValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 2 },
   changeBadge: { borderRadius: radius.pill, paddingHorizontal: 12, height: 32, alignItems: 'center', justifyContent: 'center' },
@@ -300,6 +297,6 @@ const styles = StyleSheet.create({
   measureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   measureCell: { width: '47%' },
   input: { borderRadius: radius.iconBox, paddingHorizontal: 12, paddingVertical: 9, fontSize: 15 },
-  saveBtn: { borderRadius: radius.iconBox, paddingVertical: 12, alignItems: 'center' },
+  saveBtn: { height: 50, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14 },
 });

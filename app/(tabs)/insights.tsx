@@ -237,6 +237,6 @@ const styles = StyleSheet.create({
   barCol: { flex: 1, alignItems: 'center', gap: 6 },
   barStack: { width: '100%', flexDirection: 'column-reverse', borderRadius: 6, overflow: 'hidden' },
   calloutRow: { flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: radius.cardInner, padding: 12 },
-  progressTrack: { height: 8, borderRadius: radius.pill, overflow: 'hidden' },
+  progressTrack: { height: 10, borderRadius: radius.pill, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: radius.pill },
 });

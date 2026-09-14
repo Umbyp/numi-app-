@@ -53,10 +53,12 @@ export function AddMealCard({ card, onConfirm, onDismiss }: Props) {
   return (
     <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
       <View style={styles.header}>
-        <Text style={[type.badge, styles.eyebrow, { color: c.muted }]}>การ์ดคำสั่ง · บันทึกอาหาร</Text>
-        <View style={[styles.mealPill, { backgroundColor: c[meta.bgKey] }]}>
-          <Text style={[type.badge, { color: c[meta.textKey] }]}>{meta.label}</Text>
+        <View style={[styles.eyebrowPill, { backgroundColor: c.brandTint }]}>
+          <Text style={[type.badge, { color: c.brand }]}>การ์ดคำสั่ง</Text>
         </View>
+        <Text style={[type.label, styles.eyebrowLabel, { color: c.muted }]} numberOfLines={1}>
+          เพิ่มมื้ออาหาร · {meta.label}
+        </Text>
       </View>
 
       <View style={[styles.itemsCard, { backgroundColor: c.surfaceAlt }]}>
@@ -103,14 +105,14 @@ export function AddMealCard({ card, onConfirm, onDismiss }: Props) {
 
       <View style={styles.actions}>
         <Squish style={[styles.ghost, { backgroundColor: c.surfaceAlt }]} onPress={() => onDismiss(card.id)}>
-          <Text style={[type.row, { color: c.subtext, fontSize: 13 }]}>ยกเลิก</Text>
+          <Text style={[type.row, { color: c.subtext, fontSize: 14 }]}>ไม่ใช่</Text>
         </Squish>
         <Squish scaleTo={0.97}
           style={[styles.primary, { backgroundColor: c.brand }, items.length === 0 && { opacity: 0.5 }]}
           disabled={items.length === 0}
           onPress={handleConfirm}
         >
-          <Text style={[type.row, { color: '#fff', fontSize: 13 }]}>ยืนยัน</Text>
+          <Text style={[type.row, { color: '#fff', fontSize: 15 }]}>บันทึกเลย</Text>
         </Squish>
       </View>
     </View>
@@ -127,9 +129,9 @@ function Badge({ label, bg, text }: { label: string; bg: string; text: string })
 
 const styles = StyleSheet.create({
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 14, marginVertical: 6, gap: 12 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  eyebrow: { letterSpacing: 0.4 },
-  mealPill: { borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 2 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  eyebrowPill: { height: 24, borderRadius: radius.badge + 3, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  eyebrowLabel: { flex: 1, minWidth: 0 },
   itemsCard: { borderRadius: radius.cardInner, paddingHorizontal: 12 },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 10 },
   subRow: { flexDirection: 'row', alignItems: 'center' },

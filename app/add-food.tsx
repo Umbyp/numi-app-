@@ -22,9 +22,11 @@ import {
 } from '../lib/db/queries';
 import { scaleFood } from '../lib/nutrition';
 import { type as textType, fontFamily } from '../lib/fonts';
-import { radius, cardShadow } from '../lib/theme';
+import { radius, cardShadow, MIN_TOUCH } from '../lib/theme';
 import type { foods as foodsTable } from '../lib/db/schema';
 import { Squish } from '../components/squish';
+import { supabase } from '../lib/auth/client';
+import { submitFoodForReview } from '../lib/social/community-foods';
 
 type Food = typeof foodsTable.$inferSelect;
 
@@ -32,7 +34,12 @@ export default function AddFoodScreen() {
   const c = useTheme();
   const scheme = useScheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ mealType?: MealType; mode?: 'search' | 'manual'; entryId?: string }>();
+  const params = useLocalSearchParams<{
+    mealType?: MealType;
+    mode?: 'search' | 'manual';
+    entryId?: string;
+    prefillFoodId?: string;
+  }>();
   const isEditing = !!params.entryId;
 
   const [mealType, setMealType] = useState<MealType>(params.mealType ?? detectMealType());
@@ -64,6 +71,8 @@ export default function AddFoodScreen() {
   const [manualProtein, setManualProtein] = useState('');
   const [manualCarb, setManualCarb] = useState('');
   const [manualFat, setManualFat] = useState('');
+  const [shareWithCommunity, setShareWithCommunity] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -71,6 +80,17 @@ export default function AddFoodScreen() {
     }, 250);
     return () => clearTimeout(timer);
   }, [query]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setLoggedIn(!!data.session));
+  }, []);
+
+  useEffect(() => {
+    if (!params.prefillFoodId) return;
+    getFoodById(params.prefillFoodId).then((food) => {
+      if (food) pickFood(food);
+    });
+  }, [params.prefillFoodId]);
 
   function pickFood(food: Food) {
     setSelected(food);
@@ -142,6 +162,10 @@ export default function AddFoodScreen() {
         fatPer100: parseFloat(manualFat) || 0,
       };
       const foodId = await createUserFood(foodInput);
+      if (shareWithCommunity) {
+        // แยก concern จากการบันทึก local — ส่งไม่สำเร็จ (ออฟไลน์/เน็ตมีปัญหา) ไม่ควรบล็อกการบันทึกมื้ออาหาร
+        submitFoodForReview(foodInput).catch(() => {});
+      }
       const scaled = scaleFood(foodInput, amountG);
       await addMealEntry({
         foodId,
@@ -162,6 +186,7 @@ export default function AddFoodScreen() {
   }
 
   const scaledPreview = selected ? scaleFood(selected, amountG) : null;
+  const manualKcalPreview = (amountG * (parseFloat(manualKcal) || 0)) / 100;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['bottom']}>
@@ -224,7 +249,7 @@ export default function AddFoodScreen() {
                           { backgroundColor: amountG === u.grams ? c.brandTint : c.surfaceAlt },
                         ]}
                       >
-                        <Text style={[textType.label, { color: amountG === u.grams ? c.brand : c.subtext, fontSize: 12 }]}>{u.label}</Text>
+                        <Text style={[textType.row, { color: amountG === u.grams ? c.brand : c.text, fontSize: 13.5 }]}>{u.label}</Text>
                       </Squish>
                     ))}
                   </View>
@@ -232,7 +257,7 @@ export default function AddFoodScreen() {
 
                 <View style={styles.amountRow}>
                   <Text style={[textType.row, { color: c.text, fontSize: 13.5 }]}>ปริมาณ (กรัม)</Text>
-                  <AmountStepper value={amountG} onChange={setAmountG} />
+                  <AmountStepper value={amountG} onChange={setAmountG} large />
                 </View>
 
                 {scaledPreview && (
@@ -347,15 +372,30 @@ export default function AddFoodScreen() {
 
               <View style={styles.amountRow}>
                 <Text style={[textType.row, { color: c.text, fontSize: 13.5 }]}>กินไปกี่กรัม</Text>
-                <AmountStepper value={amountG} onChange={setAmountG} />
+                <AmountStepper value={amountG} onChange={setAmountG} large />
               </View>
             </View>
+
+            {loggedIn && (
+              <Squish
+                scaleTo={0.98}
+                onPress={() => setShareWithCommunity((v) => !v)}
+                style={[styles.shareToggle, { backgroundColor: shareWithCommunity ? c.brandTint : c.surfaceAlt }]}
+              >
+                <View style={[styles.checkbox, { borderColor: shareWithCommunity ? c.brand : c.line, backgroundColor: shareWithCommunity ? c.brand : 'transparent' }]}>
+                  {shareWithCommunity && <Text style={{ color: '#fff', fontSize: 11 }}>✓</Text>}
+                </View>
+                <Text style={[textType.label, { color: shareWithCommunity ? c.brand : c.subtext, fontSize: 12.5, flex: 1 }]}>
+                  แชร์เมนูนี้ให้คนอื่นเห็นด้วย (ต้องผ่านการตรวจก่อน)
+                </Text>
+              </Squish>
+            )}
 
             {!!manualKcal && (
               <View style={[styles.manualTotalCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
                 <Text style={[textType.label, { color: c.subtext, fontSize: 11.5, flex: 1 }]}>มื้อนี้จะบันทึกเป็น</Text>
                 <Text style={[textType.metric, { color: c.text, fontSize: 30 }]}>
-                  {Math.round(((parseFloat(manualKcal) || 0) * amountG) / 100)}
+                  {Math.round(manualKcalPreview)}
                 </Text>
                 <Text style={[textType.label, { color: c.muted, fontSize: 12.5 }]}>kcal</Text>
               </View>
@@ -433,29 +473,29 @@ const styles = StyleSheet.create({
     gap: 5,
     borderRadius: radius.pill,
     paddingHorizontal: 12,
-    height: 36,
+    height: 40,
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 9,
     marginHorizontal: 16,
     marginBottom: 8,
-    borderRadius: radius.iconBox,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: radius.pill,
+    paddingHorizontal: 14,
+    height: 52,
   },
   searchInput: { flex: 1, fontSize: 15 },
   resultsWrap: { flex: 1, paddingHorizontal: 16 },
   resultsCard: { flex: 1, borderRadius: radius.card, overflow: 'hidden' },
   resultsList: { flex: 1 },
   resultRow: {
+    minHeight: 60,
     paddingHorizontal: 16,
     paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    minHeight: 60,
   },
   manualLink: { alignItems: 'center', paddingVertical: 14 },
   emptyState: { alignItems: 'center', gap: 12, marginTop: 20, paddingHorizontal: 8 },
@@ -470,13 +510,13 @@ const styles = StyleSheet.create({
   selectedCard: { margin: 16, padding: 16, borderRadius: radius.card, borderWidth: StyleSheet.hairlineWidth },
   selectedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   selectedTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 },
-  unitRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
-  unitPill: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 6 },
+  unitRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 10 },
+  unitPill: { height: MIN_TOUCH, borderRadius: radius.cardInner, paddingHorizontal: 15, alignItems: 'center', justifyContent: 'center' },
   amountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 },
   macroPreviewCard: { borderRadius: radius.cardInner, padding: 14, marginTop: 12, gap: 10 },
   macroCols: { flexDirection: 'row', gap: 12 },
   disclaimerCard: { borderRadius: radius.cardInner, padding: 14, marginTop: 12 },
-  saveBtn: { borderRadius: radius.iconBox, paddingVertical: 13, alignItems: 'center', marginTop: 16 },
+  saveBtn: { height: 56, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
   saveBtnText: { color: '#fff', fontSize: 15 },
   manualForm: { padding: 16, paddingBottom: 24 },
   stepCard: { borderRadius: radius.card, borderWidth: StyleSheet.hairlineWidth, padding: 16, gap: 4 },
@@ -490,5 +530,15 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     gap: 6,
   },
-  input: { borderRadius: radius.iconBox, paddingHorizontal: 12, paddingVertical: 10 },
+  input: { borderRadius: radius.iconBox, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
+  shareToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: radius.iconBox,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginTop: 14,
+  },
+  checkbox: { width: 18, height: 18, borderRadius: 5, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
 });

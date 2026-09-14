@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { Search, PenLine } from 'lucide-react-native';
 import { useTheme } from '../lib/hooks/use-theme';
 import { type, fontFamily } from '../lib/fonts';
-import { radius } from '../lib/theme';
+import { radius, MIN_TOUCH } from '../lib/theme';
 import { CameraIcon, BarcodeIcon, ActivityIcon, ScaleIcon } from './icons/nav-icons';
 import { Mascot } from './mascot';
 import { FoodVisual } from './food-visual';
@@ -112,7 +112,7 @@ export function QuickAddSheet({ visible, onClose }: Props) {
         <View style={[styles.handle, { backgroundColor: c.line }]} />
 
         <View style={[styles.askRow, { backgroundColor: c.brandTint }]}>
-          <Mascot size={52} />
+          <Mascot size={56} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <TextInput
               value={text}
@@ -210,8 +210,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 30,
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   handle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 3 },
   askRow: { borderRadius: 22, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   askInput: { fontFamily: fontFamily(700), fontSize: 15, padding: 0 },
-  askBtn: { height: 36, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  askBtn: { height: MIN_TOUCH, paddingHorizontal: 16, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   grid: { flexDirection: 'row', gap: 8 },
   gridBtn: { flex: 1, alignItems: 'center', gap: 8 },
   gridIcon: { width: '100%', height: 70, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
