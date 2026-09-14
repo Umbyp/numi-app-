@@ -90,9 +90,11 @@ export default function WeightHistoryScreen() {
 
   const average = useMemo(() => seriesMovingAverage(series, 7), [series]);
 
-  /** ค่าเฉลี่ย 7 วันล่าสุดที่มีข้อมูลจริง — ใช้โชว์เป็นตัวเลขใหญ่แทนค่าดิบที่แกว่งวันต่อวัน */
-  const latestAvg = useMemo(() => {
-    for (let i = average.length - 1; i >= 0; i--) if (average[i] !== null) return average[i];
+  /** ค่าเฉลี่ย 7 วันล่าสุดที่มีจริง ไว้โชว์เป็นตัวเลขใหญ่ ไม่ใช่ค่าดิบวันสุดท้ายที่แกว่งได้ */
+  const latestAverage = useMemo(() => {
+    for (let i = average.length - 1; i >= 0; i--) {
+      if (average[i] !== null) return average[i];
+    }
     return null;
   }, [average]);
 
@@ -182,21 +184,25 @@ export default function WeightHistoryScreen() {
               </View>
 
               <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
-                <View style={styles.cardHead}>
+                <View style={styles.headlineRow}>
                   <View>
-                    <Text style={[type.row, { color: c.subtext, fontSize: 12.5 }]}>เฉลี่ย 7 วันล่าสุด</Text>
-                    <View style={styles.baselineRow}>
-                      <Text style={[type.metric, { color: c.text, fontSize: 38, letterSpacing: -1 }]}>
-                        {latestAvg !== null ? latestAvg.toFixed(1) : '—'}
+                    <Text style={[type.label, { color: c.subtext, fontSize: 12.5 }]}>เฉลี่ย 7 วันล่าสุด</Text>
+                    <View style={styles.headlineValueRow}>
+                      <Text style={[type.metric, { color: c.text, fontSize: 40 }]}>
+                        {latestAverage !== null ? latestAverage.toFixed(1) : '—'}
                       </Text>
-                      <Text style={[type.row, { color: c.muted, fontSize: 13 }]}>{unit}</Text>
+                      <Text style={[type.label, { color: c.muted, fontSize: 13 }]}>{unit}</Text>
                     </View>
                   </View>
                   {change !== null && (
-                    <View style={[styles.deltaPill, { backgroundColor: c.brandTint }]}>
-                      <Text style={[type.row, { color: c.brand, fontSize: 12.5 }]}>
-                        {change >= 0 ? '+' : ''}
-                        {change.toFixed(1)} {unit}
+                    <View
+                      style={[
+                        styles.changeBadge,
+                        { backgroundColor: change < 0 ? c.carbBg : c.surfaceAlt },
+                      ]}
+                    >
+                      <Text style={[type.row, { fontSize: 12.5, color: change < 0 ? c.carbText : c.subtext }]}>
+                        {change < 0 ? 'ลง' : change > 0 ? 'ขึ้น' : 'คงที่'} {Math.abs(change).toFixed(1)} {unit}
                       </Text>
                     </View>
                   )}
@@ -212,6 +218,12 @@ export default function WeightHistoryScreen() {
                       : 'ยังไม่มีรอบเอวในช่วงนี้ — เปิด “สัดส่วน” ด้านล่างเพื่อบันทึก'
                   }
                 />
+
+                {latestAverage !== null && (
+                  <Text style={[type.label, { color: c.faint, fontSize: 11.5, lineHeight: 18 }]}>
+                    {metric === 'weight' ? 'น้ำหนัก' : 'รอบเอว'}ขึ้นลงวันต่อวันเป็นเรื่องปกติ ดูเส้นเฉลี่ยจะเห็นทิศทางชัดกว่า
+                  </Text>
+                )}
               </View>
 
               <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
@@ -278,9 +290,9 @@ const styles = StyleSheet.create({
   rangeRow: { flexDirection: 'row', gap: 6 },
   rangeChip: { height: MIN_TOUCH, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 10 },
-  cardHead: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 },
-  baselineRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 2 },
-  deltaPill: { height: 32, paddingHorizontal: 12, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
+  headlineRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 },
+  headlineValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 2 },
+  changeBadge: { borderRadius: radius.pill, paddingHorizontal: 12, height: 32, alignItems: 'center', justifyContent: 'center' },
   toggle: { flexDirection: 'row', alignItems: 'center' },
   measureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   measureCell: { width: '47%' },

@@ -10,6 +10,17 @@ const TH_MONTHS_SHORT = [
   'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.',
 ];
 
+const TH_MONTHS_FULL = [
+  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+];
+
+/** "ธันวาคม 2569" — ไว้บอกช่วงเวลาแบบคร่าว ๆ ไม่ใช่วันที่เป๊ะ */
+export function formatMonthYear(localDate: string): string {
+  const [y, m] = localDate.split('-').map(Number);
+  return `${TH_MONTHS_FULL[m - 1]} ${y + 543}`;
+}
+
 const TH_WEEKDAYS = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
 
 /** บวก/ลบวันบนสตริง YYYY-MM-DD โดยใช้ UTC ล้วน จึงไม่ขยับตาม timezone เครื่อง */

@@ -169,9 +169,10 @@ export default function DiaryScreen() {
                     <MealTypeIcon type={meta.key} color={c[meta.colorKey]} size={13} />
                   </View>
                   <Text style={[type.cardTitle, { color: c.text, fontSize: 14, flex: 1 }]}>{meta.label}</Text>
-                  {list.length > 0 ? (
+                  {list.length > 0 && (
                     <Text style={[type.cardTitle, { color: c.text, fontSize: 14 }]}>{Math.round(kcal)}</Text>
-                  ) : isToday ? (
+                  )}
+                  {isToday && (
                     <Squish
                       style={[styles.addPill, { backgroundColor: c.brandTint }]}
                       hitSlop={8}
@@ -179,19 +180,26 @@ export default function DiaryScreen() {
                     >
                       <Text style={[type.badge, { color: c.brand, fontSize: 12 }]}>+ เพิ่ม</Text>
                     </Squish>
-                  ) : null}
+                  )}
                 </View>
                 {list.length > 0 ? (
                   list.map((e) => (
                     <FadeInView key={e.id} style={styles.mealFoodRow}>
-                      <FoodVisual name={e.name} photoUri={e.photoUri} size={28} />
-                      <Text style={[type.row, { color: c.text, fontSize: 13, flex: 1 }]} numberOfLines={1}>
-                        {e.name}
-                      </Text>
-                      <Text style={[type.label, { color: c.faint, fontSize: 10 }]}>
-                        {e.loggedAt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
-                      <Text style={[type.row, { color: c.subtext, fontSize: 12 }]}>{Math.round(e.kcal)}</Text>
+                      <Squish
+                        scaleTo={0.98}
+                        style={styles.mealFoodRowMain}
+                        disabled={!isToday}
+                        onPress={() => router.push({ pathname: '/add-food', params: { entryId: e.id } })}
+                      >
+                        <FoodVisual name={e.name} photoUri={e.photoUri} size={28} />
+                        <Text style={[type.row, { color: c.text, fontSize: 13, flex: 1 }]} numberOfLines={1}>
+                          {e.name}
+                        </Text>
+                        <Text style={[type.label, { color: c.faint, fontSize: 10 }]}>
+                          {e.loggedAt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                        <Text style={[type.row, { color: c.subtext, fontSize: 12 }]}>{Math.round(e.kcal)}</Text>
+                      </Squish>
                       {isToday && (
                         <Squish style={styles.rowDeleteBtn} onPress={() => handleDeleteEntry(e.id)}>
                           <X size={15} color={c.faint} />
@@ -304,6 +312,7 @@ const styles = StyleSheet.create({
   mealIcon: { width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   addPill: { height: 28, paddingHorizontal: 11, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   mealFoodRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  mealFoodRowMain: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 6 },
   // เป้ากดตามเกณฑ์ขั้นต่ำ ของเดิมไอคอน 14px + hitSlop 8 ได้แค่ 30px
   rowDeleteBtn: { width: MIN_TOUCH, height: MIN_TOUCH, alignItems: 'center', justifyContent: 'center' },
   shortcutRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', paddingLeft: 35 },

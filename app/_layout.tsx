@@ -59,7 +59,7 @@ function RootLayoutInner() {
       configureNotificationHandler();
       await refresh();
       const seen = await getAppSetting('onboarding_seen');
-      setNeedsOnboarding(!seen);
+      setNeedsOnboarding(seen !== 'true' && !useNumiStore.getState().profile);
       setDbReady(true);
 
       // ซิงค์เบื้องหลังถ้าเคยล็อกอินไว้ — ไม่บล็อกหน้าจอ splash เพราะพึ่งเน็ตเวิร์กที่อาจช้า/ล่ม
@@ -73,6 +73,8 @@ function RootLayoutInner() {
     })();
   }, []);
 
+  // พาไปหน้าต้อนรับเฉพาะตอนยังไม่เคยตั้งเป้าหมายและยังไม่เคยข้ามหน้านี้มาก่อน
+  // เช็คหลัง ready เพื่อให้ Stack mount ก่อนเรียก router.replace
   useEffect(() => {
     if (!ready) return;
     SplashScreen.hideAsync();

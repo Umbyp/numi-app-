@@ -105,15 +105,24 @@ export function DatePickerModal({ visible, selectedDate, onSelect, onClose }: Pr
             })}
           </View>
 
-          <Squish
-            style={[styles.todayBtn, { backgroundColor: c.surfaceAlt }]}
-            onPress={() => {
-              setViewMonth(startOfMonth(today));
-              onSelect(localDateString(today));
-            }}
-          >
-            <Text style={[type.row, { color: c.brand, fontSize: 13 }]}>วันนี้</Text>
-          </Squish>
+          <Text style={[type.label, { color: c.faint, fontSize: 11.5, lineHeight: 17 }]}>
+            วันข้างหน้ายังกดไม่ได้ เพราะยังไม่มีอะไรให้บันทึก
+          </Text>
+
+          <View style={styles.footerRow}>
+            <Squish style={[styles.footerBtn, { backgroundColor: c.surfaceAlt }]} onPress={onClose}>
+              <Text style={[type.row, { color: c.subtext, fontSize: 14 }]}>ปิด</Text>
+            </Squish>
+            <Squish
+              style={[styles.footerBtn, { backgroundColor: c.brandTint }]}
+              onPress={() => {
+                setViewMonth(startOfMonth(today));
+                onSelect(localDateString(today));
+              }}
+            >
+              <Text style={[type.row, { color: c.brand, fontSize: 14 }]}>วันนี้</Text>
+            </Squish>
+          </View>
         </View>
       </View>
     </Modal>
@@ -137,7 +146,8 @@ const styles = StyleSheet.create({
   navBtn: { width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   weekLabelRow: { flexDirection: 'row', justifyContent: 'space-between' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  cell: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginVertical: 2 },
-  dayCircle: { borderRadius: 14 },
-  todayBtn: { alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: radius.cardInner, marginTop: 4 },
+  cell: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginVertical: 2 },
+  dayCircle: { borderRadius: 18 },
+  footerRow: { flexDirection: 'row', gap: 9, marginTop: 2 },
+  footerBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: radius.iconBox },
 });
