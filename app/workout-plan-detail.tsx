@@ -454,16 +454,18 @@ export default function WorkoutPlanDetailScreen() {
                 </View>
               </View>
               {day.warmup && (
-                <View style={[styles.guidanceBox, { backgroundColor: c.brandTint }]}>
+                <View style={[styles.noteBox, { backgroundColor: c.brandTint }]}>
                   <Text style={[textType.badge, { color: c.brand }]}>ก่อนเล่น</Text>
-                  <Text style={[textType.label, { color: c.text, fontSize: 12.5, lineHeight: 18 }]}>{day.warmup}</Text>
+                  <Text style={[textType.label, { color: c.text, fontSize: 12.5, lineHeight: 18, marginTop: 2 }]}>{day.warmup}</Text>
                 </View>
               )}
-              {day.duringNote && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>ระหว่างเล่น: {day.duringNote}</Text>}
+              {day.duringNote && (
+                <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>ระหว่างเล่น: {day.duringNote}</Text>
+              )}
               {day.cooldown && (
-                <View style={[styles.guidanceBox, { backgroundColor: c.dinnerBg }]}>
-                  <Text style={[textType.badge, { color: c.dinner }]}>หลังเล่น</Text>
-                  <Text style={[textType.label, { color: c.text, fontSize: 12.5, lineHeight: 18 }]}>{day.cooldown}</Text>
+                <View style={[styles.noteBox, { backgroundColor: dTint.bg }]}>
+                  <Text style={[textType.badge, { color: dTint.icon }]}>หลังเล่น</Text>
+                  <Text style={[textType.label, { color: c.text, fontSize: 12.5, lineHeight: 18, marginTop: 2 }]}>{day.cooldown}</Text>
                 </View>
               )}
 
@@ -530,12 +532,12 @@ export default function WorkoutPlanDetailScreen() {
 const styles = StyleSheet.create({
   scroll: { padding: 18, gap: 14 },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 10 },
-  guidanceBox: { borderRadius: radius.cardInner, padding: 10, gap: 3 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   editPill: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: radius.pill, paddingHorizontal: 12, height: 32 },
   dayHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   dayTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 3 },
   exerciseRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  noteBox: { borderRadius: radius.cardInner, padding: 11 },
   progressWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 },
   progressTrack: { flex: 1, height: 8, borderRadius: 5, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 5 },

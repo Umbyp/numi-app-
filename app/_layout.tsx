@@ -73,10 +73,14 @@ function RootLayoutInner() {
     })();
   }, []);
 
+  // พาไปหน้าต้อนรับเฉพาะตอนยังไม่เคยตั้งเป้าหมายและยังไม่เคยข้ามหน้านี้มาก่อน
+  // เช็ค profile ควบคู่กัน กันเคส onboarding_seen ไม่ถูกตั้งแต่ผู้ใช้มีโปรไฟล์อยู่แล้วไม่ให้เด้งกลับไปซ้ำ
   useEffect(() => {
     if (!ready) return;
     SplashScreen.hideAsync();
-    if (needsOnboarding) router.replace('/onboarding');
+    if (needsOnboarding && !useNumiStore.getState().profile) {
+      router.replace('/onboarding');
+    }
   }, [ready]);
 
   if (!ready) {

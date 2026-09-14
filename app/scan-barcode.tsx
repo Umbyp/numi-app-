@@ -7,7 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { AmountStepper } from '../components/amount-stepper';
 import { MealTypeIcon } from '../components/icons/meal-type-icons';
-import { MEAL_TYPES, detectMealType, type MealType } from '../lib/meal-type';
+import { BarcodeIcon } from '../components/icons/nav-icons';
+import { MEAL_TYPES, detectMealType, getMealTypeMeta, type MealType } from '../lib/meal-type';
 import { addMealEntry, createUserFood } from '../lib/db/queries';
 import { scaleFood } from '../lib/nutrition';
 import { type as textType, fontFamily } from '../lib/fonts';
@@ -163,9 +164,19 @@ export default function ScanBarcodeScreen() {
       {product && (
         <SafeAreaView style={[styles.resultSheet, { backgroundColor: c.surface }]} edges={['bottom']}>
           <ScrollView contentContainerStyle={{ padding: 18, gap: 14 }}>
-            <Text style={[textType.cardTitle, { color: c.text, fontSize: 16 }]} numberOfLines={2}>
-              {product.name}
-            </Text>
+            <View style={styles.productHeader}>
+              <View style={[styles.productIcon, { backgroundColor: c.surfaceAlt }]}>
+                <BarcodeIcon color={c.text} size={26} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[textType.cardTitle, { color: c.text, fontSize: 16.5 }]} numberOfLines={2}>
+                  {product.name}
+                </Text>
+                <Text style={[textType.label, { color: c.muted, fontSize: 12 }]} numberOfLines={1}>
+                  {product.barcode} · จากฐานข้อมูลสินค้า
+                </Text>
+              </View>
+            </View>
 
             <View style={styles.mealRow}>
               {MEAL_TYPES.map((opt) => {
@@ -191,17 +202,15 @@ export default function ScanBarcodeScreen() {
             {(() => {
               const scaled = scaleFood(product, amountG);
               return (
-                <View style={[styles.previewBox, { backgroundColor: c.surfaceAlt }]}>
-                  <View style={styles.previewBaseline}>
-                    <Text style={[textType.metric, { color: c.text, fontSize: 30, letterSpacing: -0.8 }]}>
-                      {Math.round(scaled.kcal)}
-                    </Text>
-                    <Text style={[textType.row, { color: c.muted, fontSize: 12.5 }]}>kcal</Text>
+                <View style={[styles.macroPreviewCard, { backgroundColor: c.surfaceAlt }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                    <Text style={[textType.metric, { color: c.text, fontSize: 34 }]}>{Math.round(scaled.kcal)}</Text>
+                    <Text style={[textType.label, { color: c.muted, fontSize: 12.5 }]}>kcal</Text>
                   </View>
-                  <View style={styles.previewMacroRow}>
-                    <Text style={[textType.label, { color: c.subtext, fontSize: 11.5 }]}>โปรตีน {scaled.proteinG.toFixed(1)} ก.</Text>
-                    <Text style={[textType.label, { color: c.subtext, fontSize: 11.5 }]}>คาร์บ {scaled.carbG.toFixed(1)} ก.</Text>
-                    <Text style={[textType.label, { color: c.subtext, fontSize: 11.5 }]}>ไขมัน {scaled.fatG.toFixed(1)} ก.</Text>
+                  <View style={styles.macroCols}>
+                    <MacroCol label="โปรตีน" value={scaled.proteinG} c={c} />
+                    <MacroCol label="คาร์บ" value={scaled.carbG} c={c} />
+                    <MacroCol label="ไขมัน" value={scaled.fatG} c={c} />
                   </View>
                 </View>
               );
@@ -212,14 +221,33 @@ export default function ScanBarcodeScreen() {
               disabled={saving}
               onPress={handleSave}
             >
-              <Text style={[textType.row, { color: '#fff', fontSize: 15 }]}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Text>
+              <Text style={[textType.row, { color: '#fff', fontSize: 15 }]}>
+                {saving ? 'กำลังบันทึก...' : `บันทึกลงมื้อ${getMealTypeMeta(mealType).label}`}
+              </Text>
             </Squish>
-            <Squish onPress={retry} style={{ alignItems: 'center', paddingVertical: 4 }}>
-              <Text style={[textType.label, { color: c.subtext }]}>สแกนใหม่</Text>
-            </Squish>
+            <View style={styles.secondaryRow}>
+              <Squish style={[styles.secondaryBtn, { backgroundColor: c.surfaceAlt }]} onPress={retry}>
+                <Text style={[textType.row, { color: c.text, fontSize: 13.5 }]}>สแกนใหม่</Text>
+              </Squish>
+              <Squish
+                style={[styles.secondaryBtn, { backgroundColor: c.surfaceAlt }]}
+                onPress={() => router.replace({ pathname: '/add-food', params: { mode: 'manual' } })}
+              >
+                <Text style={[textType.row, { color: c.text, fontSize: 13.5 }]}>กรอกเอง</Text>
+              </Squish>
+            </View>
           </ScrollView>
         </SafeAreaView>
       )}
+    </View>
+  );
+}
+
+function MacroCol({ label, value, c }: { label: string; value: number; c: ReturnType<typeof useTheme> }) {
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={[textType.label, { color: c.muted, fontSize: 11 }]}>{label}</Text>
+      <Text style={[textType.row, { color: c.text, fontSize: 14.5 }]}>{value.toFixed(1)} ก.</Text>
     </View>
   );
 }
@@ -231,11 +259,14 @@ const styles = StyleSheet.create({
   scanHintText: { color: '#fff', fontFamily: fontFamily(600), fontSize: 13, backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   overlay: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
   overlayText: { color: '#fff', fontFamily: fontFamily(600), fontSize: 15, textAlign: 'center' },
-  resultSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '70%', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  resultSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '78%', borderTopLeftRadius: 32, borderTopRightRadius: 32 },
+  productHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  productIcon: { width: 52, height: 52, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
+  macroPreviewCard: { borderRadius: radius.cardInner, padding: 14, gap: 10 },
+  macroCols: { flexDirection: 'row', gap: 12 },
+  secondaryRow: { flexDirection: 'row', gap: 9 },
+  secondaryBtn: { flex: 1, height: 48, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   mealRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   mealPill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 40, paddingHorizontal: 12, borderRadius: radius.pill },
   amountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  previewBox: { borderRadius: radius.cardInner, padding: 14, gap: 9 },
-  previewBaseline: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  previewMacroRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
 });

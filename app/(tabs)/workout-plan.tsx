@@ -4,12 +4,20 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trash2 } from 'lucide-react-native';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
-import { getWorkoutPlans, deleteWorkoutPlan, getWorkoutHistory, getWorkoutPlanCompletionsInRange } from '../../lib/db/queries';
+import {
+  getWorkoutPlans,
+  deleteWorkoutPlan,
+  getWorkoutHistory,
+  getWorkoutPlanCompletions,
+  getWorkoutPlanCompletionsInRange,
+} from '../../lib/db/queries';
 import type { WorkoutPlanDay } from '../../lib/db/schema';
 import { DayTypeIcon, dayTypeTint } from '../../components/icons/workout-icons';
 import { WorkoutHistoryStrip } from '../../components/workout-history-strip';
+import { Mascot } from '../../components/mascot';
 import { EmptyState } from '../../components/empty-state';
-import { localDateString } from '../../lib/nutrition';
+import { localDateString, calcKcalBurned } from '../../lib/nutrition';
+import { useNumiStore } from '../../lib/store';
 import { calcStreak, calcWeekCompletionCount, calcMuscleBalance } from '../../lib/workout-stats';
 import { MUSCLE_GROUPS } from '../../lib/met';
 import { type } from '../../lib/fonts';
@@ -50,9 +58,13 @@ export default function WorkoutPlanScreen() {
   const c = useTheme();
   const scheme = useScheme();
   const router = useRouter();
+  const latestWeightKg = useNumiStore((s) => s.latestWeightKg);
   const [plans, setPlans] = useState<Awaited<ReturnType<typeof getWorkoutPlans>>>([]);
   const [workoutDates, setWorkoutDates] = useState<Set<string>>(new Set());
   const [muscleBalance, setMuscleBalance] = useState<ReturnType<typeof calcMuscleBalance>>({});
+  const [suggested, setSuggested] = useState<{ planId: string; planTitle: string; day: WorkoutPlanDay } | null>(null);
+  /** ปิดการ์ดวันนี้ไว้ชั่วคราวเฉพาะรอบเปิดแอปนี้ ไม่ได้บันทึกลง DB ว่า "ข้าม" จริง */
+  const [dismissedToday, setDismissedToday] = useState(false);
 
   const load = useCallback(async () => {
     const [plansData, historyRows] = await Promise.all([getWorkoutPlans(), getWorkoutHistory(60)]);
@@ -62,6 +74,15 @@ export default function WorkoutPlanScreen() {
     const week = thisWeekDates();
     const completions = await getWorkoutPlanCompletionsInRange(week[0], week[6]);
     setMuscleBalance(calcMuscleBalance(completions, plansData));
+
+    if (plansData.length === 0) {
+      setSuggested(null);
+    } else {
+      const plan = plansData[0];
+      const planCompletions = await getWorkoutPlanCompletions(plan.id);
+      const dayIndex = planCompletions.length % plan.days.length;
+      setSuggested({ planId: plan.id, planTitle: plan.title, day: plan.days[dayIndex] });
+    }
   }, []);
 
   useFocusEffect(
@@ -96,7 +117,56 @@ export default function WorkoutPlanScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <>
-            <Text style={[type.greeting, { color: c.text, fontSize: 22, marginBottom: 8 }]}>ออกกำลังกาย</Text>
+            <Text style={[type.greeting, { color: c.text, fontSize: 22, marginBottom: 8 }]}>แผนออกกำลังกาย</Text>
+
+            {suggested && !dismissedToday && (
+              <View style={[styles.heroCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+                <View style={styles.heroRow}>
+                  <Mascot pose="start" size={64} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={[type.label, { color: c.muted, fontSize: 11.5 }]} numberOfLines={1}>
+                      วันนี้ตามแผน "{suggested.planTitle}"
+                    </Text>
+                    <Text style={[type.cardTitle, { color: c.text, fontSize: 19 }]} numberOfLines={1}>
+                      {suggested.day.label}
+                    </Text>
+                    <Text style={[type.label, { color: c.subtext, fontSize: 12 }]}>
+                      {suggested.day.exercises.length} ท่า ·{' '}
+                      {suggested.day.exercises.reduce((s, e) => s + e.durationMin, 0)} นาที · ราว{' '}
+                      {Math.round(
+                        suggested.day.exercises.reduce(
+                          (s, e) => s + calcKcalBurned(e.met, latestWeightKg ?? 70, e.durationMin),
+                          0
+                        )
+                      )}{' '}
+                      kcal
+                    </Text>
+                  </View>
+                </View>
+                <Squish
+                  scaleTo={0.97}
+                  style={[styles.heroPrimaryBtn, { backgroundColor: c.brand }]}
+                  onPress={() => router.push({ pathname: '/workout-plan-detail', params: { id: suggested.planId } })}
+                >
+                  <Text style={[type.row, { color: '#fff', fontSize: 16 }]}>เริ่มเล่นวันนี้</Text>
+                </Squish>
+                <View style={styles.heroSecondaryRow}>
+                  <Squish
+                    style={[styles.heroSecondaryBtn, { backgroundColor: c.surfaceAlt }]}
+                    onPress={() => router.push('/log-workout')}
+                  >
+                    <Text style={[type.row, { color: c.text, fontSize: 13.5 }]}>บันทึกเองแบบเร็ว</Text>
+                  </Squish>
+                  <Squish
+                    style={[styles.heroSecondaryBtn, { backgroundColor: c.surfaceAlt }]}
+                    onPress={() => setDismissedToday(true)}
+                  >
+                    <Text style={[type.row, { color: c.text, fontSize: 13.5 }]}>ข้ามวันนี้</Text>
+                  </Squish>
+                </View>
+              </View>
+            )}
+
             <View style={[styles.statsCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
               <View style={styles.statsRow}>
                 <View>
@@ -197,6 +267,11 @@ const styles = StyleSheet.create({
   iconBox: { width: 44, height: 44, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
   deleteBtn: { width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: MIN_TOUCH / 2, alignItems: 'center', justifyContent: 'center' },
   emptyState: { alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 60, paddingHorizontal: 32 },
+  heroCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 17, gap: 13, marginBottom: 14 },
+  heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  heroPrimaryBtn: { height: 54, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
+  heroSecondaryRow: { flexDirection: 'row', gap: 8 },
+  heroSecondaryBtn: { flex: 1, height: 44, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   statsCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 12, marginBottom: 14 },
   statsRow: { flexDirection: 'row', gap: 24 },
   plansHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },

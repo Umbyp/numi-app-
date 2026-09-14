@@ -195,8 +195,7 @@ export default function WeightHistoryScreen() {
                   {change !== null && (
                     <View style={[styles.deltaPill, { backgroundColor: c.brandTint }]}>
                       <Text style={[type.row, { color: c.brand, fontSize: 12.5 }]}>
-                        {change >= 0 ? '+' : ''}
-                        {change.toFixed(1)} {unit}
+                        {change < 0 ? 'ลง' : change > 0 ? 'ขึ้น' : 'คงที่'} {Math.abs(change).toFixed(1)} {unit}
                       </Text>
                     </View>
                   )}
@@ -212,6 +211,12 @@ export default function WeightHistoryScreen() {
                       : 'ยังไม่มีรอบเอวในช่วงนี้ — เปิด “สัดส่วน” ด้านล่างเพื่อบันทึก'
                   }
                 />
+
+                {latestAvg !== null && (
+                  <Text style={[type.label, { color: c.faint, fontSize: 11.5, lineHeight: 18 }]}>
+                    {metric === 'weight' ? 'น้ำหนัก' : 'รอบเอว'}ขึ้นลงวันต่อวันเป็นเรื่องปกติ ดูเส้นเฉลี่ยจะเห็นทิศทางชัดกว่า
+                  </Text>
+                )}
               </View>
 
               <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>

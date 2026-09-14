@@ -9,7 +9,7 @@ const TAB_META: Record<string, { label: string; Icon: typeof DashboardIcon }> = 
   index: { label: 'แดชบอร์ด', Icon: DashboardIcon },
   diary: { label: 'ไดอารี่', Icon: DiaryIcon },
   'workout-plan': { label: 'ออกกำลังกาย', Icon: WorkoutPlanIcon },
-  insights: { label: 'เชิงลึก', Icon: InsightsIcon },
+  insights: { label: 'สถิติ', Icon: InsightsIcon },
   account: { label: 'บัญชี', Icon: AccountIcon },
 };
 

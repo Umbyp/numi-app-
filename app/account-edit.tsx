@@ -13,8 +13,11 @@ import {
   calcMacroTargets,
   maxSafeWeeklyLoss,
   recommendedMacroPct,
+  estimateWeeksToGoal,
+  localDateString,
   type Sex,
 } from '../lib/nutrition';
+import { addDays, formatMonthYear } from '../lib/dates';
 import { Sparkles } from 'lucide-react-native';
 import { type as textType, fontFamily } from '../lib/fonts';
 import { radius, cardShadow, MIN_TOUCH } from '../lib/theme';
@@ -133,6 +136,18 @@ export default function AccountEditScreen() {
   }, [weightKg]);
 
   const rateUnsafe = goalType === 'lose' && Math.abs(weeklyRateKg) > safeMaxLoss;
+
+  /** ประมาณเดือนที่จะถึงน้ำหนักเป้าหมาย — โชว์เฉพาะตอนกรอกน้ำหนักเป้าหมายไว้แล้วและทิศทางสอดคล้องกับอัตราที่เลือก */
+  const goalEta = useMemo(() => {
+    if (goalType === 'maintain') return null;
+    const cur = parseFloat(weightKg);
+    const goal = parseFloat(goalWeightKg);
+    if (!cur || !goal) return null;
+    const weeks = estimateWeeksToGoal(cur, goal, weeklyRateKg);
+    if (weeks === null || weeks <= 0) return null;
+    return formatMonthYear(addDays(localDateString(), weeks * 7));
+  }, [weightKg, goalWeightKg, goalType, weeklyRateKg]);
+
   const nextDisabled =
     (STEP_KEYS[step] === 'basic' && !preview) || (STEP_KEYS[step] === 'goal' && rateUnsafe);
 
@@ -284,6 +299,11 @@ export default function AccountEditScreen() {
                     {rateUnsafe && (
                       <Text style={[textType.label, { color: c.danger, fontSize: 12, marginTop: 8 }]}>
                         เกินอัตราปลอดภัย ({safeMaxLoss.toFixed(2)} kg/สัปดาห์) กรุณาเลือกอัตราที่ปลอดภัยกว่าก่อนไปต่อ
+                      </Text>
+                    )}
+                    {!rateUnsafe && goalEta && (
+                      <Text style={[textType.label, { color: c.subtext, fontSize: 12, marginTop: 8 }]}>
+                        คาดว่าจะถึงเป้าหมายราวเดือน {goalEta}
                       </Text>
                     )}
                   </Field>

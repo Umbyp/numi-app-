@@ -51,8 +51,6 @@ export const colors = {
     border: '#232F4B',
     brand: '#5C9BFF',
     brandTint: '#18223A',
-    cream: '#2A2216',
-    creamText: '#E8C989',
     protein: '#FF6B72',
     proteinBg: 'rgba(255,107,114,0.18)',
     proteinText: '#FF8B91',
@@ -66,6 +64,8 @@ export const colors = {
     dinnerBg: '#2A2545',
     danger: '#FF6B72',
     dangerBg: '#3A2530',
+    cream: 'rgba(255,200,92,0.14)',
+    creamText: '#FFD180',
     // legacy aliases used by components not yet migrated
     card: '#18223A',
     primary: '#5C9BFF',
