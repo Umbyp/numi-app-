@@ -7,6 +7,16 @@ import { VALIDATORS } from '../ai/validators';
 import { TOOLS } from '../ai/tools';
 import { getChatMessages, saveChatMessage, clearChatHistory } from '../db/queries';
 import type { Message } from '../ai/types';
+import { Sentry } from '../sentry';
+
+/** แปล error ดิบให้ผู้ใช้เข้าใจสาเหตุจริง แทนข้อความเดียวที่ครอบทุกกรณี */
+function chatErrorMessage(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (msg === 'AI_TIMEOUT') return 'Numi ตอบช้าผิดปกติตอนนี้ ลองส่งข้อความอีกครั้งนะครับ';
+  if (msg.includes('AI error 429')) return 'ตอนนี้มีคนใช้ Numi เยอะจนครบโควตาวันนี้แล้ว ลองใหม่พรุ่งนี้นะครับ';
+  if (msg.includes('AI error')) return 'Numi เชื่อมต่อ AI ไม่สำเร็จตอนนี้ ลองใหม่อีกครั้งนะครับ';
+  return 'ขออภัย เชื่อมต่อ AI ไม่ได้ ลองใหม่อีกครั้งนะครับ';
+}
 
 export interface PendingCard {
   id: string;
@@ -16,7 +26,7 @@ export interface PendingCard {
   photoUri?: string | null;
 }
 
-const MAX_TOOL_HOPS = 5;
+const MAX_TOOL_HOPS = 8;
 const VISION_PROMPT =
   'ดูรูปนี้แล้วบอกว่ามีอาหารอะไรบ้าง ประมาณปริมาณเป็นกรัมจากสิ่งที่เห็นในรูป แล้วค้น search_food ก่อนเสนอ add_meal เสมอ';
 
@@ -76,7 +86,9 @@ export function useChat() {
       const ctx = await buildUserContext();
       await runTurn(next, ctx);
     } catch (e) {
-      appendMessage({ role: 'assistant', content: 'ขออภัย เชื่อมต่อ AI ไม่ได้ ลองใหม่อีกครั้งนะครับ' });
+      appendMessage({ role: 'assistant', content: chatErrorMessage(e) });
+      if (__DEV__) console.error('[chat] sendMessage failed', e);
+      Sentry.captureException(e);
     } finally {
       setLoading(false);
     }
@@ -99,7 +111,16 @@ export function useChat() {
   }
 
   async function runTurn(history: Message[], ctx: UserContext, depth = 0) {
-    if (depth > MAX_TOOL_HOPS) return;
+    if (depth > MAX_TOOL_HOPS) {
+      // Numi พยายามหลายรอบแล้วยังส่งข้อมูลไม่ผ่าน (เช่น validate แผนออกกำลังกายไม่ผ่านซ้ำๆ)
+      // เดิมจะเงียบไปเฉยๆ ผู้ใช้เห็นแค่ typing indicator หายไปโดยไม่มีอะไรเกิดขึ้น
+      appendMessage({
+        role: 'assistant',
+        content: 'ขอโทษครับ ตอนนี้ Numi สร้างคำตอบไม่สำเร็จ ลองอธิบายใหม่ให้เจาะจงขึ้น หรือลองอีกครั้งนะครับ',
+      });
+      Sentry.captureMessage('chat runTurn exceeded MAX_TOOL_HOPS', 'warning');
+      return;
+    }
 
     const reply = await chat({
       messages: [{ role: 'system', content: buildSystemPrompt(ctx) }, ...history.slice(-15)],
@@ -156,7 +177,21 @@ export function useChat() {
     const card = pendingCards.find((c) => c.id === cardId);
     if (!card) return;
 
-    const result = await executeToolCall(card.tool, editedArgs ?? card.args, { photoUri: card.photoUri });
+    let result: string;
+    try {
+      result = await executeToolCall(card.tool, editedArgs ?? card.args, { photoUri: card.photoUri });
+    } catch (e) {
+      // เดิมไม่มี catch ตรงนี้เลย — ถ้าบันทึกไม่สำเร็จ (เช่น validate แผนที่แก้ไขแล้วไม่ผ่าน)
+      // การ์ดจะค้างเป็น pending เงียบๆ โดยไม่มีอะไรบอกผู้ใช้เลยว่าเกิดอะไรขึ้น
+      appendMessage({
+        role: 'assistant',
+        content: 'บันทึกไม่สำเร็จ ข้อมูลอาจไม่ครบหรือไม่ถูกต้อง ลองแก้ไขแล้วกดยืนยันอีกครั้งนะครับ',
+      });
+      if (__DEV__) console.error('[chat] executeToolCall failed', e);
+      Sentry.captureException(e);
+      return;
+    }
+
     setPendingCards((p) => p.map((c) => (c.id === cardId ? { ...c, status: 'confirmed' } : c)));
 
     const toolMsg: Message = { role: 'tool', tool_call_id: cardId, content: result };
@@ -166,6 +201,14 @@ export function useChat() {
     try {
       const ctx = await buildUserContext();
       await runTurn(updated, ctx);
+    } catch (e) {
+      // ข้อมูลบันทึกไปแล้ว (executeToolCall สำเร็จ) แค่ Numi ตอบต่อไม่ได้ — ข้อความต้องไม่ทำให้เข้าใจผิดว่าบันทึกไม่ติด
+      appendMessage({
+        role: 'assistant',
+        content: 'บันทึกสำเร็จแล้ว แต่ Numi ตอบต่อไม่ได้ตอนนี้ ลองพิมพ์คุยต่อได้เลยนะครับ',
+      });
+      if (__DEV__) console.error('[chat] confirmCard follow-up failed', e);
+      Sentry.captureException(e);
     } finally {
       setLoading(false);
     }
