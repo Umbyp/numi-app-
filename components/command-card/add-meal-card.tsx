@@ -53,17 +53,19 @@ export function AddMealCard({ card, onConfirm, onDismiss }: Props) {
   return (
     <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
       <View style={styles.header}>
-        <Text style={[type.badge, styles.eyebrow, { color: c.muted }]}>การ์ดคำสั่ง · บันทึกอาหาร</Text>
-        <View style={[styles.mealPill, { backgroundColor: c[meta.bgKey] }]}>
-          <Text style={[type.badge, { color: c[meta.textKey] }]}>{meta.label}</Text>
+        <View style={[styles.eyebrowPill, { backgroundColor: c.brandTint }]}>
+          <Text style={[type.badge, { color: c.brand }]}>การ์ดคำสั่ง</Text>
         </View>
+        <Text style={[type.label, styles.eyebrowLabel, { color: c.muted }]} numberOfLines={1}>
+          เพิ่มมื้ออาหาร · {meta.label}
+        </Text>
       </View>
 
       <View style={[styles.divider, { backgroundColor: c.line }]} />
 
       {items.map((item, idx) => (
         <View key={idx} style={styles.row}>
-          <FoodVisual name={item.name} photoUri={card.photoUri} size={36} />
+          <FoodVisual name={item.name} photoUri={card.photoUri} size={38} />
 
           <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
             <View style={styles.nameRow}>
@@ -85,7 +87,7 @@ export function AddMealCard({ card, onConfirm, onDismiss }: Props) {
 
           <AmountStepper value={item.amount_g} onChange={(v) => updateAmount(idx, v)} />
 
-          <Squish hitSlop={10} onPress={() => removeItem(idx)}>
+          <Squish hitSlop={14} onPress={() => removeItem(idx)}>
             <X size={16} color={c.muted} />
           </Squish>
         </View>
@@ -93,19 +95,22 @@ export function AddMealCard({ card, onConfirm, onDismiss }: Props) {
 
       <View style={[styles.divider, { backgroundColor: c.line }]} />
 
+      <View style={styles.totalRow}>
+        <Text style={[type.label, { color: c.subtext, flex: 1 }]}>รวมที่จะบันทึก</Text>
+        <Text style={[type.metric, { color: c.text, fontSize: 26, letterSpacing: -0.6 }]}>{Math.round(total)}</Text>
+        <Text style={[type.label, { color: c.muted, fontSize: 11.5 }]}>kcal</Text>
+      </View>
+
       <View style={styles.actions}>
-        <Text style={[type.label, { color: c.muted, flex: 1 }]}>
-          รวม <Text style={[type.cardTitle, { color: c.text, fontSize: 13 }]}>{Math.round(total)} kcal</Text>
-        </Text>
         <Squish style={[styles.ghost, { backgroundColor: c.surfaceAlt }]} onPress={() => onDismiss(card.id)}>
-          <Text style={[type.row, { color: c.subtext, fontSize: 13 }]}>ยกเลิก</Text>
+          <Text style={[type.row, { color: c.subtext, fontSize: 14 }]}>ไม่ใช่</Text>
         </Squish>
         <Squish scaleTo={0.97}
           style={[styles.primary, { backgroundColor: c.brand }, items.length === 0 && { opacity: 0.5 }]}
           disabled={items.length === 0}
           onPress={handleConfirm}
         >
-          <Text style={[type.row, { color: '#fff', fontSize: 13 }]}>ยืนยัน</Text>
+          <Text style={[type.row, { color: '#fff', fontSize: 15 }]}>บันทึกเลย</Text>
         </Squish>
       </View>
     </View>
@@ -122,16 +127,17 @@ function Badge({ label, bg, text }: { label: string; bg: string; text: string })
 
 const styles = StyleSheet.create({
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 14, marginVertical: 6, gap: 10 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  eyebrow: { letterSpacing: 0.4 },
-  mealPill: { borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 2 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  eyebrowPill: { height: 24, borderRadius: radius.badge + 3, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  eyebrowLabel: { flex: 1, minWidth: 0 },
   divider: { height: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   estBadge: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 },
   badgeRow: { flexDirection: 'row', gap: 5 },
   badge: { borderRadius: radius.badge, paddingHorizontal: 6, paddingVertical: 1 },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  ghost: { borderRadius: radius.iconBox, paddingHorizontal: 16, height: 40, alignItems: 'center', justifyContent: 'center' },
-  primary: { borderRadius: radius.iconBox, paddingHorizontal: 18, height: 40, alignItems: 'center', justifyContent: 'center' },
+  totalRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  ghost: { width: 104, borderRadius: radius.cardInner, height: 52, alignItems: 'center', justifyContent: 'center' },
+  primary: { flex: 1, borderRadius: radius.cardInner, height: 52, alignItems: 'center', justifyContent: 'center' },
 });

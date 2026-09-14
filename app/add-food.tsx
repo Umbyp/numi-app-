@@ -10,12 +10,14 @@ import { MealTypeIcon } from '../components/icons/meal-type-icons';
 import { FoodVisual } from '../components/food-visual';
 import { FadeInView } from '../components/fade-in';
 import { MEAL_TYPES, detectMealType, type MealType } from '../lib/meal-type';
-import { searchFoods, addMealEntry, createUserFood } from '../lib/db/queries';
+import { searchFoods, addMealEntry, createUserFood, getFoodById } from '../lib/db/queries';
 import { scaleFood } from '../lib/nutrition';
 import { type as textType, fontFamily } from '../lib/fonts';
-import { radius, cardShadow } from '../lib/theme';
+import { radius, cardShadow, MIN_TOUCH } from '../lib/theme';
 import type { foods as foodsTable } from '../lib/db/schema';
 import { Squish } from '../components/squish';
+import { supabase } from '../lib/auth/client';
+import { submitFoodForReview } from '../lib/social/community-foods';
 
 type Food = typeof foodsTable.$inferSelect;
 
@@ -23,7 +25,7 @@ export default function AddFoodScreen() {
   const c = useTheme();
   const scheme = useScheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ mealType?: MealType; mode?: 'search' | 'manual' }>();
+  const params = useLocalSearchParams<{ mealType?: MealType; mode?: 'search' | 'manual'; prefillFoodId?: string }>();
 
   const [mealType, setMealType] = useState<MealType>(params.mealType ?? detectMealType());
   const [query, setQuery] = useState('');
@@ -39,6 +41,8 @@ export default function AddFoodScreen() {
   const [manualProtein, setManualProtein] = useState('');
   const [manualCarb, setManualCarb] = useState('');
   const [manualFat, setManualFat] = useState('');
+  const [shareWithCommunity, setShareWithCommunity] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -46,6 +50,17 @@ export default function AddFoodScreen() {
     }, 250);
     return () => clearTimeout(timer);
   }, [query]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setLoggedIn(!!data.session));
+  }, []);
+
+  useEffect(() => {
+    if (!params.prefillFoodId) return;
+    getFoodById(params.prefillFoodId).then((food) => {
+      if (food) pickFood(food);
+    });
+  }, [params.prefillFoodId]);
 
   function pickFood(food: Food) {
     setSelected(food);
@@ -93,6 +108,10 @@ export default function AddFoodScreen() {
         fatPer100: parseFloat(manualFat) || 0,
       };
       const foodId = await createUserFood(foodInput);
+      if (shareWithCommunity) {
+        // แยก concern จากการบันทึก local — ส่งไม่สำเร็จ (ออฟไลน์/เน็ตมีปัญหา) ไม่ควรบล็อกการบันทึกมื้ออาหาร
+        submitFoodForReview(foodInput).catch(() => {});
+      }
       const scaled = scaleFood(foodInput, amountG);
       await addMealEntry({
         foodId,
@@ -113,6 +132,7 @@ export default function AddFoodScreen() {
   }
 
   const scaledPreview = selected ? scaleFood(selected, amountG) : null;
+  const manualKcalPreview = (amountG * (parseFloat(manualKcal) || 0)) / 100;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['bottom']}>
@@ -174,15 +194,15 @@ export default function AddFoodScreen() {
                           { backgroundColor: amountG === u.grams ? c.brandTint : c.surfaceAlt },
                         ]}
                       >
-                        <Text style={[textType.label, { color: amountG === u.grams ? c.brand : c.subtext, fontSize: 12 }]}>{u.label}</Text>
+                        <Text style={[textType.row, { color: amountG === u.grams ? c.brand : c.text, fontSize: 13.5 }]}>{u.label}</Text>
                       </Squish>
                     ))}
                   </View>
                 )}
 
                 <View style={styles.amountRow}>
-                  <Text style={[textType.label, { color: c.subtext }]}>ปริมาณ</Text>
-                  <AmountStepper value={amountG} onChange={setAmountG} />
+                  <Text style={[textType.row, { color: c.text, fontSize: 13.5 }]}>ปริมาณ (กรัม)</Text>
+                  <AmountStepper value={amountG} onChange={setAmountG} large />
                 </View>
 
                 {scaledPreview && (
@@ -201,39 +221,42 @@ export default function AddFoodScreen() {
                 </Squish>
               </View>
             ) : (
-              <FlatList
-                data={results}
-                keyExtractor={(item) => item.id}
-                keyboardShouldPersistTaps="handled"
-                renderItem={({ item }) => (
-                  <FadeInView>
-                    <Squish scaleTo={0.98} style={[styles.resultRow, { borderBottomColor: c.line }]} onPress={() => pickFood(item)}>
-                      <FoodVisual name={item.name} size={36} />
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={[textType.row, { color: c.text, fontSize: 15 }]} numberOfLines={1}>
-                          {item.name}
-                        </Text>
-                        <Text style={[textType.label, { color: c.muted, fontSize: 12 }]}>{Math.round(item.kcalPer100)} kcal/100g</Text>
-                      </View>
-                    </Squish>
-                  </FadeInView>
-                )}
-                ListEmptyComponent={
-                  <View style={styles.emptyState}>
-                    <Text style={[textType.label, { color: c.subtext, textAlign: 'center' }]}>
-                      ไม่พบอาหาร ลองพิมพ์คำอื่น หรือเพิ่มเอง
-                    </Text>
-                    {query.trim().length > 0 && (
-                      <Squish style={[styles.askNumiBtn, { backgroundColor: c.brandTint }]} onPress={askNumiToEstimate}>
-                        <Sparkles size={15} color={c.brand} />
-                        <Text style={[textType.row, { color: c.brand, fontSize: 13 }]} numberOfLines={1}>
-                          ให้ Numi ช่วยประมาณ "{query.trim()}"
-                        </Text>
+              <View style={[styles.resultsCard, { backgroundColor: c.surface }, cardShadow(scheme)]}>
+                <FlatList
+                  style={styles.resultsList}
+                  data={results}
+                  keyExtractor={(item) => item.id}
+                  keyboardShouldPersistTaps="handled"
+                  renderItem={({ item }) => (
+                    <FadeInView>
+                      <Squish scaleTo={0.98} style={[styles.resultRow, { borderBottomColor: c.line }]} onPress={() => pickFood(item)}>
+                        <FoodVisual name={item.name} size={38} />
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={[textType.row, { color: c.text, fontSize: 15 }]} numberOfLines={1}>
+                            {item.name}
+                          </Text>
+                          <Text style={[textType.label, { color: c.muted, fontSize: 12 }]}>{Math.round(item.kcalPer100)} kcal/100g</Text>
+                        </View>
                       </Squish>
-                    )}
-                  </View>
-                }
-              />
+                    </FadeInView>
+                  )}
+                  ListEmptyComponent={
+                    <View style={styles.emptyState}>
+                      <Text style={[textType.label, { color: c.subtext, textAlign: 'center' }]}>
+                        ไม่พบอาหาร ลองพิมพ์คำอื่น หรือเพิ่มเอง
+                      </Text>
+                      {query.trim().length > 0 && (
+                        <Squish style={[styles.askNumiBtn, { backgroundColor: c.brandTint }]} onPress={askNumiToEstimate}>
+                          <Sparkles size={15} color={c.brand} />
+                          <Text style={[textType.row, { color: c.brand, fontSize: 13 }]} numberOfLines={1}>
+                            ให้ Numi ช่วยประมาณ "{query.trim()}"
+                          </Text>
+                        </Squish>
+                      )}
+                    </View>
+                  }
+                />
+              </View>
             )}
 
             {!selected && (
@@ -251,9 +274,34 @@ export default function AddFoodScreen() {
             <ManualInput label="ไขมัน (g/100g)" value={manualFat} onChange={setManualFat} c={c} numeric />
 
             <View style={styles.amountRow}>
-              <Text style={[textType.label, { color: c.subtext }]}>ปริมาณที่กิน</Text>
-              <AmountStepper value={amountG} onChange={setAmountG} />
+              <Text style={[textType.row, { color: c.text, fontSize: 13.5 }]}>กินไปกี่กรัม</Text>
+              <AmountStepper value={amountG} onChange={setAmountG} large />
             </View>
+
+            {loggedIn && (
+              <Squish
+                scaleTo={0.98}
+                onPress={() => setShareWithCommunity((v) => !v)}
+                style={[styles.shareToggle, { backgroundColor: shareWithCommunity ? c.brandTint : c.surfaceAlt }]}
+              >
+                <View style={[styles.checkbox, { borderColor: shareWithCommunity ? c.brand : c.line, backgroundColor: shareWithCommunity ? c.brand : 'transparent' }]}>
+                  {shareWithCommunity && <Text style={{ color: '#fff', fontSize: 11 }}>✓</Text>}
+                </View>
+                <Text style={[textType.label, { color: shareWithCommunity ? c.brand : c.subtext, fontSize: 12.5, flex: 1 }]}>
+                  แชร์เมนูนี้ให้คนอื่นเห็นด้วย (ต้องผ่านการตรวจก่อน)
+                </Text>
+              </Squish>
+            )}
+
+            {!!manualKcal && (
+              <View style={[styles.totalPreview, { backgroundColor: c.surface }, cardShadow(scheme)]}>
+                <Text style={[textType.row, { color: c.subtext, fontSize: 11.5, flex: 1 }]}>มื้อนี้จะบันทึกเป็น</Text>
+                <Text style={[textType.metric, { color: c.text, fontSize: 30, letterSpacing: -0.8 }]}>
+                  {Math.round(manualKcalPreview)}
+                </Text>
+                <Text style={[textType.row, { color: c.muted, fontSize: 12.5 }]}>kcal</Text>
+              </View>
+            )}
 
             <Squish scaleTo={0.97}
               style={[styles.saveBtn, { backgroundColor: c.brand }, saving && { opacity: 0.6 }]}
@@ -307,20 +355,23 @@ const styles = StyleSheet.create({
     gap: 5,
     borderRadius: radius.pill,
     paddingHorizontal: 12,
-    height: 36,
+    height: 40,
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 9,
     marginHorizontal: 16,
     marginBottom: 8,
-    borderRadius: radius.iconBox,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: radius.pill,
+    paddingHorizontal: 14,
+    height: 52,
   },
   searchInput: { flex: 1, fontSize: 15 },
+  resultsCard: { flex: 1, marginHorizontal: 16, marginBottom: 8, borderRadius: radius.card, overflow: 'hidden' },
+  resultsList: { flex: 1 },
   resultRow: {
+    minHeight: 60,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -336,17 +387,35 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: radius.pill,
     paddingHorizontal: 14,
-    height: 38,
+    height: MIN_TOUCH,
   },
   selectedCard: { margin: 16, padding: 16, borderRadius: radius.card, borderWidth: StyleSheet.hairlineWidth },
   selectedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   selectedTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 },
-  unitRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
-  unitPill: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 6 },
+  unitRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 10 },
+  unitPill: { height: MIN_TOUCH, borderRadius: radius.cardInner, paddingHorizontal: 15, alignItems: 'center', justifyContent: 'center' },
   amountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 },
   previewText: { fontSize: 13, marginTop: 10 },
-  saveBtn: { borderRadius: radius.iconBox, paddingVertical: 13, alignItems: 'center', marginTop: 16 },
+  totalPreview: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+    borderRadius: radius.cardInner,
+    padding: 14,
+    marginTop: 14,
+  },
+  saveBtn: { height: 56, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
   saveBtnText: { color: '#fff', fontSize: 15 },
   manualForm: { padding: 16 },
   input: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.iconBox, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
+  shareToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: radius.iconBox,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginTop: 14,
+  },
+  checkbox: { width: 18, height: 18, borderRadius: 5, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
 });

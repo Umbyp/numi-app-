@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,9 +18,12 @@ import {
   getWorkoutPlanCompletions,
   getAppSetting,
   setAppSetting,
+  suggestFoodForRemaining,
+  type FoodSuggestion,
 } from '../../lib/db/queries';
 import type { WorkoutPlanDay } from '../../lib/db/schema';
-import { localDateString, calcBMI, bmiCategory } from '../../lib/nutrition';
+import { getMealTypeMeta, type MealType } from '../../lib/meal-type';
+import { localDateString, calcBMI, bmiCategory, calcNetRemaining } from '../../lib/nutrition';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow, motion } from '../../lib/theme';
 import { Squish } from '../../components/squish';
@@ -29,9 +32,10 @@ const THAI_MONTHS = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
 ];
+const THAI_DAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
 
 function thaiDate(d = new Date()): string {
-  return `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`;
+  return `${THAI_DAYS[d.getDay()]} ${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`;
 }
 
 export default function DashboardScreen() {
@@ -47,6 +51,7 @@ export default function DashboardScreen() {
     planTitle: string;
     day: WorkoutPlanDay;
   } | null>(null);
+  const [foodSuggestion, setFoodSuggestion] = useState<FoodSuggestion | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -71,6 +76,21 @@ export default function DashboardScreen() {
   const totals = useMemo(() => sumTotals(todayEntries), [todayEntries]);
   const targetKcal = goals?.kcalTarget ?? 2000;
 
+  const hasBreakfast = todayEntries.some((e) => e.mealType === 'breakfast');
+  const hasLunch = todayEntries.some((e) => e.mealType === 'lunch');
+  const hasDinner = todayEntries.some((e) => e.mealType === 'dinner');
+  const suggestedMealType: MealType = hasDinner ? 'snack' : 'dinner';
+
+  useEffect(() => {
+    if (!hasBreakfast || !hasLunch) {
+      setFoodSuggestion(null);
+      return;
+    }
+    const remainingKcal = calcNetRemaining({ targetKcal, consumedKcal: totals.kcal, activityKcal });
+    const remainingProteinG = (goals?.proteinG ?? 0) - totals.proteinG;
+    suggestFoodForRemaining(remainingKcal, remainingProteinG).then(setFoodSuggestion);
+  }, [hasBreakfast, hasLunch, totals.kcal, totals.proteinG, activityKcal, targetKcal, goals?.proteinG]);
+
   const bmi = profile && latestWeightKg ? calcBMI(latestWeightKg, profile.heightCm) : null;
 
   function goToBasicInfo() {
@@ -85,7 +105,7 @@ export default function DashboardScreen() {
         <View style={styles.headerRow}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>{thaiDate()}</Text>
-            <Text style={[type.greeting, { color: c.text, fontSize: 24 }]}>แดชบอร์ด</Text>
+            <Text style={[type.greeting, { color: c.text, fontSize: 22 }]}>แดชบอร์ด</Text>
           </View>
         </View>
 
@@ -128,7 +148,7 @@ export default function DashboardScreen() {
           <>
           <View style={styles.cardHeaderRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[type.cardTitle, { color: c.text, fontSize: 17 }]}>แคลอรี่</Text>
+              <Text style={[type.cardTitle, { color: c.text, fontSize: 17 }]}>แคลอรี่วันนี้</Text>
               <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>
                 รวมแคลอรี่ที่ออกกำลังกายเผาไปแล้ว
               </Text>
@@ -140,8 +160,8 @@ export default function DashboardScreen() {
 
             <View style={styles.statCol}>
               <StatRow icon={<GoalIcon color={c.brand} size={17} />} bg={c.brandTint} label="เป้าหมาย" value={Math.round(targetKcal)} c={c} />
-              <StatRow icon={<FoodIcon color={c.fatText} size={17} />} bg={c.fatBg} label="อาหาร" value={Math.round(totals.kcal)} c={c} />
-              <StatRow icon={<ActivityIcon color={c.dinner} size={17} />} bg={c.dinnerBg} label="กิจกรรม" value={Math.round(activityKcal)} c={c} />
+              <StatRow icon={<FoodIcon color={c.fatText} size={17} />} bg={c.fatBg} label="กินไปแล้ว" value={Math.round(totals.kcal)} c={c} />
+              <StatRow icon={<ActivityIcon color={c.dinner} size={17} />} bg={c.dinnerBg} label="เผาไปแล้ว" value={Math.round(activityKcal)} c={c} />
             </View>
           </View>
 
@@ -159,8 +179,39 @@ export default function DashboardScreen() {
           <WaterCard />
         </FadeInView>
 
-        {suggestedWorkout && (
+        {foodSuggestion && (
           <FadeInView delay={motion.stagger * 4}>
+          <Squish scaleTo={0.98}
+            style={cardStyle}
+            onPress={() =>
+              router.push({
+                pathname: '/add-food',
+                params: { mealType: suggestedMealType, prefillFoodId: foodSuggestion.food.id },
+              })
+            }
+          >
+            <View style={styles.cardHeaderRow}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>
+                  แคลอรี่วันนี้ยังเหลือ ลองเมนูนี้ดูไหม
+                </Text>
+                <Text style={[type.cardTitle, { color: c.text, fontSize: 17 }]} numberOfLines={1}>
+                  {foodSuggestion.food.name}
+                </Text>
+                <Text style={[type.label, { color: c.subtext, fontSize: 12, marginTop: 2 }]}>
+                  {Math.round(foodSuggestion.grams)} กรัม · {Math.round(foodSuggestion.kcal)} kcal · โปรตีน {Math.round(foodSuggestion.proteinG)} ก.
+                </Text>
+              </View>
+            </View>
+            <Text style={[type.row, { color: c.brand, fontSize: 13 }]}>
+              เพิ่มลงมื้อ{getMealTypeMeta(suggestedMealType).label} →
+            </Text>
+          </Squish>
+          </FadeInView>
+        )}
+
+        {suggestedWorkout && (
+          <FadeInView delay={motion.stagger * 5}>
           <Squish scaleTo={0.98}
             style={cardStyle}
             onPress={() => router.push({ pathname: '/workout-plan-detail', params: { id: suggestedWorkout.planId } })}
@@ -189,7 +240,7 @@ export default function DashboardScreen() {
         )}
 
         {profile && (
-          <FadeInView delay={motion.stagger * 5}>
+          <FadeInView delay={motion.stagger * 6}>
           <View style={cardStyle}>
             <HealthRow
               label="ดัชนีมวลกาย"

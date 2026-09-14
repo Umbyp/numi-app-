@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Minus, Plus } from 'lucide-react-native';
+import { Minus } from 'lucide-react-native';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { useCelebration } from '../lib/hooks/use-celebration';
 import { useNumiStore } from '../lib/store';
@@ -10,11 +10,14 @@ import { getWaterForDate, addWaterMl } from '../lib/db/queries';
 import { calcWaterGoalMl, localDateString } from '../lib/nutrition';
 import { WaterGlass } from './water-glass';
 import { type } from '../lib/fonts';
-import { radius, cardShadow } from '../lib/theme';
+import { radius, cardShadow, MIN_TOUCH } from '../lib/theme';
 import { Squish } from './squish';
 
 /** แก้วน้ำมาตรฐาน 250 มล. ขวดเล็ก 600 มล. — หน่วยที่คนนึกภาพออกจริง */
-const QUICK_ADD = [250, 600];
+const QUICK_ADD = [
+  { ml: 250, label: '+ 1 แก้ว' },
+  { ml: 600, label: '+ ขวด' },
+];
 
 export function WaterCard() {
   const c = useTheme();
@@ -34,7 +37,6 @@ export function WaterCard() {
 
   const goal = calcWaterGoalMl(latestWeightKg);
   const pct = goal > 0 ? Math.min(1, ml / goal) : 0;
-  const glasses = Math.round((ml / 250) * 10) / 10;
   const reached = ml >= goal;
 
   // ไม่ส่ง fireOnMount เพราะการเด้งทุกครั้งที่กลับมาแท็บนี้ทั้งที่ดื่มครบตั้งแต่เช้าจะน่ารำคาญ
@@ -66,20 +68,15 @@ export function WaterCard() {
 
         <View style={styles.meta}>
           <Text style={[type.cardTitle, { color: c.text, fontSize: 17 }]}>น้ำดื่ม</Text>
-          <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>
-            เป้าหมาย {(goal / 1000).toFixed(1)} ลิตร
-            {latestWeightKg ? ` · ราว 33 มล. ต่อน้ำหนัก 1 กก.` : ''}
-          </Text>
 
-          <Text style={[type.metric, { color: c.carb, fontSize: 26, marginTop: 4 }]}>
-            {(ml / 1000).toFixed(2)}
-            <Text style={[type.label, { color: c.faint, fontSize: 12 }]}> ล.</Text>
-          </Text>
-
-          <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>
-            {glasses} แก้ว
-            {reached ? ' · ถึงเป้าแล้ว' : ` · เหลืออีก ${Math.round((goal - ml) / 250 * 10) / 10} แก้ว`}
-          </Text>
+          <View style={styles.numberRow}>
+            <Text style={[type.metric, { color: c.carb, fontSize: 26, letterSpacing: -0.5 }]}>
+              {(ml / 1000).toFixed(2)}
+            </Text>
+            <Text style={[type.label, { color: c.faint, fontSize: 11.5 }]}>
+              {' '}ล. · {reached ? 'ถึงเป้าแล้ว' : `เหลืออีก ${Math.round((goal - ml) / 250 * 10) / 10} แก้ว`}
+            </Text>
+          </View>
 
           <View style={styles.actionRow}>
             <Squish
@@ -90,14 +87,13 @@ export function WaterCard() {
               <Minus size={15} color={c.subtext} />
             </Squish>
 
-            {QUICK_ADD.map((amount) => (
+            {QUICK_ADD.map(({ ml: amount, label }) => (
               <Squish
                 key={amount}
                 onPress={() => change(amount)}
                 style={[styles.addBtn, { backgroundColor: c.carbBg }]}
               >
-                <Plus size={13} color={c.carbText} />
-                <Text style={[type.badge, { color: c.carbText, fontSize: 12 }]}>{amount}</Text>
+                <Text style={[type.row, { color: c.carbText, fontSize: 14 }]}>{label}</Text>
               </Squish>
             ))}
           </View>
@@ -111,14 +107,16 @@ const styles = StyleSheet.create({
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   meta: { flex: 1, minWidth: 0, gap: 1 },
-  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 9 },
-  btn: { width: 34, height: 30, borderRadius: radius.badge, alignItems: 'center', justifyContent: 'center' },
+  numberRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', marginTop: 4 },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 9 },
+  btn: { width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   addBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    height: 30,
+    justifyContent: 'center',
+    height: MIN_TOUCH,
     paddingHorizontal: 10,
-    borderRadius: radius.badge,
+    borderRadius: radius.cardInner,
   },
 });

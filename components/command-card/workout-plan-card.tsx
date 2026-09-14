@@ -44,7 +44,12 @@ export function WorkoutPlanCard({ card, onConfirm, onDismiss }: Props) {
   return (
     <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
       <View style={styles.header}>
-        <Text style={[type.badge, styles.eyebrow, { color: c.muted }]}>การ์ดคำสั่ง · แผนออกกำลังกาย</Text>
+        <View style={[styles.eyebrowPill, { backgroundColor: c.brandTint }]}>
+          <Text style={[type.badge, { color: c.brand }]}>การ์ดคำสั่ง</Text>
+        </View>
+        <Text style={[type.label, styles.eyebrowLabel, { color: c.muted }]} numberOfLines={1}>
+          แผนออกกำลังกาย
+        </Text>
       </View>
       <Text style={[type.cardTitle, { color: c.text, fontSize: 16 }]}>{card.args.title}</Text>
       <Text style={[type.label, { color: c.subtext, fontSize: 12, lineHeight: 18 }]}>{card.args.rationale}</Text>
@@ -62,9 +67,19 @@ export function WorkoutPlanCard({ card, onConfirm, onDismiss }: Props) {
                 <Text style={[type.badge, { color: dTint.icon }]}>{DAY_TYPE_LABEL[day.day_type]}</Text>
               </View>
             </View>
-            {day.warmup && <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>ก่อนเล่น: {day.warmup}</Text>}
+            {day.warmup && (
+              <View style={[styles.guidanceBox, { backgroundColor: c.brandTint }]}>
+                <Text style={[type.badge, { color: c.brand }]}>ก่อนเล่น</Text>
+                <Text style={[type.label, { color: c.text, fontSize: 12, lineHeight: 17 }]}>{day.warmup}</Text>
+              </View>
+            )}
             {day.during_note && <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>ระหว่างเล่น: {day.during_note}</Text>}
-            {day.cooldown && <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>หลังเล่น: {day.cooldown}</Text>}
+            {day.cooldown && (
+              <View style={[styles.guidanceBox, { backgroundColor: c.dinnerBg }]}>
+                <Text style={[type.badge, { color: c.dinner }]}>หลังเล่น</Text>
+                <Text style={[type.label, { color: c.text, fontSize: 12, lineHeight: 17 }]}>{day.cooldown}</Text>
+              </View>
+            )}
 
             {day.exercises.map((ex, exIdx) => {
               const eTint = categoryTint(ex.category, c);
@@ -89,7 +104,7 @@ export function WorkoutPlanCard({ card, onConfirm, onDismiss }: Props) {
                       {ex.rest_sec != null && <Badge label={`พัก ${ex.rest_sec}วิ`} bg={c.surfaceAlt} text={c.subtext} />}
                     </View>
                   </View>
-                  <Squish hitSlop={10} onPress={() => removeExercise(dayIdx, exIdx)}>
+                  <Squish hitSlop={14} onPress={() => removeExercise(dayIdx, exIdx)}>
                     <X size={16} color={c.muted} />
                   </Squish>
                 </View>
@@ -101,19 +116,20 @@ export function WorkoutPlanCard({ card, onConfirm, onDismiss }: Props) {
 
       <View style={[styles.divider, { backgroundColor: c.line }]} />
 
+      <Text style={[type.label, { color: c.muted }]}>
+        รวม <Text style={[type.cardTitle, { color: c.text, fontSize: 13 }]}>{days.length} วัน · {exerciseCount} ท่า</Text>
+      </Text>
+
       <View style={styles.actions}>
-        <Text style={[type.label, { color: c.muted, flex: 1 }]}>
-          รวม <Text style={[type.cardTitle, { color: c.text, fontSize: 13 }]}>{days.length} วัน · {exerciseCount} ท่า</Text>
-        </Text>
         <Squish style={[styles.ghost, { backgroundColor: c.surfaceAlt }]} onPress={() => onDismiss(card.id)}>
-          <Text style={[type.row, { color: c.subtext, fontSize: 13 }]}>ยกเลิก</Text>
+          <Text style={[type.row, { color: c.subtext, fontSize: 14 }]}>ยกเลิก</Text>
         </Squish>
         <Squish scaleTo={0.97}
           style={[styles.primary, { backgroundColor: c.brand }, days.length === 0 && { opacity: 0.5 }]}
           disabled={days.length === 0}
           onPress={handleConfirm}
         >
-          <Text style={[type.row, { color: '#fff', fontSize: 13 }]}>ยืนยัน</Text>
+          <Text style={[type.row, { color: '#fff', fontSize: 15 }]}>ยืนยัน</Text>
         </Squish>
       </View>
     </View>
@@ -130,8 +146,10 @@ function Badge({ label, bg, text }: { label: string; bg: string; text: string })
 
 const styles = StyleSheet.create({
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 14, marginVertical: 6, gap: 10 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  eyebrow: { letterSpacing: 0.4 },
+  guidanceBox: { borderRadius: radius.cardInner, padding: 9, gap: 2 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  eyebrowPill: { height: 24, borderRadius: radius.badge + 3, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  eyebrowLabel: { flex: 1, minWidth: 0 },
   divider: { height: 1 },
   dayHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   dayTypePill: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 3 },
@@ -139,7 +157,7 @@ const styles = StyleSheet.create({
   iconBox: { width: 36, height: 36, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
   badgeRow: { flexDirection: 'row', gap: 5, flexWrap: 'wrap' },
   badge: { borderRadius: radius.badge, paddingHorizontal: 6, paddingVertical: 1 },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  ghost: { borderRadius: radius.iconBox, paddingHorizontal: 16, height: 40, alignItems: 'center', justifyContent: 'center' },
-  primary: { borderRadius: radius.iconBox, paddingHorizontal: 18, height: 40, alignItems: 'center', justifyContent: 'center' },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  ghost: { width: 104, borderRadius: radius.cardInner, height: 52, alignItems: 'center', justifyContent: 'center' },
+  primary: { flex: 1, borderRadius: radius.cardInner, height: 52, alignItems: 'center', justifyContent: 'center' },
 });

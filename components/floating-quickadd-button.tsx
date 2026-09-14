@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { Plus } from 'lucide-react-native';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
-import { fabShadow } from '../lib/theme';
+import { fabShadow, radius } from '../lib/theme';
 import { Squish } from './squish';
 
 /**
@@ -29,9 +29,9 @@ const styles = StyleSheet.create({
   btn: {
     position: 'absolute',
     right: 16,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 62,
+    height: 62,
+    borderRadius: radius.fab,
     alignItems: 'center',
     justifyContent: 'center',
   },

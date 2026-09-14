@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { localDateString } from '../lib/nutrition';
 import { type } from '../lib/fonts';
-import { radius, cardShadow } from '../lib/theme';
+import { radius, cardShadow, MIN_TOUCH } from '../lib/theme';
 import { Squish } from './squish';
 
 const THAI_MONTHS = [
@@ -54,20 +54,20 @@ export function DatePickerModal({ visible, selectedDate, onSelect, onClose }: Pr
       <View style={styles.centerWrap} pointerEvents="box-none">
         <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
           <View style={styles.headerRow}>
-            <Squish hitSlop={10} onPress={() => goMonth(-1)}>
-              <ChevronLeft size={20} color={c.subtext} />
+            <Squish hitSlop={12} onPress={() => goMonth(-1)} style={[styles.navBtn, { backgroundColor: c.surfaceAlt }]}>
+              <ChevronLeft size={19} color={c.subtext} />
             </Squish>
-            <Text style={[type.cardTitle, { color: c.text, fontSize: 15 }]}>
+            <Text style={[type.cardTitle, { color: c.text, fontSize: 16, flex: 1, textAlign: 'center' }]}>
               {THAI_MONTHS[viewMonth.getMonth()]} {viewMonth.getFullYear() + 543}
             </Text>
-            <Squish hitSlop={10} onPress={() => goMonth(1)}>
-              <ChevronRight size={20} color={c.subtext} />
+            <Squish hitSlop={12} onPress={() => goMonth(1)} style={[styles.navBtn, { backgroundColor: c.surfaceAlt }]}>
+              <ChevronRight size={19} color={c.subtext} />
             </Squish>
           </View>
 
           <View style={styles.weekLabelRow}>
             {DAY_LABELS.map((d) => (
-              <Text key={d} style={[type.label, { color: c.faint, fontSize: 11, width: 36, textAlign: 'center' }]}>
+              <Text key={d} style={[type.row, { color: c.muted, fontSize: 11.5, width: 44, textAlign: 'center' }]}>
                 {d}
               </Text>
             ))}
@@ -95,7 +95,7 @@ export function DatePickerModal({ visible, selectedDate, onSelect, onClose }: Pr
                   <Text
                     style={[
                       type.row,
-                      { fontSize: 13, color: isSelected ? '#fff' : isFuture ? c.faint : c.text },
+                      { fontSize: 14, color: isSelected ? '#fff' : isFuture ? c.faint : c.text },
                     ]}
                   >
                     {d.getDate()}
@@ -132,11 +132,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
-  card: { width: '100%', maxWidth: 340, borderRadius: radius.card, borderWidth: StyleSheet.hairlineWidth, padding: 18, gap: 12 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  card: { width: '100%', maxWidth: 380, borderRadius: 30, borderWidth: StyleSheet.hairlineWidth, padding: 20, gap: 14 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  navBtn: { width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   weekLabelRow: { flexDirection: 'row', justifyContent: 'space-between' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  cell: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginVertical: 2 },
-  dayCircle: { borderRadius: 18 },
-  todayBtn: { alignItems: 'center', paddingVertical: 10, borderRadius: radius.iconBox, marginTop: 4 },
+  cell: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginVertical: 2 },
+  dayCircle: { borderRadius: 14 },
+  todayBtn: { alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: radius.cardInner, marginTop: 4 },
 });

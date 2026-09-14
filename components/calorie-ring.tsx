@@ -16,12 +16,12 @@ interface Props {
 }
 
 /** วงแหวน "ที่ควรได้รับ" — เติมตามสัดส่วนอาหารที่กินแล้วเทียบกับโควตารวมของวันนี้ (เป้าหมาย + กิจกรรม) */
-export function CalorieRing({ consumedKcal, targetKcal, activityKcal, size = 152 }: Props) {
+export function CalorieRing({ consumedKcal, targetKcal, activityKcal, size = 172 }: Props) {
   const c = useTheme();
   const netRemaining = Math.round(calcNetRemaining({ targetKcal, consumedKcal, activityKcal }));
   const fraction = calcRingFraction({ targetKcal, consumedKcal, activityKcal });
 
-  const stroke = 16;
+  const stroke = 17;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -54,9 +54,9 @@ export function CalorieRing({ consumedKcal, targetKcal, activityKcal, size = 152
         />
       </Svg>
       <View style={[StyleSheet.absoluteFill, styles.center]}>
-        <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>ที่ควรได้รับ</Text>
+        <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>กินได้อีก</Text>
         <Text style={[type.metric, styles.value, { color: c.text }]}>{netRemaining.toLocaleString()}</Text>
-        <Text style={[type.label, { color: c.faint, fontSize: 11 }]}>kcal</Text>
+        <Text style={[type.label, { color: c.faint, fontSize: 11.5 }]}>kcal</Text>
       </View>
     </View>
   );
@@ -64,5 +64,5 @@ export function CalorieRing({ consumedKcal, targetKcal, activityKcal, size = 152
 
 const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
-  value: { fontSize: 34 },
+  value: { fontSize: 46, letterSpacing: -1.6 },
 });

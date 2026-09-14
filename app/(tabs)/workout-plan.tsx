@@ -96,16 +96,16 @@ export default function WorkoutPlanScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <>
-            <Text style={[type.greeting, { color: c.text, fontSize: 24, marginBottom: 8 }]}>แผนออกกำลังกาย</Text>
+            <Text style={[type.greeting, { color: c.text, fontSize: 22, marginBottom: 8 }]}>ออกกำลังกาย</Text>
             <View style={[styles.statsCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
               <View style={styles.statsRow}>
                 <View>
-                  <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>ต่อเนื่อง</Text>
-                  <Text style={[type.cardTitle, { color: c.text, fontSize: 20 }]}>{streak} วัน</Text>
+                  <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>เล่นต่อเนื่อง</Text>
+                  <Text style={[type.metric, { color: c.text, fontSize: 24 }]}>{streak} วัน</Text>
                 </View>
                 <View>
                   <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>สัปดาห์นี้</Text>
-                  <Text style={[type.cardTitle, { color: c.text, fontSize: 20 }]}>{weekCount}/7 วัน</Text>
+                  <Text style={[type.metric, { color: c.text, fontSize: 24 }]}>{weekCount}/7 วัน</Text>
                 </View>
               </View>
 
@@ -121,7 +121,7 @@ export default function WorkoutPlanScreen() {
                         key={m.key}
                         style={[styles.muscleBadge, { backgroundColor: n > 0 ? c.brandTint : c.surfaceAlt }]}
                       >
-                        <Text style={[type.badge, { color: n > 0 ? c.brand : c.faint }]}>
+                        <Text style={[type.row, { fontSize: 11.5, color: n > 0 ? c.brand : c.faint }]}>
                           {m.label}
                           {n > 0 ? ` ×${n}` : ''}
                         </Text>
@@ -131,6 +131,15 @@ export default function WorkoutPlanScreen() {
                 </View>
               </View>
             </View>
+
+            {plans.length > 0 && (
+              <View style={styles.plansHeaderRow}>
+                <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4 }]}>แผนของฉัน</Text>
+                <Squish onPress={() => router.push('/chat')} hitSlop={8}>
+                  <Text style={[type.row, { color: c.brand, fontSize: 12.5 }]}>+ ให้ Numi จัดแผนใหม่</Text>
+                </Squish>
+              </View>
+            )}
           </>
         }
         ListEmptyComponent={
@@ -190,6 +199,7 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 60, paddingHorizontal: 32 },
   statsCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 12, marginBottom: 14 },
   statsRow: { flexDirection: 'row', gap: 24 },
+  plansHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   muscleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  muscleBadge: { borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 3 },
+  muscleBadge: { height: 30, borderRadius: 15, paddingHorizontal: 11, alignItems: 'center', justifyContent: 'center' },
 });

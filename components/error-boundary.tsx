@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../lib/theme';
 import { fontFamily } from '../lib/fonts';
 import { Squish } from './squish';
+import { Sentry } from '../lib/sentry';
 
 interface Props {
   children: ReactNode;
@@ -26,6 +27,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: { componentStack?: string | null }) {
     console.error('[ErrorBoundary]', error, info.componentStack);
+    Sentry.captureException(error, { contexts: { react: { componentStack: info.componentStack } } });
   }
 
   reset = () => this.setState({ error: null });

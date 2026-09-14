@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>นโยบายความเป็นส่วนตัว — Numi</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #eaf3fc;
+    --surface: #ffffff;
+    --text: #16213e;
+    --muted: #4a5877;
+    --brand: #2f6fed;
+    --line: #d4e3f4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10162a;
+      --surface: #1a2340;
+      --text: #eef2ff;
+      --muted: #a7b3d6;
+      --brand: #6f9bff;
+      --line: #2c3a60;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans Thai", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .updated { color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+  h2 { font-size: 18px; margin: 36px 0 10px; }
+  p, li { font-size: 14.5px; color: var(--text); }
+  ul { padding-left: 20px; }
+  a { color: var(--brand); }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 24px 28px;
+  }
+  .contact {
+    margin-top: 32px;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>นโยบายความเป็นส่วนตัว</h1>
+  <p class="updated">Numi — ปรับปรุงล่าสุด 12 กันยายน 2569</p>
+
+  <div class="card">
+    <p>
+      Numi เป็นแอปบันทึกแคลอรี่และการออกกำลังกาย นโยบายนี้อธิบายว่าเราเก็บข้อมูลอะไร ใช้ทำอะไร
+      และคุณควบคุมข้อมูลของตัวเองได้อย่างไร
+    </p>
+
+    <h2>ข้อมูลที่เก็บ</h2>
+    <ul>
+      <li><strong>ข้อมูลบัญชี</strong> — อีเมล (ถ้าสมัครด้วยอีเมล หรือได้จาก Google ตอนล็อกอินด้วย Google)</li>
+      <li><strong>ข้อมูลสุขภาพที่คุณกรอกเอง</strong> — น้ำหนัก ส่วนสูง อายุ เพศ เป้าหมายแคลอรี่/สารอาหาร</li>
+      <li><strong>บันทึกการใช้งาน</strong> — รายการอาหารที่บันทึก ปริมาณน้ำ การออกกำลังกาย</li>
+      <li><strong>รูปภาพอาหาร</strong> — ถ้าคุณถ่ายรูปให้ระบบช่วยประเมินแคลอรี่ รูปจะถูกส่งไปประมวลผลผ่านบริการ AI ภายนอก (ดูหัวข้อ "บริการภายนอก")</li>
+      <li><strong>ข้อมูลโซเชียล (ถ้าใช้)</strong> — รายชื่อเพื่อนที่คุณเพิ่ม เมนูอาหารที่คุณแชร์ให้ชุมชน</li>
+    </ul>
+
+    <h2>ข้อมูลเก็บไว้ที่ไหน</h2>
+    <p>
+      ข้อมูลทั้งหมดถูกเก็บไว้ในเครื่องของคุณก่อนเสมอ (ใช้งานได้แม้ไม่ได้ล็อกอิน/ไม่มีอินเทอร์เน็ต)
+      ถ้าคุณเลือกล็อกอิน ข้อมูลจะถูกซิงค์ขึ้นเซิร์ฟเวอร์ของเรา เพื่อให้ใช้งานต่อเนื่องได้ทุกอุปกรณ์
+    </p>
+
+    <h2>บริการภายนอกที่เกี่ยวข้อง</h2>
+    <ul>
+      <li><strong>Google Sign-In</strong> — ใช้ยืนยันตัวตนเวลาล็อกอินด้วย Google เท่านั้น</li>
+      <li><strong>ผู้ให้บริการ AI (ผ่าน OpenRouter)</strong> — ข้อความ/รูปอาหารที่คุณส่งให้ผู้ช่วยในแอปประเมิน จะถูกส่งไปประมวลผลที่บริการนี้ ไม่ใช้ฝึกโมเดลของบุคคลที่สามโดยไม่ได้รับอนุญาต</li>
+    </ul>
+    <p>เราไม่ขายข้อมูลของคุณให้บุคคลที่สามเพื่อการโฆษณา</p>
+
+    <h2>สิทธิ์ของคุณ</h2>
+    <ul>
+      <li>แก้ไข/ลบข้อมูลที่บันทึกไว้ได้เองในแอปตลอดเวลา</li>
+      <li>ลบบัญชีถาวรได้เองในแอป — ไปที่ <em>บัญชี → ล็อกอิน → ลบบัญชีถาวร</em> ข้อมูลบนเซิร์ฟเวอร์ทั้งหมดจะถูกลบทันทีและกู้คืนไม่ได้ ข้อมูลในเครื่องยังอยู่ต่อได้ตามปกติ</li>
+      <li>เลิกใช้แอปเมื่อไหร่ก็ได้โดยไม่ต้องแจ้งล่วงหน้า — ถ้าไม่เคยล็อกอิน ไม่มีข้อมูลของคุณอยู่บนเซิร์ฟเวอร์เราเลย</li>
+    </ul>
+
+    <h2>ผู้ใช้ที่เป็นเด็ก</h2>
+    <p>Numi ไม่ได้ออกแบบมาสำหรับเด็กอายุต่ำกว่า 13 ปี และเราไม่เก็บข้อมูลจากเด็กกลุ่มนี้โดยเจตนา</p>
+
+    <h2>การเปลี่ยนแปลงนโยบาย</h2>
+    <p>ถ้ามีการเปลี่ยนแปลงสาระสำคัญ เราจะปรับวันที่ด้านบนของหน้านี้</p>
+  </div>
+
+  <div class="contact">
+    มีคำถามเกี่ยวกับความเป็นส่วนตัว ติดต่อ <a href="mailto:privacy@enablebrain.com">privacy@enablebrain.com</a>
+  </div>
+</div>
+</body>
+</html>
