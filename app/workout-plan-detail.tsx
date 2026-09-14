@@ -307,11 +307,11 @@ export default function WorkoutPlanDetailScreen() {
                     </Squish>
                   </View>
                   <View style={styles.stepperRow}>
-                    <AmountStepper value={ex.durationMin} step={5} min={5} unit=" นาที" onChange={(v) => updateExercise(dayIdx, exIdx, { durationMin: v })} />
+                    <AmountStepper compact value={ex.durationMin} step={5} min={5} unit=" นาที" onChange={(v) => updateExercise(dayIdx, exIdx, { durationMin: v })} />
                     {ex.category === 'strength' && (
                       <>
-                        <AmountStepper value={ex.sets ?? 3} step={1} min={1} unit=" เซต" onChange={(v) => updateExercise(dayIdx, exIdx, { sets: v })} />
-                        <AmountStepper value={ex.restSec ?? 60} step={15} min={0} unit=" วิ" onChange={(v) => updateExercise(dayIdx, exIdx, { restSec: v })} />
+                        <AmountStepper compact value={ex.sets ?? 3} step={1} min={1} unit=" เซต" onChange={(v) => updateExercise(dayIdx, exIdx, { sets: v })} />
+                        <AmountStepper compact value={ex.restSec ?? 60} step={15} min={0} unit=" วิ" onChange={(v) => updateExercise(dayIdx, exIdx, { restSec: v })} />
                       </>
                     )}
                   </View>
@@ -450,9 +450,21 @@ export default function WorkoutPlanDetailScreen() {
                   <Text style={[textType.badge, { color: dTint.icon }]}>{DAY_TYPE_LABEL[day.dayType]}</Text>
                 </View>
               </View>
-              {day.warmup && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>ก่อนเล่น: {day.warmup}</Text>}
-              {day.duringNote && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>ระหว่างเล่น: {day.duringNote}</Text>}
-              {day.cooldown && <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>หลังเล่น: {day.cooldown}</Text>}
+              {day.warmup && (
+                <View style={[styles.noteBox, { backgroundColor: c.brandTint }]}>
+                  <Text style={[textType.badge, { color: c.brand }]}>ก่อนเล่น</Text>
+                  <Text style={[textType.label, { color: c.text, fontSize: 12.5, lineHeight: 18, marginTop: 2 }]}>{day.warmup}</Text>
+                </View>
+              )}
+              {day.duringNote && (
+                <Text style={[textType.label, { color: c.faint, fontSize: 11 }]}>ระหว่างเล่น: {day.duringNote}</Text>
+              )}
+              {day.cooldown && (
+                <View style={[styles.noteBox, { backgroundColor: dTint.bg }]}>
+                  <Text style={[textType.badge, { color: dTint.icon }]}>หลังเล่น</Text>
+                  <Text style={[textType.label, { color: c.text, fontSize: 12.5, lineHeight: 18, marginTop: 2 }]}>{day.cooldown}</Text>
+                </View>
+              )}
 
               {day.exercises.map((ex, exIdx) => (
                 <PlanExerciseCard
@@ -522,6 +534,7 @@ const styles = StyleSheet.create({
   dayHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   dayTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 3 },
   exerciseRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  noteBox: { borderRadius: radius.cardInner, padding: 11 },
   progressWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 },
   progressTrack: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 3 },

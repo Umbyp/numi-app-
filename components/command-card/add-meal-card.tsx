@@ -59,44 +59,49 @@ export function AddMealCard({ card, onConfirm, onDismiss }: Props) {
         </View>
       </View>
 
-      <View style={[styles.divider, { backgroundColor: c.line }]} />
+      <View style={[styles.itemsCard, { backgroundColor: c.surfaceAlt }]}>
+        {items.map((item, idx) => (
+          <View key={idx} style={[styles.row, idx > 0 && { borderTopColor: c.line, borderTopWidth: StyleSheet.hairlineWidth }]}>
+            <FoodVisual name={item.name} photoUri={card.photoUri} size={38} />
 
-      {items.map((item, idx) => (
-        <View key={idx} style={styles.row}>
-          <FoodVisual name={item.name} photoUri={card.photoUri} size={36} />
-
-          <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-            <View style={styles.nameRow}>
-              <Text style={[type.row, { color: c.text }]} numberOfLines={1}>
+            <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+              <Text style={[type.row, { color: c.text, fontSize: 14.5 }]} numberOfLines={1}>
                 {item.name}
               </Text>
-              {item.estimated && (
-                <Text style={[type.badge, styles.estBadge, { color: c.muted, borderColor: c.line }]}>ประมาณ</Text>
-              )}
+              <View style={styles.subRow}>
+                <Text style={[type.label, { color: c.muted, fontSize: 11.5 }]} numberOfLines={1}>
+                  {Math.round(item.amount_g)} กรัม{item.estimated ? ' · ประเมินโดย Numi' : ''}
+                </Text>
+              </View>
+              <View style={styles.badgeRow}>
+                <Badge label={`P${Math.round(item.protein_g)}`} bg={c.proteinBg} text={c.proteinText} />
+                <Badge label={`C${Math.round(item.carb_g)}`} bg={c.carbBg} text={c.carbText} />
+                <Badge label={`F${Math.round(item.fat_g)}`} bg={c.fatBg} text={c.fatText} />
+              </View>
             </View>
-            <View style={styles.badgeRow}>
-              <Badge label={`P${Math.round(item.protein_g)}`} bg={c.proteinBg} text={c.proteinText} />
-              <Badge label={`C${Math.round(item.carb_g)}`} bg={c.carbBg} text={c.carbText} />
-              <Badge label={`F${Math.round(item.fat_g)}`} bg={c.fatBg} text={c.fatText} />
+
+            <View style={{ alignItems: 'flex-end', gap: 6 }}>
+              <Text style={[type.cardTitle, { color: c.text, fontSize: 15 }]}>{Math.round(item.kcal)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <AmountStepper compact value={item.amount_g} onChange={(v) => updateAmount(idx, v)} />
+                <Squish hitSlop={10} onPress={() => removeItem(idx)}>
+                  <X size={15} color={c.muted} />
+                </Squish>
+              </View>
             </View>
           </View>
+        ))}
+      </View>
 
-          <Text style={[type.cardTitle, { color: c.text, fontSize: 15 }]}>{Math.round(item.kcal)}</Text>
-
-          <AmountStepper value={item.amount_g} onChange={(v) => updateAmount(idx, v)} />
-
-          <Squish hitSlop={10} onPress={() => removeItem(idx)}>
-            <X size={16} color={c.muted} />
-          </Squish>
+      <View style={styles.totalRow}>
+        <Text style={[type.label, { color: c.subtext, fontSize: 12.5 }]}>รวมที่จะบันทึก</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+          <Text style={[type.metric, { color: c.text, fontSize: 26 }]}>{Math.round(total)}</Text>
+          <Text style={[type.label, { color: c.muted, fontSize: 12.5 }]}>kcal</Text>
         </View>
-      ))}
-
-      <View style={[styles.divider, { backgroundColor: c.line }]} />
+      </View>
 
       <View style={styles.actions}>
-        <Text style={[type.label, { color: c.muted, flex: 1 }]}>
-          รวม <Text style={[type.cardTitle, { color: c.text, fontSize: 13 }]}>{Math.round(total)} kcal</Text>
-        </Text>
         <Squish style={[styles.ghost, { backgroundColor: c.surfaceAlt }]} onPress={() => onDismiss(card.id)}>
           <Text style={[type.row, { color: c.subtext, fontSize: 13 }]}>ยกเลิก</Text>
         </Squish>
@@ -121,17 +126,17 @@ function Badge({ label, bg, text }: { label: string; bg: string; text: string })
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 14, marginVertical: 6, gap: 10 },
+  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 14, marginVertical: 6, gap: 12 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   eyebrow: { letterSpacing: 0.4 },
   mealPill: { borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 2 },
-  divider: { height: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  estBadge: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 },
+  itemsCard: { borderRadius: radius.cardInner, paddingHorizontal: 12 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 10 },
+  subRow: { flexDirection: 'row', alignItems: 'center' },
   badgeRow: { flexDirection: 'row', gap: 5 },
   badge: { borderRadius: radius.badge, paddingHorizontal: 6, paddingVertical: 1 },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  ghost: { borderRadius: radius.iconBox, paddingHorizontal: 16, height: 40, alignItems: 'center', justifyContent: 'center' },
-  primary: { borderRadius: radius.iconBox, paddingHorizontal: 18, height: 40, alignItems: 'center', justifyContent: 'center' },
+  totalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  ghost: { width: 104, borderRadius: radius.iconBox, height: 48, alignItems: 'center', justifyContent: 'center' },
+  primary: { flex: 1, borderRadius: radius.iconBox, height: 48, alignItems: 'center', justifyContent: 'center' },
 });

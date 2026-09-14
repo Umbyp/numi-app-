@@ -344,7 +344,7 @@ export default function LogWorkoutScreen() {
         )}
 
         <View style={[styles.durationCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
-          <Text style={[textType.label, { color: c.muted, fontSize: 12 }]}>ระยะเวลา</Text>
+          <Text style={[textType.row, { color: c.text, fontSize: 14 }]}>ใช้เวลาไปเท่าไหร่</Text>
           <AmountStepper value={durationMin} step={5} unit=" นาที" min={5} onChange={setDurationMin} />
         </View>
 
@@ -396,10 +396,12 @@ const styles = StyleSheet.create({
   addSet: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   input: { borderRadius: radius.iconBox, paddingHorizontal: 12, paddingVertical: 9, fontSize: 15 },
   durationCard: {
+    flexDirection: 'row',
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radius.card,
     padding: 16,
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 10,
   },
   estimateCard: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.cardInner, padding: 14 },

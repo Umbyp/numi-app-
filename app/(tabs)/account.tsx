@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { User, Target, Dumbbell, TrendingUp } from 'lucide-react-native';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { useNumiStore } from '../../lib/store';
 import { type } from '../../lib/fonts';
@@ -13,23 +14,22 @@ import { Squish } from '../../components/squish';
 const ROWS: {
   label: string;
   bgKey: 'brandTint' | 'dinnerBg' | 'surfaceAlt';
+  Icon: typeof User;
   route?: '/account-edit' | '/weight-history' | '/activity-history';
   editStep?: 'basic' | 'goal' | 'macros' | 'summary';
   disabled?: boolean;
 }[] = [
-  { label: 'ข้อมูลส่วนตัว', bgKey: 'brandTint', route: '/account-edit', editStep: 'basic' },
-  { label: 'เป้าหมายน้ำหนัก', bgKey: 'brandTint', route: '/account-edit', editStep: 'goal' },
-  { label: 'เป้าหมายสารอาหาร', bgKey: 'brandTint', route: '/account-edit', editStep: 'macros' },
-  { label: 'ประวัติกิจกรรม', bgKey: 'dinnerBg', route: '/activity-history' },
-  { label: 'ประวัติน้ำหนัก', bgKey: 'brandTint', route: '/weight-history' },
-  { label: 'ตั้งค่าแอป · ธีม', bgKey: 'surfaceAlt', route: '/account-edit', editStep: 'summary' },
+  { label: 'ข้อมูลส่วนตัว', bgKey: 'brandTint', Icon: User, route: '/account-edit', editStep: 'basic' },
+  { label: 'เป้าหมายน้ำหนักและแคลอรี่', bgKey: 'brandTint', Icon: Target, route: '/account-edit', editStep: 'goal' },
+  { label: 'ประวัติกิจกรรม', bgKey: 'dinnerBg', Icon: Dumbbell, route: '/activity-history' },
+  { label: 'ประวัติน้ำหนัก', bgKey: 'brandTint', Icon: TrendingUp, route: '/weight-history' },
 ];
 
 export default function AccountScreen() {
   const c = useTheme();
   const scheme = useScheme();
   const router = useRouter();
-  const { profile, latestWeightKg, goals, refresh } = useNumiStore();
+  const { profile, latestWeightKg, goals, refresh, themePreference, setThemePreference } = useNumiStore();
 
   useFocusEffect(
     useCallback(() => {
@@ -91,7 +91,9 @@ export default function AccountScreen() {
                 else router.push(row.route);
               }}
             >
-              <View style={[styles.rowIcon, { backgroundColor: c[row.bgKey] }]} />
+              <View style={[styles.rowIcon, { backgroundColor: c[row.bgKey] }]}>
+                <row.Icon size={17} color={row.bgKey === 'dinnerBg' ? c.dinner : c.brand} />
+              </View>
               <Text style={[type.row, { color: row.disabled ? c.faint : c.text, fontSize: 14, flex: 1 }]}>{row.label}</Text>
               {row.disabled ? (
                 <Text style={[type.badge, { color: c.faint, fontSize: 10 }]}>เร็ว ๆ นี้</Text>
@@ -101,6 +103,32 @@ export default function AccountScreen() {
             </Squish>
           ))}
         </View>
+
+        <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4, paddingLeft: 6 }]}>การแสดงผล</Text>
+        <View style={[styles.themeCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+          <Text style={[type.row, { color: c.text, fontSize: 14.5 }]}>ธีม</Text>
+          <View style={[styles.themeSegmented, { backgroundColor: c.surfaceAlt }]}>
+            {(
+              [
+                { key: 'system', label: 'ตามระบบ' },
+                { key: 'light', label: 'สว่าง' },
+                { key: 'dark', label: 'มืด' },
+              ] as const
+            ).map((opt) => {
+              const active = opt.key === themePreference;
+              return (
+                <Squish
+                  key={opt.key}
+                  onPress={() => setThemePreference(opt.key)}
+                  style={[styles.themeSegment, active && { backgroundColor: c.surface }]}
+                >
+                  <Text style={[type.row, { color: active ? c.text : c.muted, fontSize: 13.5 }]}>{opt.label}</Text>
+                </Squish>
+              );
+            })}
+          </View>
+        </View>
+
         <Text style={[type.badge, { color: c.muted, letterSpacing: 0.4, paddingLeft: 6 }]}>การเตือน</Text>
         <ReminderSettings />
 
@@ -128,5 +156,8 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.cardInner, padding: 13, gap: 2 },
   listCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 52, paddingHorizontal: 16 },
-  rowIcon: { width: 30, height: 30, borderRadius: 11 },
+  rowIcon: { width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  themeCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 12 },
+  themeSegmented: { flexDirection: 'row', borderRadius: radius.pill, padding: 4 },
+  themeSegment: { flex: 1, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.iconBox },
 });

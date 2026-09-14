@@ -28,6 +28,9 @@ export const colors = {
     dinnerBg: '#EDE9FB',
     danger: '#F2545B',
     dangerBg: '#FDEEEF',
+    // กล่องคำอธิบายอุ่น ๆ ที่ไม่ใช่ error/warning จริงจัง เช่น "กรอกคร่าว ๆ ไปก่อนก็ได้"
+    cream: '#FFF6E9',
+    creamText: '#6B5636',
     // legacy aliases used by components not yet migrated
     card: '#FFFFFF',
     primary: '#2E7DF7',
@@ -61,6 +64,8 @@ export const colors = {
     dinnerBg: '#2A2545',
     danger: '#FF6B72',
     dangerBg: '#3A2530',
+    cream: 'rgba(255,200,92,0.14)',
+    creamText: '#FFD180',
     // legacy aliases used by components not yet migrated
     card: '#18223A',
     primary: '#5C9BFF',

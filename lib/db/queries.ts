@@ -152,6 +152,11 @@ export async function searchFoods(query: string, limit = 30) {
     .limit(limit);
 }
 
+export async function getFoodById(id: string) {
+  const rows = await db.select().from(foods).where(eq(foods.id, id));
+  return rows[0] ?? null;
+}
+
 export async function createUserFood(input: {
   name: string;
   kcalPer100: number;
@@ -256,6 +261,19 @@ export async function addMealEntry(entry: NewMealEntry) {
 
 export async function deleteMealEntry(id: string) {
   await db.delete(mealEntries).where(eq(mealEntries.id, id));
+}
+
+export async function getMealEntryById(id: string) {
+  const rows = await db.select().from(mealEntries).where(eq(mealEntries.id, id));
+  return rows[0] ?? null;
+}
+
+/** แก้ไขรายการที่บันทึกไว้แล้ว — ใช้ตอนผู้ใช้กดเข้าไปปรับปริมาณ/มื้อของเมนูที่เพิ่งบันทึก */
+export async function updateMealEntry(
+  id: string,
+  patch: Partial<Pick<NewMealEntry, 'mealType' | 'amountG' | 'kcal' | 'proteinG' | 'carbG' | 'fatG' | 'estimated'>>
+) {
+  await db.update(mealEntries).set(patch).where(eq(mealEntries.id, id));
 }
 
 export async function getMealEntriesForDate(localDate: string) {

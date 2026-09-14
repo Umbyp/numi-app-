@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, ActivityIndicator, useColorScheme } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import {
@@ -12,7 +12,7 @@ import {
   NotoSansThai_800ExtraBold,
 } from '@expo-google-fonts/noto-sans-thai';
 import { migrateDb } from '../lib/db/client';
-import { syncSeedFoods } from '../lib/db/queries';
+import { syncSeedFoods, getAppSetting } from '../lib/db/queries';
 import { configureNotificationHandler } from '../lib/notifications';
 import { useNumiStore } from '../lib/store';
 import { useScheme } from '../lib/hooks/use-theme';
@@ -39,6 +39,7 @@ function RootLayoutInner() {
     NotoSansThai_800ExtraBold,
   });
   const refresh = useNumiStore((s) => s.refresh);
+  const router = useRouter();
   const systemScheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const scheme = useScheme(); // เคารพ theme preference ที่ผู้ใช้เลือกเอง (โหลดเสร็จก่อน ready เสมอ)
   const ready = dbReady && fontsLoaded;
@@ -59,6 +60,18 @@ function RootLayoutInner() {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
 
+  // พาไปหน้าต้อนรับเฉพาะตอนยังไม่เคยตั้งเป้าหมายและยังไม่เคยข้ามหน้านี้มาก่อน
+  // เช็คหลัง ready เพื่อให้ Stack mount ก่อนเรียก router.replace
+  useEffect(() => {
+    if (!ready) return;
+    (async () => {
+      const seen = await getAppSetting('onboarding_seen');
+      if (!useNumiStore.getState().profile && seen !== 'true') {
+        router.replace('/onboarding');
+      }
+    })();
+  }, [ready]);
+
   if (!ready) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg }}>
@@ -72,6 +85,7 @@ function RootLayoutInner() {
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
         <Stack.Screen name="add-food" options={{ presentation: 'modal', headerShown: true, title: 'เพิ่มอาหาร' }} />
         <Stack.Screen name="chat" options={{ presentation: 'modal' }} />
         <Stack.Screen name="account-edit" options={{ presentation: 'modal', headerShown: true, title: 'แก้ไขโปรไฟล์และเป้าหมาย' }} />

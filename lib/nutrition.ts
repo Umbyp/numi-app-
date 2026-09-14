@@ -167,6 +167,18 @@ export function calcWeightProgress(p: { startKg: number; currentKg: number; goal
   return { direction, remainingKg, progressPct, reachedGoal };
 }
 
+/**
+ * ประมาณจำนวนสัปดาห์ที่จะถึงน้ำหนักเป้าหมาย จากอัตราต่อสัปดาห์ที่เลือก
+ * คืน null ถ้าถึงเป้าแล้ว หรืออัตราที่เลือกพาออกจากเป้าหมาย (เช่นเลือกลดทั้งที่อยากเพิ่ม)
+ */
+export function estimateWeeksToGoal(currentKg: number, goalKg: number, weeklyRateKg: number): number | null {
+  const remaining = goalKg - currentKg;
+  if (Math.abs(remaining) < 0.05) return null;
+  if (weeklyRateKg === 0) return null;
+  if (Math.sign(remaining) !== Math.sign(weeklyRateKg)) return null;
+  return Math.ceil(remaining / weeklyRateKg);
+}
+
 export interface SeriesPoint {
   date: string;
   /** ค่าที่บันทึกจริงในวันนั้น — null คือวันที่ไม่ได้บันทึก */

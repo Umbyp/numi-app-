@@ -2,49 +2,44 @@ import { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import Svg, { Polyline, Path, Circle } from 'react-native-svg';
 import { useTheme, useScheme } from '../../lib/hooks/use-theme';
 import { useNumiStore } from '../../lib/store';
-import { getMealTotalsByDateRange, getWeightHistory, getEarliestWeight, type DayTotalsWithDate } from '../../lib/db/queries';
-import { localDateString, calcWeightProgress } from '../../lib/nutrition';
+import {
+  getMealTotalsByDateRange,
+  getWeightsSince,
+  getEarliestWeight,
+  type DayTotalsWithDate,
+} from '../../lib/db/queries';
+import { calcWeightProgress, dailySeries, seriesMovingAverage } from '../../lib/nutrition';
+import { dateAxis } from '../../lib/dates';
 import { type } from '../../lib/fonts';
 import { radius, cardShadow } from '../../lib/theme';
 import { Mascot } from '../../components/mascot';
+import { TrendChart } from '../../components/trend-chart';
 import { EmptyState } from '../../components/empty-state';
 import { Squish } from '../../components/squish';
 
 const DAY_LETTERS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
-const PERIODS = [
-  { key: 0, label: 'สัปดาห์นี้' },
-  { key: 1, label: 'สัปดาห์ที่แล้ว' },
-  { key: 2, label: '2 สัปดาห์ที่แล้ว' },
-];
-
-function rangeForOffset(offsetWeeks: number): [string, string] {
-  const end = new Date();
-  end.setDate(end.getDate() - offsetWeeks * 7);
-  const start = new Date(end);
-  start.setDate(end.getDate() - 6);
-  return [localDateString(start), localDateString(end)];
-}
+const RANGES = [7, 30, 90] as const;
 
 export default function InsightsScreen() {
   const c = useTheme();
   const scheme = useScheme();
   const router = useRouter();
   const { goals, profile, latestWeightKg } = useNumiStore();
-  const [period, setPeriod] = useState(0);
+  const [range, setRange] = useState<(typeof RANGES)[number]>(7);
   const [days, setDays] = useState<DayTotalsWithDate[]>([]);
-  const [weightHistory, setWeightHistory] = useState<Awaited<ReturnType<typeof getWeightHistory>>>([]);
+  const [weightRows, setWeightRows] = useState<{ localDate: string; weightKg: number }[]>([]);
   const [earliestWeight, setEarliestWeight] = useState<Awaited<ReturnType<typeof getEarliestWeight>>>(null);
 
-  useEffect(() => {
-    const [start, end] = rangeForOffset(period);
-    getMealTotalsByDateRange(start, end).then(setDays);
-  }, [period]);
+  const axis = useMemo(() => dateAxis(range), [range]);
 
   useEffect(() => {
-    getWeightHistory(60).then(setWeightHistory);
+    getMealTotalsByDateRange(axis[0], axis[axis.length - 1]).then(setDays);
+    getWeightsSince(axis[0]).then((rows) => setWeightRows(rows.map((r) => ({ localDate: r.localDate, weightKg: r.weightKg }))));
+  }, [axis]);
+
+  useEffect(() => {
     getEarliestWeight().then(setEarliestWeight);
   }, []);
 
@@ -54,8 +49,8 @@ export default function InsightsScreen() {
     return withData.reduce((s, d) => s + d.kcal, 0) / withData.length;
   }, [days]);
 
-  const maxKcal = Math.max(2000, ...days.map((d) => d.kcal), 1);
   const hasMealData = days.some((d) => d.kcal > 0);
+  const weekBars = range === 7 ? days : [];
 
   const insightText = useMemo(() => {
     const target = goals?.proteinG ?? 0;
@@ -66,8 +61,20 @@ export default function InsightsScreen() {
     return `โปรตีนต่ำกว่าเป้า ${lowDays} วันจาก ${withData.length} — เพิ่มไข่หรืออกไก่มื้อเช้าน่าจะพอ`;
   }, [days, goals]);
 
-  const weightDelta =
-    weightHistory.length >= 2 ? weightHistory[weightHistory.length - 1].weightKg - weightHistory[0].weightKg : 0;
+  const weightSeries = useMemo(() => {
+    const byDate: Record<string, number> = {};
+    for (const r of weightRows) byDate[r.localDate] = r.weightKg;
+    return dailySeries(axis, byDate);
+  }, [axis, weightRows]);
+  const weightAverage = useMemo(() => seriesMovingAverage(weightSeries, 7), [weightSeries]);
+  const latestWeightAvg = useMemo(() => {
+    for (let i = weightAverage.length - 1; i >= 0; i--) if (weightAverage[i] !== null) return weightAverage[i];
+    return null;
+  }, [weightAverage]);
+  const weightChange = useMemo(() => {
+    const known = weightAverage.filter((v): v is number => v !== null);
+    return known.length < 2 ? null : known[known.length - 1] - known[0];
+  }, [weightAverage]);
 
   const goalWeight = profile?.goalWeightKg ?? null;
   const weightProgress = useMemo(() => {
@@ -80,22 +87,69 @@ export default function InsightsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={[type.greeting, { color: c.text, fontSize: 24 }]}>ข้อมูลเชิงลึก</Text>
+        <Text style={[type.greeting, { color: c.text, fontSize: 24 }]}>ย้อนหลัง</Text>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-          {PERIODS.map((p) => {
-            const active = p.key === period;
+        <View style={styles.rangeRow}>
+          {RANGES.map((r) => {
+            const active = r === range;
             return (
               <Squish
-                key={p.key}
-                onPress={() => setPeriod(p.key)}
-                style={[styles.periodChip, { backgroundColor: active ? c.surface : 'transparent' }, active && cardShadow(scheme)]}
+                key={r}
+                onPress={() => setRange(r)}
+                style={[styles.rangeChip, { backgroundColor: active ? c.surface : 'transparent' }, active && cardShadow(scheme)]}
               >
-                <Text style={[type.row, { fontSize: 13, color: active ? c.text : c.muted }]}>{p.label}</Text>
+                <Text style={[type.row, { fontSize: 13, color: active ? c.text : c.muted }]}>
+                  {r === 90 ? '3 เดือน' : `${r} วัน`}
+                </Text>
               </Squish>
             );
           })}
-        </ScrollView>
+        </View>
+
+        <View style={cardStyle}>
+          <View style={styles.rowBetween}>
+            <View>
+              <Text style={[type.cardTitle, { color: c.text, fontSize: 13 }]}>น้ำหนักล่าสุด</Text>
+              <View style={styles.baselineRow}>
+                <Text style={[type.metric, { color: c.text, fontSize: 40 }]}>
+                  {latestWeightAvg !== null ? latestWeightAvg.toFixed(1) : '—'}
+                </Text>
+                <Text style={[type.label, { color: c.muted, fontSize: 13 }]}>กก.</Text>
+              </View>
+            </View>
+            {weightChange !== null && (
+              <View style={[styles.changeBadge, { backgroundColor: weightChange < 0 ? c.carbBg : c.surfaceAlt }]}>
+                <Text style={[type.row, { fontSize: 12.5, color: weightChange < 0 ? c.carbText : c.subtext }]}>
+                  {weightChange < 0 ? 'ลง' : weightChange > 0 ? 'ขึ้น' : 'คงที่'} {Math.abs(weightChange).toFixed(1)} กก.
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <TrendChart series={weightSeries} average={weightAverage} unit="กก." emptyText="ยังไม่มีน้ำหนักในช่วงนี้" height={130} />
+
+          {weightProgress ? (
+            <View style={{ gap: 6 }}>
+              <View style={styles.rowBetween}>
+                <Text style={[type.label, { color: c.subtext, fontSize: 12 }]}>
+                  {weightProgress.reachedGoal
+                    ? 'ถึงเป้าหมายแล้ว'
+                    : `เหลืออีก ${weightProgress.remainingKg.toFixed(1)} กก. ถึงเป้า ${goalWeight!.toFixed(1)} กก.`}
+                </Text>
+                <Text style={[type.label, { color: c.text, fontSize: 12 }]}>{Math.round(weightProgress.progressPct)}%</Text>
+              </View>
+              <View style={[styles.progressTrack, { backgroundColor: c.surfaceAlt }]}>
+                <View style={[styles.progressFill, { width: `${weightProgress.progressPct}%`, backgroundColor: c.brand }]} />
+              </View>
+            </View>
+          ) : (
+            <Squish onPress={() => router.push('/account-edit')}>
+              <Text style={[type.label, { color: c.brand, fontSize: 12 }]}>
+                {goalWeight ? 'บันทึกน้ำหนักเพื่อดูความคืบหน้า' : 'ตั้งเป้าหมายน้ำหนักเพื่อดูความคืบหน้า'}
+              </Text>
+            </Squish>
+          )}
+        </View>
 
         <View style={cardStyle}>
           {!hasMealData ? (
@@ -110,85 +164,49 @@ export default function InsightsScreen() {
           <>
           <View style={styles.rowBetween}>
             <View>
-              <Text style={[type.cardTitle, { color: c.text, fontSize: 14 }]}>แคลอรี่ที่ได้รับ</Text>
+              <Text style={[type.cardTitle, { color: c.text, fontSize: 13 }]}>กินเฉลี่ยต่อวัน</Text>
               <View style={styles.baselineRow}>
                 <Text style={[type.metric, { color: c.text, fontSize: 28 }]}>{Math.round(avgKcal).toLocaleString()}</Text>
-                <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>เฉลี่ย/วัน</Text>
+                <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>kcal</Text>
               </View>
+            </View>
+            <View style={{ alignItems: 'flex-end', gap: 5 }}>
+              <LegendDot color={c.protein} label="โปรตีน" c={c} />
+              <LegendDot color={c.carb} label="คาร์บ" c={c} />
+              <LegendDot color={c.fat} label="ไขมัน" c={c} />
             </View>
           </View>
 
-          <View style={styles.legendRow}>
-            <LegendDot color={c.protein} label="โปรตีน" c={c} />
-            <LegendDot color={c.carb} label="คาร์บ" c={c} />
-            <LegendDot color={c.fat} label="ไขมัน" c={c} />
-          </View>
+          {weekBars.length > 0 && (
+            <View style={styles.chartRow}>
+              {(() => {
+                const maxKcal = Math.max(2000, ...weekBars.map((d) => d.kcal), 1);
+                const scale = 120 / maxKcal;
+                return weekBars.map((d) => {
+                  const dow = new Date(`${d.localDate}T00:00:00`).getDay();
+                  return (
+                    <View key={d.localDate} style={styles.barCol}>
+                      <View style={styles.barStack}>
+                        <View style={{ height: d.proteinG * 4 * scale, backgroundColor: c.protein }} />
+                        <View style={{ height: d.carbG * 4 * scale, backgroundColor: c.carb }} />
+                        <View style={{ height: d.fatG * 9 * scale, backgroundColor: c.fat }} />
+                      </View>
+                      <Text style={[type.label, { color: c.faint, fontSize: 10 }]}>{DAY_LETTERS[dow]}</Text>
+                    </View>
+                  );
+                });
+              })()}
+            </View>
+          )}
 
-          <View style={styles.chartRow}>
-            {days.map((d) => {
-              const dow = new Date(`${d.localDate}T00:00:00`).getDay();
-              const total = d.kcal || 1;
-              const scale = 120 / maxKcal;
-              return (
-                <View key={d.localDate} style={styles.barCol}>
-                  <View style={styles.barStack}>
-                    <View style={{ height: (d.proteinG * 4) * scale, backgroundColor: c.protein }} />
-                    <View style={{ height: (d.carbG * 4) * scale, backgroundColor: c.carb }} />
-                    <View style={{ height: (d.fatG * 9) * scale, backgroundColor: c.fat }} />
-                  </View>
-                  <Text style={[type.label, { color: c.faint, fontSize: 10 }]}>{DAY_LETTERS[dow]}</Text>
-                </View>
-              );
-            })}
-          </View>
-
-          <View style={[styles.calloutRow, { backgroundColor: c.brandTint }]}>
-            <Mascot size={40} />
-            <Text style={[type.row, { color: c.text, fontSize: 12, flex: 1, lineHeight: 18 }]}>{insightText}</Text>
+          <View style={[styles.calloutRow, { backgroundColor: c.cream }]}>
+            <Mascot size={40} pose="idle" />
+            <Text style={[type.row, { color: c.creamText, fontSize: 12, flex: 1, lineHeight: 18 }]}>{insightText}</Text>
           </View>
           </>
           )}
         </View>
 
-        <View style={cardStyle}>
-          <View style={styles.rowBetween}>
-            <Text style={[type.cardTitle, { color: c.text, fontSize: 14 }]}>น้ำหนัก</Text>
-            <View style={styles.baselineRow}>
-              <Text style={[type.cardTitle, { color: c.text, fontSize: 22 }]}>
-                {weightHistory.length ? weightHistory[weightHistory.length - 1].weightKg.toFixed(1) : '—'}
-              </Text>
-              {weightHistory.length >= 2 && (
-                <Text style={[type.row, { color: c.brand, fontSize: 12 }]}>
-                  {weightDelta > 0 ? '+' : ''}
-                  {weightDelta.toFixed(1)} กก.
-                </Text>
-              )}
-            </View>
-          </View>
-          <WeightChart history={weightHistory} color={c.brand} />
-
-          {weightProgress ? (
-            <View style={{ gap: 6 }}>
-              <View style={styles.rowBetween}>
-                <Text style={[type.label, { color: c.subtext, fontSize: 12 }]}>
-                  {weightProgress.reachedGoal
-                    ? 'ถึงเป้าหมายแล้ว'
-                    : `เหลืออีก ${weightProgress.remainingKg.toFixed(1)} กก. ถึงเป้าหมาย ${goalWeight!.toFixed(1)} กก.`}
-                </Text>
-                <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>{Math.round(weightProgress.progressPct)}%</Text>
-              </View>
-              <View style={[styles.progressTrack, { backgroundColor: c.surfaceAlt }]}>
-                <View style={[styles.progressFill, { width: `${weightProgress.progressPct}%`, backgroundColor: c.brand }]} />
-              </View>
-            </View>
-          ) : (
-            <Squish onPress={() => router.push('/account-edit')}>
-              <Text style={[type.label, { color: c.brand, fontSize: 12 }]}>
-                {goalWeight ? 'บันทึกน้ำหนักเพื่อดูความคืบหน้า' : 'ตั้งเป้าหมายน้ำหนักเพื่อดูความคืบหน้า'}
-              </Text>
-            </Squish>
-          )}
-        </View>
         <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
@@ -204,39 +222,17 @@ function LegendDot({ color, label, c }: { color: string; label: string; c: Retur
   );
 }
 
-function WeightChart({ history, color }: { history: { weightKg: number }[]; color: string }) {
-  if (history.length < 2) return null;
-  const width = 320;
-  const height = 64;
-  const min = Math.min(...history.map((h) => h.weightKg));
-  const max = Math.max(...history.map((h) => h.weightKg));
-  const span = Math.max(0.5, max - min);
-  const points = history.map((h, i) => {
-    const x = (i / (history.length - 1)) * width;
-    const y = height - ((h.weightKg - min) / span) * height;
-    return `${x},${y}`;
-  });
-  const last = points[points.length - 1].split(',').map(Number);
-
-  return (
-    <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ marginTop: 4 }}>
-      <Path d={`M${points.join(' L')} L${width},${height} L0,${height} Z`} fill={color} opacity={0.09} />
-      <Polyline points={points.join(' ')} fill="none" stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
-      <Circle cx={last[0]} cy={last[1]} r={4.5} fill={color} />
-    </Svg>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { padding: 18, gap: 14 },
-  periodChip: { height: 36, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  rangeRow: { flexDirection: 'row', gap: 4, backgroundColor: 'transparent' },
+  rangeChip: { height: 36, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 12 },
   rowBetween: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   baselineRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  legendRow: { flexDirection: 'row', gap: 14 },
+  changeBadge: { borderRadius: radius.pill, paddingHorizontal: 12, height: 32, alignItems: 'center', justifyContent: 'center' },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  legendDot: { width: 10, height: 10, borderRadius: 3 },
+  legendDot: { width: 9, height: 9, borderRadius: 3 },
   chartRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 140 },
   barCol: { flex: 1, alignItems: 'center', gap: 6 },
   barStack: { width: '100%', flexDirection: 'column-reverse', borderRadius: 6, overflow: 'hidden' },

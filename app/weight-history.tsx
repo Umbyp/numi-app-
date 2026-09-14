@@ -90,6 +90,14 @@ export default function WeightHistoryScreen() {
 
   const average = useMemo(() => seriesMovingAverage(series, 7), [series]);
 
+  /** ค่าเฉลี่ย 7 วันล่าสุดที่มีจริง ไว้โชว์เป็นตัวเลขใหญ่ ไม่ใช่ค่าดิบวันสุดท้ายที่แกว่งได้ */
+  const latestAverage = useMemo(() => {
+    for (let i = average.length - 1; i >= 0; i--) {
+      if (average[i] !== null) return average[i];
+    }
+    return null;
+  }, [average]);
+
   /** เทียบค่าเฉลี่ยจุดแรกกับจุดสุดท้าย ไม่เทียบค่าดิบ เพราะค่าดิบแกว่งจากน้ำในร่างกาย */
   const change = useMemo(() => {
     const known = average.filter((v): v is number => v !== null);
@@ -158,33 +166,49 @@ export default function WeightHistoryScreen() {
               </View>
 
               <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
-                <View style={styles.cardHead}>
-                  <View style={styles.metricTabs}>
-                    {([
-                      { key: 'weight', label: 'น้ำหนัก' },
-                      { key: 'waist', label: 'รอบเอว' },
-                    ] as const).map((m) => {
-                      const active = metric === m.key;
-                      return (
-                        <Squish key={m.key} onPress={() => setMetric(m.key)} hitSlop={6}>
-                          <Text
-                            style={[
-                              type.cardTitle,
-                              { fontSize: 14, color: active ? c.text : c.faint, paddingBottom: 3 },
-                              active && { borderBottomWidth: 2, borderBottomColor: c.brand },
-                            ]}
-                          >
-                            {m.label}
-                          </Text>
-                        </Squish>
-                      );
-                    })}
+                <View style={styles.metricTabs}>
+                  {([
+                    { key: 'weight', label: 'น้ำหนัก' },
+                    { key: 'waist', label: 'รอบเอว' },
+                  ] as const).map((m) => {
+                    const active = metric === m.key;
+                    return (
+                      <Squish key={m.key} onPress={() => setMetric(m.key)} hitSlop={6}>
+                        <Text
+                          style={[
+                            type.cardTitle,
+                            { fontSize: 14, color: active ? c.text : c.faint, paddingBottom: 3 },
+                            active && { borderBottomWidth: 2, borderBottomColor: c.brand },
+                          ]}
+                        >
+                          {m.label}
+                        </Text>
+                      </Squish>
+                    );
+                  })}
+                </View>
+
+                <View style={styles.headlineRow}>
+                  <View>
+                    <Text style={[type.label, { color: c.subtext, fontSize: 12.5 }]}>เฉลี่ย 7 วันล่าสุด</Text>
+                    <View style={styles.headlineValueRow}>
+                      <Text style={[type.metric, { color: c.text, fontSize: 40 }]}>
+                        {latestAverage !== null ? latestAverage.toFixed(1) : '—'}
+                      </Text>
+                      <Text style={[type.label, { color: c.muted, fontSize: 13 }]}>{unit}</Text>
+                    </View>
                   </View>
                   {change !== null && (
-                    <Text style={[type.label, { color: c.muted, fontSize: 12 }]}>
-                      {change >= 0 ? '+' : ''}
-                      {change.toFixed(1)} {unit} ใน {range} วัน
-                    </Text>
+                    <View
+                      style={[
+                        styles.changeBadge,
+                        { backgroundColor: change < 0 ? c.carbBg : c.surfaceAlt },
+                      ]}
+                    >
+                      <Text style={[type.row, { fontSize: 12.5, color: change < 0 ? c.carbText : c.subtext }]}>
+                        {change < 0 ? 'ลง' : change > 0 ? 'ขึ้น' : 'คงที่'} {Math.abs(change).toFixed(1)} {unit}
+                      </Text>
+                    </View>
                   )}
                 </View>
 
@@ -198,6 +222,12 @@ export default function WeightHistoryScreen() {
                       : 'ยังไม่มีรอบเอวในช่วงนี้ — เปิด “สัดส่วน” ด้านล่างเพื่อบันทึก'
                   }
                 />
+
+                {latestAverage !== null && (
+                  <Text style={[type.label, { color: c.faint, fontSize: 11.5, lineHeight: 18 }]}>
+                    {metric === 'weight' ? 'น้ำหนัก' : 'รอบเอว'}ขึ้นลงวันต่อวันเป็นเรื่องปกติ ดูเส้นเฉลี่ยจะเห็นทิศทางชัดกว่า
+                  </Text>
+                )}
               </View>
 
               <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
@@ -262,8 +292,10 @@ const styles = StyleSheet.create({
   rangeRow: { flexDirection: 'row', gap: 6 },
   rangeChip: { height: 32, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 10 },
-  cardHead: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 },
   metricTabs: { flexDirection: 'row', gap: 14 },
+  headlineRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 },
+  headlineValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 2 },
+  changeBadge: { borderRadius: radius.pill, paddingHorizontal: 12, height: 32, alignItems: 'center', justifyContent: 'center' },
   toggle: { flexDirection: 'row', alignItems: 'center' },
   measureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   measureCell: { width: '47%' },
