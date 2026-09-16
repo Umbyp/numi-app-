@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, ScrollView, TextInput, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TextInput, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Pencil, Plus, X } from 'lucide-react-native';
@@ -24,6 +24,7 @@ import { CategoryIcon, categoryTint, DayTypeIcon, dayTypeTint } from '../compone
 import { type as textType, fontFamily } from '../lib/fonts';
 import { radius, cardShadow } from '../lib/theme';
 import { Squish } from '../components/squish';
+import { workoutPlanSchema, validateWorkoutPlan } from '../lib/ai/validators';
 
 const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
@@ -163,6 +164,35 @@ export default function WorkoutPlanDetailScreen() {
 
   async function saveEditing() {
     if (!plan) return;
+    // เก็บเป็น unknown ก่อนให้ Zod ตรวจเอง: ไม่ผูก inferred type ของ schema ที่ซ้อนลึกกับ state ของ UI
+    const planInput: unknown = { title: editTitle, rationale: editRationale, days: editDays.map((day) => ({
+      label: day.label,
+      day_type: day.dayType,
+      warmup: day.warmup,
+      during_note: day.duringNote,
+      cooldown: day.cooldown,
+      exercises: day.exercises.map((exercise) => ({
+        name: exercise.name,
+        category: exercise.category,
+        met: exercise.met,
+        duration_min: exercise.durationMin,
+        sets: exercise.sets,
+        reps: exercise.reps,
+        rest_sec: exercise.restSec,
+        muscle_group: exercise.muscleGroup,
+        note: exercise.note,
+      })),
+    })) };
+    const checked = workoutPlanSchema.safeParse(planInput);
+    if (!checked.success) {
+      Alert.alert('ยังบันทึกแผนไม่ได้', checked.error.issues[0]?.message ?? 'กรุณาตรวจข้อมูลในแผนอีกครั้ง');
+      return;
+    }
+    const planError = validateWorkoutPlan(checked.data);
+    if (planError) {
+      Alert.alert('ยังบันทึกแผนไม่ได้', planError);
+      return;
+    }
     setSaving(true);
     try {
       await updateWorkoutPlan(plan.id, { title: editTitle, rationale: editRationale, days: editDays });
@@ -308,11 +338,11 @@ export default function WorkoutPlanDetailScreen() {
                     </Squish>
                   </View>
                   <View style={styles.stepperRow}>
-                    <AmountStepper compact value={ex.durationMin} step={5} min={5} unit=" นาที" onChange={(v) => updateExercise(dayIdx, exIdx, { durationMin: v })} />
+                    <AmountStepper value={ex.durationMin} step={5} min={5} unit=" นาที" onChange={(v) => updateExercise(dayIdx, exIdx, { durationMin: v })} />
                     {ex.category === 'strength' && (
                       <>
-                        <AmountStepper compact value={ex.sets ?? 3} step={1} min={1} unit=" เซต" onChange={(v) => updateExercise(dayIdx, exIdx, { sets: v })} />
-                        <AmountStepper compact value={ex.restSec ?? 60} step={15} min={0} unit=" วิ" onChange={(v) => updateExercise(dayIdx, exIdx, { restSec: v })} />
+                        <AmountStepper value={ex.sets ?? 3} step={1} min={1} unit=" เซต" onChange={(v) => updateExercise(dayIdx, exIdx, { sets: v })} />
+                        <AmountStepper value={ex.restSec ?? 60} step={15} min={0} unit=" วิ" onChange={(v) => updateExercise(dayIdx, exIdx, { restSec: v })} />
                       </>
                     )}
                   </View>

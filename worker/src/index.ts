@@ -9,7 +9,10 @@ export interface Env {
 
 const ALLOWED_MODELS = new Set(['google/gemini-2.5-flash', 'anthropic/claude-haiku-4.5']);
 
-const DAILY_REQUEST_CAP = 300;
+// โควตารวมทั้งแอป — กันโค้ด loop ทำบิลบาน ไม่ใช่ตัวจำกัดหลัก (ดู PER_USER_DAILY_CAP)
+const GLOBAL_DAILY_CAP = 1000;
+// โควตาต่อคน (x-client-id: user id ถ้าล็อกอิน ไม่งั้นเป็น device id) — กันคนเดียวใช้จนคนอื่นแชทไม่ได้
+const PER_USER_DAILY_CAP = 20;
 
 const GOTRUE_URL = 'https://numi-api.enablebrain.com/auth/v1';
 // anon key — public โดยดีไซน์ (ฝังในแอปอยู่แล้ว) ใช้แค่เป็น apikey header ตอนเรียก GoTrue
@@ -62,14 +65,25 @@ export default {
       return handleDeleteAccount(req, env);
     }
 
-    // 2. rate limit รายวัน กันโค้ดยิง loop ทำบิลบาน
+    // 2. rate limit รายวัน — เช็คโควตารวมทั้งแอปก่อน (กันบิลบาน) แล้วค่อยเช็คโควตาต่อคน (กันแย่งโควตากัน)
     const today = new Date().toISOString().slice(0, 10);
-    const key = `req:${today}`;
-    const count = parseInt((await env.RATE_LIMIT.get(key)) ?? '0', 10);
-    if (count >= DAILY_REQUEST_CAP) {
-      return Response.json({ error: 'ใช้ครบโควตาวันนี้แล้ว ลองใหม่พรุ่งนี้' }, { status: 429 });
+    const globalKey = `req:${today}`;
+    const globalCount = parseInt((await env.RATE_LIMIT.get(globalKey)) ?? '0', 10);
+    if (globalCount >= GLOBAL_DAILY_CAP) {
+      return Response.json({ error: 'ตอนนี้มีคนใช้ Numi เยอะมาก ลองใหม่พรุ่งนี้นะครับ' }, { status: 429 });
     }
-    await env.RATE_LIMIT.put(key, String(count + 1), { expirationTtl: 172800 });
+
+    const clientId = req.headers.get('x-client-id') || 'anon-unknown';
+    const userKey = `req:${today}:${clientId}`;
+    const userCount = parseInt((await env.RATE_LIMIT.get(userKey)) ?? '0', 10);
+    if (userCount >= PER_USER_DAILY_CAP) {
+      return Response.json({ error: 'ใช้ครบโควตาแชทของวันนี้แล้ว ลองใหม่พรุ่งนี้นะครับ' }, { status: 429 });
+    }
+
+    await Promise.all([
+      env.RATE_LIMIT.put(globalKey, String(globalCount + 1), { expirationTtl: 172800 }),
+      env.RATE_LIMIT.put(userKey, String(userCount + 1), { expirationTtl: 172800 }),
+    ]);
 
     // 3. ตรวจ payload
     const body = (await req.json()) as any;

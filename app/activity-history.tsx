@@ -136,7 +136,7 @@ export default function ActivityHistoryScreen() {
                 <CategoryIcon category={item.category} size={17} color={tint.icon} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={[type.row, { color: c.text, fontSize: 14.5 }]} numberOfLines={1}>{item.name}</Text>
+                <Text style={[type.row, { color: c.text, fontSize: 14 }]}>{item.name}</Text>
                 <Text style={[type.label, { color: c.muted, fontSize: 11 }]}>
                   {d.getDate()} {THAI_MONTHS_SHORT[d.getMonth()]} {d.getFullYear() + 543} · {item.durationMin} นาที
                 </Text>
@@ -164,8 +164,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    borderRadius: radius.cardInner,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
+    borderRadius: radius.row,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
 });

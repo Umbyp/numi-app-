@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { useNumiStore } from '../lib/store';
-import { saveProfile, addOrUpdateWeightToday } from '../lib/db/queries';
+import { saveProfile, addOrUpdateWeightToday, getWorkoutProfile, saveWorkoutProfile } from '../lib/db/queries';
 import {
   ACTIVITY_LEVELS,
   calcBMR,
@@ -34,15 +34,17 @@ import { radius, cardShadow, MIN_TOUCH } from '../lib/theme';
 import { AmountStepper } from '../components/amount-stepper';
 import { Mascot } from '../components/mascot';
 import { Squish } from '../components/squish';
+import { DEFAULT_WORKOUT_PROFILE, WORKOUT_EQUIPMENT, WORKOUT_EXPERIENCE, WORKOUT_LOCATIONS, type WorkoutProfile } from '../lib/workout-profile';
 
 type GoalType = 'lose' | 'maintain' | 'gain';
 
-const STEP_KEYS = ['basic', 'goal', 'activity', 'summary'] as const;
+const STEP_KEYS = ['basic', 'goal', 'activity', 'workout', 'summary'] as const;
 type StepKey = (typeof STEP_KEYS)[number];
 const STEP_TITLES: Record<StepKey, string> = {
   basic: 'ข้อมูลพื้นฐาน',
   goal: 'เป้าหมาย',
   activity: 'กิจกรรมและกล้ามเนื้อ',
+  workout: 'การออกกำลังกาย',
   summary: 'สรุปผล',
 };
 
@@ -58,6 +60,7 @@ const FOCUSED_HEADER_TITLE: Record<StepKey, string> = {
   basic: 'ข้อมูลส่วนตัว',
   goal: 'เป้าหมายน้ำหนัก',
   activity: 'ระดับกิจกรรม',
+  workout: 'รูปแบบการออกกำลังกาย',
   summary: 'สรุปผล',
 };
 
@@ -96,6 +99,7 @@ export default function AccountEditScreen() {
   const fatPct = Math.max(10, 100 - proteinPct - carbPct);
   const [saving, setSaving] = useState(false);
   const [showMacroEditor, setShowMacroEditor] = useState(false);
+  const [workoutProfile, setWorkoutProfile] = useState<WorkoutProfile>(DEFAULT_WORKOUT_PROFILE);
 
   /** เลือกทิศทางเป้าหมายใหม่ พร้อมตั้งอัตราเริ่มต้นให้สมเหตุสมผล ไม่งั้นปุ่มอัตราจะไม่มีตัวไหนถูกเลือกเลย */
   function pickGoalType(next: GoalType) {
@@ -133,6 +137,10 @@ export default function AccountEditScreen() {
     }
     if (latestWeightKg) setWeightKg(String(latestWeightKg));
   }, [profile, latestWeightKg]);
+
+  useEffect(() => {
+    getWorkoutProfile().then(({ profile: savedProfile }) => setWorkoutProfile(savedProfile));
+  }, []);
 
   const preview = useMemo(() => {
     const w = parseFloat(weightKg);
@@ -200,11 +208,22 @@ export default function AccountEditScreen() {
         goalWeightKg: parseFloat(goalWeightKg) || null,
         prioritizeMuscle,
       });
+      await saveWorkoutProfile(workoutProfile);
       await refresh();
       router.back();
     } finally {
       setSaving(false);
     }
+  }
+
+  function toggleEquipment(key: WorkoutProfile['equipment'][number]) {
+    setWorkoutProfile((current) => {
+      const selected = current.equipment.includes(key);
+      const equipment = selected
+        ? current.equipment.filter((item) => item !== key)
+        : [...current.equipment.filter((item) => item !== 'bodyweight'), key];
+      return { ...current, equipment: equipment.length ? equipment : ['bodyweight'] };
+    });
   }
 
   return (
@@ -451,6 +470,53 @@ export default function AccountEditScreen() {
                   </Squish>
                 </View>
               </View>
+            </View>
+          )}
+
+          {STEP_KEYS[step] === 'workout' && (
+            <View style={[styles.stepCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+              <Text style={[textType.cardTitle, { color: c.text, fontSize: 15 }]}>ให้ Numi จัดท่าให้เหมาะกับคุณ</Text>
+              <Text style={[textType.label, { color: c.faint, fontSize: 11.5, lineHeight: 18, marginTop: 2 }]}>
+                ข้อมูลนี้ใช้เฉพาะตอนออกแบบแผน และแก้ไขได้ตลอด
+              </Text>
+
+              <Field label="ประสบการณ์" color={c.subtext} style={{ marginTop: 12 }}>
+                <Segmented options={[...WORKOUT_EXPERIENCE]} value={workoutProfile.experience} onChange={(value) => setWorkoutProfile((p) => ({ ...p, experience: value as WorkoutProfile['experience'] }))} c={c} />
+              </Field>
+
+              <Field label="ฝึกที่ไหนเป็นหลัก" color={c.subtext}>
+                <Segmented options={[...WORKOUT_LOCATIONS]} value={workoutProfile.location} onChange={(value) => setWorkoutProfile((p) => ({ ...p, location: value as WorkoutProfile['location'] }))} c={c} />
+              </Field>
+
+              <Field label="มีอุปกรณ์อะไรบ้าง" color={c.subtext}>
+                <View style={styles.optionChipRow}>
+                  {WORKOUT_EQUIPMENT.map((item) => {
+                    const active = workoutProfile.equipment.includes(item.key);
+                    return (
+                      <Squish key={item.key} onPress={() => toggleEquipment(item.key)} style={[styles.optionChip, { backgroundColor: active ? c.brandTint : c.surfaceAlt, borderColor: active ? c.brand : 'transparent' }]}>
+                        <Text style={[textType.row, { color: active ? c.brand : c.subtext, fontSize: 12 }]}>{item.label}</Text>
+                      </Squish>
+                    );
+                  })}
+                </View>
+              </Field>
+
+              <View style={styles.fieldRow}>
+                <Field label="วันต่อสัปดาห์" color={c.subtext} style={{ flex: 1, marginBottom: 0 }}>
+                  <AmountStepper value={workoutProfile.daysPerWeek} min={1} step={1} unit=" วัน" onChange={(daysPerWeek) => setWorkoutProfile((p) => ({ ...p, daysPerWeek: Math.min(7, daysPerWeek) }))} />
+                </Field>
+                <Field label="เวลาต่อครั้ง" color={c.subtext} style={{ flex: 1, marginBottom: 0 }}>
+                  <AmountStepper value={workoutProfile.minutesPerSession} min={10} step={5} unit=" นาที" onChange={(minutesPerSession) => setWorkoutProfile((p) => ({ ...p, minutesPerSession: Math.min(180, minutesPerSession) }))} />
+                </Field>
+              </View>
+
+              <Field label="มีอาการเจ็บ บาดเจ็บ หรือข้อจำกัดไหม" color={c.subtext}>
+                <TextInput value={workoutProfile.injuryNotes} onChangeText={(injuryNotes) => setWorkoutProfile((p) => ({ ...p, injuryNotes }))} placeholder="เช่น ปวดเข่าขวา, เพิ่งผ่าตัด, ไม่มี" placeholderTextColor={c.faint} multiline style={[styles.notesInput, { color: c.text, backgroundColor: c.surfaceAlt, fontFamily: fontFamily(500) }]} />
+              </Field>
+
+              <Field label="ท่าที่ชอบ หรืออยากเลี่ยง" color={c.subtext} style={{ marginBottom: 0 }}>
+                <TextInput value={workoutProfile.preferenceNotes} onChangeText={(preferenceNotes) => setWorkoutProfile((p) => ({ ...p, preferenceNotes }))} placeholder="เช่น ชอบเดินเร็ว, ไม่ชอบกระโดด" placeholderTextColor={c.faint} multiline style={[styles.notesInput, { color: c.text, backgroundColor: c.surfaceAlt, fontFamily: fontFamily(500) }]} />
+              </Field>
             </View>
           )}
 
@@ -743,6 +809,7 @@ const styles = StyleSheet.create({
   fieldLabel: { marginBottom: 6 },
   fieldRow: { flexDirection: 'row', gap: 10 },
   input: { borderRadius: radius.iconBox, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15 },
+  notesInput: { minHeight: 78, borderRadius: radius.iconBox, paddingHorizontal: 12, paddingVertical: 12, fontSize: 14, textAlignVertical: 'top' },
   segmented: { flexDirection: 'row', borderRadius: radius.pill, padding: 4 },
   segment: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: radius.iconBox },
   stepCard: {
@@ -786,6 +853,8 @@ const styles = StyleSheet.create({
   },
   rateRow: { flexDirection: 'row', gap: 7, marginTop: 10 },
   choiceCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.cardInner, padding: 14, gap: 4 },
+  optionChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  optionChip: { borderWidth: 1.5, height: 38, paddingHorizontal: 12, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   macroBar: { height: 14, borderRadius: 8, overflow: 'hidden', flexDirection: 'row', marginVertical: 4 },
   macroRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   macroGramsRow: { flexDirection: 'row', gap: 9, marginTop: 4 },

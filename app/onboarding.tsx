@@ -44,7 +44,7 @@ export default function OnboardingScreen() {
 
   function startGoalSetup() {
     markSeen();
-    router.replace({ pathname: '/account-edit', params: { step: 'basic' } });
+    router.replace('/account-edit');
   }
 
   function skip() {
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   },
   featureDesc: { fontSize: 12.5, lineHeight: 19, marginTop: 2 },
   footer: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16, gap: 12 },
-  primaryBtn: { height: 56, borderRadius: radius.card - 8, alignItems: 'center', justifyContent: 'center' },
+  primaryBtn: { height: 56, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   primaryBtnText: { color: '#fff', fontSize: 16 },
   skipBtn: { alignItems: 'center', paddingVertical: 4 },
 });

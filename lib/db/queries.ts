@@ -18,6 +18,7 @@ import {
 } from './schema';
 import { localDateString, scaleFood } from '../nutrition';
 import seedFoods from '../../data/foods-th.json';
+import { DEFAULT_WORKOUT_PROFILE, isWorkoutProfile, type WorkoutProfile } from '../workout-profile';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -50,6 +51,30 @@ export async function setThemePreference(pref: ThemePreference) {
     .insert(appSettings)
     .values({ key: 'theme_preference', value: pref })
     .onConflictDoUpdate({ target: appSettings.key, set: { value: pref } });
+}
+
+const WORKOUT_PROFILE_KEY = 'workout_profile_v1';
+
+/** เก็บแยกจาก profile หลัก เพราะข้อมูลนี้เป็น preference สำหรับการจัดแผน ไม่กระทบสูตรแคลอรี่ */
+export async function getWorkoutProfile(): Promise<{ profile: WorkoutProfile; completed: boolean }> {
+  const rows = await db.select().from(appSettings).where(eq(appSettings.key, WORKOUT_PROFILE_KEY));
+  const raw = rows[0]?.value;
+  if (!raw) return { profile: DEFAULT_WORKOUT_PROFILE, completed: false };
+  try {
+    const value = JSON.parse(raw);
+    return isWorkoutProfile(value)
+      ? { profile: value, completed: true }
+      : { profile: DEFAULT_WORKOUT_PROFILE, completed: false };
+  } catch {
+    return { profile: DEFAULT_WORKOUT_PROFILE, completed: false };
+  }
+}
+
+export async function saveWorkoutProfile(workoutProfile: WorkoutProfile) {
+  await db
+    .insert(appSettings)
+    .values({ key: WORKOUT_PROFILE_KEY, value: JSON.stringify(workoutProfile) })
+    .onConflictDoUpdate({ target: appSettings.key, set: { value: JSON.stringify(workoutProfile) } });
 }
 
 // ---------- Weights ----------
