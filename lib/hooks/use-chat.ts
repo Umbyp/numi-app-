@@ -148,18 +148,30 @@ export function useChat() {
 
     for (const call of writeCalls) {
       const validator = VALIDATORS[call.function.name as keyof typeof VALIDATORS];
+      if (!validator) {
+        // บางครั้งโมเดล hallucinate ชื่อ tool ผิด (เช่น "ProposeWorkoutPlanDays" แทน "propose_workout_plan")
+        // ของเดิมปล่อยให้ parsed เป็น undefined ไปด้วย ข้อความ error เลยกลายเป็น "undefined" เฉยๆ
+        // โมเดลไม่รู้ว่าต้องแก้อะไร เลยวนตอบเป็นข้อความยาวๆ แทนโดยไม่เคยเรียก tool ถูกชื่อเลย
+        const errMsg: Message = {
+          role: 'tool',
+          tool_call_id: call.id,
+          content: `ไม่มี tool ชื่อ "${call.function.name}" เรียกได้เฉพาะชื่อนี้เท่านั้น: ${Object.keys(VALIDATORS).join(', ')} กรุณาเรียกใหม่ด้วยชื่อ tool ที่ถูกต้องเป๊ะ ๆ`,
+        };
+        appendMessage(errMsg);
+        return runTurn([...history, reply, errMsg], ctx, depth + 1);
+      }
       let parsedArgs: unknown;
       try {
         parsedArgs = JSON.parse(call.function.arguments);
       } catch {
         parsedArgs = {};
       }
-      const parsed = validator?.safeParse(parsedArgs);
-      if (!parsed?.success) {
+      const parsed = validator.safeParse(parsedArgs);
+      if (!parsed.success) {
         const errMsg: Message = {
           role: 'tool',
           tool_call_id: call.id,
-          content: `ข้อมูลไม่ถูกต้อง: ${parsed?.error.message}. กรุณาส่งใหม่`,
+          content: `ข้อมูลไม่ถูกต้อง: ${parsed.error.message}. กรุณาส่งใหม่`,
         };
         appendMessage(errMsg);
         return runTurn([...history, reply, errMsg], ctx, depth + 1);
