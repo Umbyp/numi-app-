@@ -227,11 +227,21 @@ export function useChat() {
     appendMessage({ role: 'tool', tool_call_id: cardId, content: 'ผู้ใช้ยกเลิกการบันทึกนี้' });
   }
 
+  /**
+   * ตอบคำถามแบบเลือกปุ่ม (ask_choice) — ต่างจาก confirmCard ตรงที่ไม่มีอะไรให้ executeToolCall บันทึก
+   * คำตอบที่แตะเลือกคือคำพูดของผู้ใช้เอง เลยส่งกลับเป็นข้อความ user ธรรมดาต่อบทสนทนาไปเลย
+   * ไม่ใช่ผลลัพธ์ tool call แบบ add_meal/propose_workout_plan
+   */
+  async function answerChoice(cardId: string, optionText: string) {
+    setPendingCards((p) => p.map((c) => (c.id === cardId ? { ...c, status: 'confirmed' } : c)));
+    await send(optionText);
+  }
+
   async function clearHistory() {
     await clearChatHistory();
     setMessages([]);
     setPendingCards([]);
   }
 
-  return { messages, pendingCards, loading, historyLoaded, send, sendImage, confirmCard, dismissCard, clearHistory };
+  return { messages, pendingCards, loading, historyLoaded, send, sendImage, confirmCard, dismissCard, answerChoice, clearHistory };
 }

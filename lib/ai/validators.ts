@@ -70,7 +70,15 @@ export function validateWorkoutPlan(plan: unknown): string | null {
   return totalMinutes > 720 ? 'แผนรวมต่อสัปดาห์ยาวเกิน 12 ชั่วโมง' : null;
 }
 
+export const askChoiceSchema = z.object({
+  question: z.string().max(200).optional(),
+  options: z.array(z.string().min(1).max(80)).min(2).max(6),
+});
+
+export type AskChoiceArgs = z.infer<typeof askChoiceSchema>;
+
 export const VALIDATORS = {
   add_meal: addMealSchema,
   propose_workout_plan: workoutPlanSchema,
+  ask_choice: askChoiceSchema,
 } as const;

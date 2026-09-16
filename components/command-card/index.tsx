@@ -3,6 +3,7 @@ import { Check, X as XIcon } from 'lucide-react-native';
 import { useTheme } from '../../lib/hooks/use-theme';
 import { AddMealCard } from './add-meal-card';
 import { WorkoutPlanCard } from './workout-plan-card';
+import { ChoiceCard } from './choice-card';
 import type { PendingCard } from '../../lib/hooks/use-chat';
 
 interface Props {
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export function CommandCard({ card, onConfirm, onDismiss }: Props) {
+  // ask_choice ตอบแล้วคำตอบไปโผล่เป็นข้อความแชทปกติอยู่แล้ว ไม่ต้องมี stub ค้างซ้ำ
+  if (card.tool === 'ask_choice' && card.status !== 'pending') return null;
   if (card.status === 'confirmed') return <StatusStub icon="confirmed" label="บันทึกแล้ว" />;
   if (card.status === 'dismissed') return <StatusStub icon="dismissed" label="ยกเลิกแล้ว" />;
 
@@ -20,6 +23,8 @@ export function CommandCard({ card, onConfirm, onDismiss }: Props) {
       return <AddMealCard card={card} onConfirm={onConfirm} onDismiss={onDismiss} />;
     case 'propose_workout_plan':
       return <WorkoutPlanCard card={card} onConfirm={onConfirm} onDismiss={onDismiss} />;
+    case 'ask_choice':
+      return <ChoiceCard card={card} onPick={onConfirm} />;
     default:
       return null;
   }
