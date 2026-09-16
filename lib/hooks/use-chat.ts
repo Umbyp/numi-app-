@@ -3,10 +3,10 @@ import { chat } from '../ai/client';
 import { buildSystemPrompt } from '../ai/prompt';
 import { buildUserContext, type UserContext } from '../ai/context';
 import { executeToolCall, needsConfirmation } from '../ai/execute';
-import { VALIDATORS, validateWorkoutPlan, resolveToolName } from '../ai/validators';
+import { VALIDATORS, validateWorkoutPlan, validateWorkoutPlanDay, resolveToolName, workoutPlanDaySchema, type WorkoutPlanDayArgs } from '../ai/validators';
 import { TOOLS } from '../ai/tools';
 import { getChatMessages, saveChatMessage, clearChatHistory } from '../db/queries';
-import type { Message } from '../ai/types';
+import { textOf, type Message } from '../ai/types';
 import { Sentry } from '../sentry';
 
 /** แปล error ดิบให้ผู้ใช้เข้าใจสาเหตุจริง แทนข้อความเดียวที่ครอบทุกกรณี */
@@ -56,6 +56,9 @@ export function useChat() {
   messagesRef.current = messages;
   // จำรูปล่าสุดที่ส่งให้ AI ดู ไว้แนบกับ add_meal การ์ดที่เกิดขึ้นทันทีหลังจากนั้น (ถ้ามี)
   const pendingPhotoUriRef = useRef<string | null>(null);
+  // โมเดลบางตัวสร้างแผนออกกำลังกายทีละวันไม่ได้ในครั้งเดียว (เจอจริงว่าพยายามส่งทั้งแผนไม่สำเร็จซ้ำ ๆ)
+  // เลยรับทีละวันแล้วสะสมไว้ที่นี่แทน พอโมเดลหยุดเรียก tool (คุยจบ) ค่อยประกอบเป็นการ์ดแผนเต็มให้เอง
+  const draftPlanDaysRef = useRef<WorkoutPlanDayArgs[]>([]);
 
   useEffect(() => {
     getChatMessages(100).then((rows) => {
@@ -128,7 +131,28 @@ export function useChat() {
     });
 
     appendMessage(reply);
-    if (!reply.tool_calls?.length) return;
+    if (!reply.tool_calls?.length) {
+      // โมเดลหยุดเรียก tool แล้ว (คุยจบเทิร์นนี้) — ถ้าสะสมวันของแผนออกกำลังกายไว้บ้างแล้ว
+      // ให้ถือว่านี่คือสัญญาณ "จัดครบแล้ว" ประกอบเป็นการ์ดแผนเต็มให้เองเลย ไม่ต้องรอให้โมเดลส่ง
+      // {title, rationale, days} มาเองทั้งก้อน (พิสูจน์แล้วว่าทำไม่ได้จริงในทางปฏิบัติ)
+      if (draftPlanDaysRef.current.length > 0) {
+        const days = draftPlanDaysRef.current;
+        const draftPlan = {
+          title: 'แผนออกกำลังกายที่ Numi จัดให้',
+          rationale: textOf(reply.content).slice(0, 1000) || 'ออกแบบตามเป้าหมายและข้อมูลที่คุณให้ไว้',
+          days,
+        };
+        const planError = validateWorkoutPlan(draftPlan);
+        if (!planError) {
+          setPendingCards((p) => [
+            ...p,
+            { id: `plan_${Date.now()}`, tool: 'propose_workout_plan', args: draftPlan, status: 'pending', photoUri: null },
+          ]);
+        }
+        draftPlanDaysRef.current = [];
+      }
+      return;
+    }
 
     const readCalls = reply.tool_calls.filter((c) => !needsConfirmation(c.function.name));
     const writeCalls = reply.tool_calls.filter((c) => needsConfirmation(c.function.name));
@@ -166,10 +190,10 @@ export function useChat() {
       } catch {
         parsedArgs = {};
       }
-      // เจอจริงว่าโมเดลบางทีพยายามเรียก propose_workout_plan ทีละวัน (ส่งแค่ label/day_type/exercises
-      // ของวันเดียวมาที่ระดับบนสุด) แทนที่จะห่อทุกวันไว้ใน days array ครั้งเดียวตามที่ schema ต้องการ
-      // ปล่อยให้ zod ฟ้องเฉย ๆ ว่า title เป็น undefined ไม่ช่วยให้โมเดลรู้ว่าต้องแก้โครงสร้างตรงไหน
-      // เลยวนซ้ำแบบเดิมไม่เลิก (เจอ 4 รอบติดในบทสนทนาจริงจนโควตาหมด) เลยดักเคสนี้แยกให้คำแนะนำตรงจุด
+      // เจอจริงว่าโมเดลบางทีทำไม่ได้เลยที่จะห่อทุกวันไว้ใน days array เดียวตามที่ schema เต็มต้องการ
+      // (ลองซ้ำ 4 รอบติดในบทสนทนาจริง ยังส่งแค่วันเดียวมาที่ระดับบนสุดเหมือนเดิมทุกครั้งแม้บอกวิธีแก้ไปแล้ว)
+      // แทนที่จะฝืนบังคับ ให้ยอมรับทีละวันแล้วสะสมไว้ใน draftPlanDaysRef ประกอบเป็นแผนเต็มเองตอนโมเดลคุยจบ
+      // (ดูจุดที่ !reply.tool_calls?.length ด้านบน) เข้ากับพฤติกรรมจริงของโมเดลแทนที่จะฝืนแก้ไม่สำเร็จซ้ำ ๆ
       if (
         toolName === 'propose_workout_plan' &&
         parsedArgs &&
@@ -177,14 +201,30 @@ export function useChat() {
         !('days' in parsedArgs) &&
         ('exercises' in parsedArgs || 'day_type' in parsedArgs)
       ) {
-        const errMsg: Message = {
+        const dayParsed = workoutPlanDaySchema.safeParse(parsedArgs);
+        if (!dayParsed.success) {
+          const errMsg: Message = {
+            role: 'tool',
+            tool_call_id: call.id,
+            content: `ข้อมูลของวันนี้ไม่ถูกต้อง: ${dayParsed.error.message}. กรุณาส่งวันนี้ใหม่`,
+          };
+          appendMessage(errMsg);
+          return runTurn([...history, reply, errMsg], ctx, depth + 1);
+        }
+        const dayError = validateWorkoutPlanDay(dayParsed.data);
+        if (dayError) {
+          const errMsg: Message = { role: 'tool', tool_call_id: call.id, content: `ข้อมูลของวันนี้ไม่ถูกต้อง: ${dayError}. กรุณาส่งวันนี้ใหม่` };
+          appendMessage(errMsg);
+          return runTurn([...history, reply, errMsg], ctx, depth + 1);
+        }
+        draftPlanDaysRef.current = [...draftPlanDaysRef.current, dayParsed.data];
+        const ackMsg: Message = {
           role: 'tool',
           tool_call_id: call.id,
-          content:
-            'ข้อมูลไม่ถูกต้อง: คุณส่งมาแค่ข้อมูลของวันเดียว (มี label/day_type/exercises ที่ระดับบนสุด) แต่ propose_workout_plan ต้องการอาร์กิวเมนต์เป็น {title, rationale, days} โดย days คือ array ที่รวมทุกวันของแผนไว้ในการเรียกครั้งเดียว ห้ามเรียก tool นี้ทีละวัน กรุณารวมวันที่ส่งไปแล้วก่อนหน้านี้เข้ากับวันที่เหลือทั้งหมด ใส่เป็นสมาชิกของ days แล้วเพิ่ม title กับ rationale เข้าไปด้วย แล้วเรียกใหม่อีกครั้งเดียวให้ครบทุกวัน',
+          content: `บันทึกวันที่ ${draftPlanDaysRef.current.length} ("${dayParsed.data.label}") ไว้ชั่วคราวแล้ว ถ้ามีวันอื่นในแผนนี้อีกให้เรียก propose_workout_plan ต่อทีละวันได้เลย ถ้าครบทุกวันของแผนนี้แล้วให้สรุปให้ผู้ใช้ฟังเป็นข้อความสั้น ๆ (ไม่ต้องเรียก tool อีก ระบบจะรวมทุกวันที่ส่งมาเป็นแผนเดียวให้เอง)`,
         };
-        appendMessage(errMsg);
-        return runTurn([...history, reply, errMsg], ctx, depth + 1);
+        appendMessage(ackMsg);
+        return runTurn([...history, reply, ackMsg], ctx, depth + 1);
       }
       const parsed = validator.safeParse(parsedArgs);
       if (!parsed.success) {
@@ -273,6 +313,7 @@ export function useChat() {
     await clearChatHistory();
     setMessages([]);
     setPendingCards([]);
+    draftPlanDaysRef.current = [];
   }
 
   return { messages, pendingCards, loading, historyLoaded, send, sendImage, confirmCard, dismissCard, answerChoice, clearHistory };
