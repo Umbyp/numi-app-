@@ -12,7 +12,9 @@ const ALLOWED_MODELS = new Set(['google/gemini-2.5-flash', 'anthropic/claude-hai
 // โควตารวมทั้งแอป — กันโค้ด loop ทำบิลบาน ไม่ใช่ตัวจำกัดหลัก (ดู PER_USER_DAILY_CAP)
 const GLOBAL_DAILY_CAP = 1000;
 // โควตาต่อคน (x-client-id: user id ถ้าล็อกอิน ไม่งั้นเป็น device id) — กันคนเดียวใช้จนคนอื่นแชทไม่ได้
-const PER_USER_DAILY_CAP = 20;
+// TODO: เพิ่มชั่วคราวจาก 20 เป็น 500 ไว้ทดสอบ (บั๊กเรียก tool ผิดวนซ้ำก่อนหน้านี้กินโควตาหมดเร็วผิดปกติ)
+// ลดกลับเป็นค่าเดิมหลังทดสอบเสร็จ
+const PER_USER_DAILY_CAP = 500;
 
 const GOTRUE_URL = 'https://numi-api.enablebrain.com/auth/v1';
 // anon key — public โดยดีไซน์ (ฝังในแอปอยู่แล้ว) ใช้แค่เป็น apikey header ตอนเรียก GoTrue
