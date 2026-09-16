@@ -46,15 +46,22 @@ export const workoutPlanDaySchema = z.object({
 export const workoutPlanSchema = z.object({
   title: z.string().min(1).max(120),
   rationale: z.string().min(1).max(1000),
-  days: z.array(workoutPlanDaySchema).min(1).max(7),
+  // ไม่จำกัดจำนวนวันตามธุรกิจ (ผู้ใช้ขอให้ออกแบบกี่วันก็ได้ตามที่เหมาะกับแผน) — ใส่เพดานสูง ๆ
+  // ไว้แค่กันโมเดลหลอน/วนลูปส่งอาร์เรย์ผิดปกติจนพังหน้าจอ ไม่ใช่ข้อจำกัดจริงที่ควรมีผลกับผู้ใช้ทั่วไป
+  days: z.array(workoutPlanDaySchema).min(1).max(60),
 });
 
 export type WorkoutPlanArgs = z.infer<typeof workoutPlanSchema>;
 export type WorkoutPlanDayArgs = z.infer<typeof workoutPlanDaySchema>;
 
-/** กฎรายวัน แยกออกมาให้ตรวจแต่ละวันตอนสะสมเข้า draft ได้ (ดู resolveToolName/draft ใน use-chat.ts) ไม่ต้องรอให้ครบทั้งแผนก่อน */
+/**
+ * กฎรายวัน แยกออกมาให้ตรวจแต่ละวันตอนสะสมเข้า draft ได้ (ดู resolveToolName/draft ใน use-chat.ts) ไม่ต้องรอให้ครบทั้งแผนก่อน
+ * เช็คเวลารวมต่อวันตรงนี้ (ไม่ใช่รวมทั้งแผน) เพราะตอนนี้ไม่จำกัดจำนวนวันแล้ว ผลรวมทั้งแผนจะยิ่งมากตามจำนวนวันโดยไม่ได้แปลว่าผิดปกติ
+ */
 export function validateWorkoutPlanDay(day: WorkoutPlanDayArgs): string | null {
+  let dayMinutes = 0;
   for (const exercise of day.exercises) {
+    dayMinutes += exercise.duration_min;
     if (exercise.category === 'strength') {
       if (exercise.sets == null || exercise.sets < 2) return `ท่าเวท "${exercise.name}" ต้องมีอย่างน้อย 2 เซต`;
       if (!exercise.reps?.trim()) return `ท่าเวท "${exercise.name}" ต้องระบุจำนวนครั้ง`;
@@ -63,19 +70,17 @@ export function validateWorkoutPlanDay(day: WorkoutPlanDayArgs): string | null {
     }
     if (exercise.category === 'cardio' && !exercise.note?.trim()) return `คาร์ดิโอ "${exercise.name}" ต้องระบุระดับความหนักหรือแนวทางการทำ`;
   }
-  return null;
+  return dayMinutes > 300 ? `วัน "${day.label}" รวมเวลายาวเกิน 5 ชั่วโมง ลองแบ่งเบาลง` : null;
 }
 
 /** กฎที่สัมพันธ์กันหลายฟิลด์ แยกจาก Zod เพื่อให้ type ของ tool schema เรียบและตรวจซ้ำได้ทุกจุดที่บันทึก */
 export function validateWorkoutPlan(plan: unknown): string | null {
   const typedPlan = plan as WorkoutPlanArgs;
-  let totalMinutes = 0;
   for (const day of typedPlan.days) {
     const dayError = validateWorkoutPlanDay(day);
     if (dayError) return dayError;
-    for (const exercise of day.exercises) totalMinutes += exercise.duration_min;
   }
-  return totalMinutes > 720 ? 'แผนรวมต่อสัปดาห์ยาวเกิน 12 ชั่วโมง' : null;
+  return null;
 }
 
 export const askChoiceSchema = z.object({
