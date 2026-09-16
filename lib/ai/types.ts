@@ -33,3 +33,18 @@ export function imageOf(content: Message['content']): string | null {
   const part = content.find((p): p is { type: 'image_url'; image_url: { url: string } } => p.type === 'image_url');
   return part?.image_url.url ?? null;
 }
+
+/**
+ * เผื่อโมเดลไม่เชื่อฟังกฎ "ห้ามใช้ Markdown" ใน system prompt (เกิดขึ้นได้เสมอ) —
+ * ลบสัญลักษณ์ markdown ทั่วไปทิ้งก่อนแสดงผล เพราะ ChatBubble render เป็นข้อความธรรมดา
+ * ไม่มี markdown renderer ถ้าไม่ทำแบบนี้ผู้ใช้จะเห็น ** และ * ลอย ๆ อ่านไม่รู้เรื่อง
+ */
+export function stripMarkdown(text: string): string {
+  return text
+    .replace(/^[ \t]*#{1,6}[ \t]+/gm, '')
+    .replace(/^[ \t]*[*+-][ \t]+/gm, '- ')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .trim();
+}

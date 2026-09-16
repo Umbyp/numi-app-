@@ -44,7 +44,7 @@ export default function ChatScreen() {
   const scheme = useScheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ initialText?: string }>();
-  const { messages, pendingCards, loading, historyLoaded, send, sendImage, confirmCard, dismissCard, clearHistory } = useChat();
+  const { messages, pendingCards, loading, historyLoaded, send, sendImage, confirmCard, dismissCard, answerChoice, clearHistory } = useChat();
   const refresh = useNumiStore((s) => s.refresh);
   const [input, setInput] = useState('');
   const listRef = useRef<FlatList>(null);
@@ -103,8 +103,18 @@ export default function ChatScreen() {
   }
 
   async function handleConfirm(id: string, editedArgs?: unknown) {
+    const card = pendingCards.find((p) => p.id === id);
+    if (card?.tool === 'ask_choice') {
+      // คำตอบที่แตะเลือกไม่ใช่ผลลัพธ์ tool call แบบ add_meal/propose_workout_plan ไม่มีอะไรให้ refresh
+      await answerChoice(id, editedArgs as string);
+      return;
+    }
     await confirmCard(id, editedArgs);
     await refresh();
+    // ยืนยันแผนออกกำลังกายแล้วพาไปดูที่หน้าออกกำลังกายเลย ไม่ต้องเลื่อนหาเองในแชท
+    if (card?.tool === 'propose_workout_plan') {
+      router.push('/workout-plan');
+    }
   }
 
   function handleClearHistory() {

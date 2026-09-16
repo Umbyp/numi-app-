@@ -3,10 +3,10 @@ import { chat } from '../ai/client';
 import { buildSystemPrompt } from '../ai/prompt';
 import { buildUserContext, type UserContext } from '../ai/context';
 import { executeToolCall, needsConfirmation } from '../ai/execute';
-import { VALIDATORS, validateWorkoutPlan } from '../ai/validators';
+import { VALIDATORS, validateWorkoutPlan, validateWorkoutPlanDay, resolveToolName, workoutPlanDaySchema, type WorkoutPlanDayArgs } from '../ai/validators';
 import { TOOLS } from '../ai/tools';
 import { getChatMessages, saveChatMessage, clearChatHistory } from '../db/queries';
-import type { Message } from '../ai/types';
+import { textOf, type Message } from '../ai/types';
 import { Sentry } from '../sentry';
 
 /** แปล error ดิบให้ผู้ใช้เข้าใจสาเหตุจริง แทนข้อความเดียวที่ครอบทุกกรณี */
@@ -56,6 +56,9 @@ export function useChat() {
   messagesRef.current = messages;
   // จำรูปล่าสุดที่ส่งให้ AI ดู ไว้แนบกับ add_meal การ์ดที่เกิดขึ้นทันทีหลังจากนั้น (ถ้ามี)
   const pendingPhotoUriRef = useRef<string | null>(null);
+  // โมเดลบางตัวสร้างแผนออกกำลังกายทีละวันไม่ได้ในครั้งเดียว (เจอจริงว่าพยายามส่งทั้งแผนไม่สำเร็จซ้ำ ๆ)
+  // เลยรับทีละวันแล้วสะสมไว้ที่นี่แทน พอโมเดลหยุดเรียก tool (คุยจบ) ค่อยประกอบเป็นการ์ดแผนเต็มให้เอง
+  const draftPlanDaysRef = useRef<WorkoutPlanDayArgs[]>([]);
 
   useEffect(() => {
     getChatMessages(100).then((rows) => {
@@ -128,7 +131,28 @@ export function useChat() {
     });
 
     appendMessage(reply);
-    if (!reply.tool_calls?.length) return;
+    if (!reply.tool_calls?.length) {
+      // โมเดลหยุดเรียก tool แล้ว (คุยจบเทิร์นนี้) — ถ้าสะสมวันของแผนออกกำลังกายไว้บ้างแล้ว
+      // ให้ถือว่านี่คือสัญญาณ "จัดครบแล้ว" ประกอบเป็นการ์ดแผนเต็มให้เองเลย ไม่ต้องรอให้โมเดลส่ง
+      // {title, rationale, days} มาเองทั้งก้อน (พิสูจน์แล้วว่าทำไม่ได้จริงในทางปฏิบัติ)
+      if (draftPlanDaysRef.current.length > 0) {
+        const days = draftPlanDaysRef.current;
+        const draftPlan = {
+          title: 'แผนออกกำลังกายที่ Numi จัดให้',
+          rationale: textOf(reply.content).slice(0, 1000) || 'ออกแบบตามเป้าหมายและข้อมูลที่คุณให้ไว้',
+          days,
+        };
+        const planError = validateWorkoutPlan(draftPlan);
+        if (!planError) {
+          setPendingCards((p) => [
+            ...p,
+            { id: `plan_${Date.now()}`, tool: 'propose_workout_plan', args: draftPlan, status: 'pending', photoUri: null },
+          ]);
+        }
+        draftPlanDaysRef.current = [];
+      }
+      return;
+    }
 
     const readCalls = reply.tool_calls.filter((c) => !needsConfirmation(c.function.name));
     const writeCalls = reply.tool_calls.filter((c) => needsConfirmation(c.function.name));
@@ -147,24 +171,72 @@ export function useChat() {
     }
 
     for (const call of writeCalls) {
-      const validator = VALIDATORS[call.function.name as keyof typeof VALIDATORS];
+      // เจอจริงว่าบางโมเดลเรียกชื่อ tool เพี้ยน (เช่น "ProposeWorkoutPlanDays") แล้วไม่ยอมกลับมา
+      // เรียกถูกแม้บอกชื่อที่ถูกต้องไปแล้ว — เทียบชื่อแบบผ่อนปรนก่อน ไม่ต้องพึ่งให้โมเดลแก้ไขเอง
+      const toolName = resolveToolName(call.function.name);
+      if (!toolName) {
+        const errMsg: Message = {
+          role: 'tool',
+          tool_call_id: call.id,
+          content: `ไม่มี tool ชื่อ "${call.function.name}" เรียกได้เฉพาะชื่อนี้เท่านั้น: ${Object.keys(VALIDATORS).join(', ')} กรุณาเรียกใหม่ด้วยชื่อ tool ที่ถูกต้องเป๊ะ ๆ`,
+        };
+        appendMessage(errMsg);
+        return runTurn([...history, reply, errMsg], ctx, depth + 1);
+      }
+      const validator = VALIDATORS[toolName];
       let parsedArgs: unknown;
       try {
         parsedArgs = JSON.parse(call.function.arguments);
       } catch {
         parsedArgs = {};
       }
-      const parsed = validator?.safeParse(parsedArgs);
-      if (!parsed?.success) {
+      // เจอจริงว่าโมเดลบางทีทำไม่ได้เลยที่จะห่อทุกวันไว้ใน days array เดียวตามที่ schema เต็มต้องการ
+      // (ลองซ้ำ 4 รอบติดในบทสนทนาจริง ยังส่งแค่วันเดียวมาที่ระดับบนสุดเหมือนเดิมทุกครั้งแม้บอกวิธีแก้ไปแล้ว)
+      // แทนที่จะฝืนบังคับ ให้ยอมรับทีละวันแล้วสะสมไว้ใน draftPlanDaysRef ประกอบเป็นแผนเต็มเองตอนโมเดลคุยจบ
+      // (ดูจุดที่ !reply.tool_calls?.length ด้านบน) เข้ากับพฤติกรรมจริงของโมเดลแทนที่จะฝืนแก้ไม่สำเร็จซ้ำ ๆ
+      if (
+        toolName === 'propose_workout_plan' &&
+        parsedArgs &&
+        typeof parsedArgs === 'object' &&
+        !('days' in parsedArgs) &&
+        ('exercises' in parsedArgs || 'day_type' in parsedArgs)
+      ) {
+        const dayParsed = workoutPlanDaySchema.safeParse(parsedArgs);
+        if (!dayParsed.success) {
+          const errMsg: Message = {
+            role: 'tool',
+            tool_call_id: call.id,
+            content: `ข้อมูลของวันนี้ไม่ถูกต้อง: ${dayParsed.error.message}. กรุณาส่งวันนี้ใหม่`,
+          };
+          appendMessage(errMsg);
+          return runTurn([...history, reply, errMsg], ctx, depth + 1);
+        }
+        const dayError = validateWorkoutPlanDay(dayParsed.data);
+        if (dayError) {
+          const errMsg: Message = { role: 'tool', tool_call_id: call.id, content: `ข้อมูลของวันนี้ไม่ถูกต้อง: ${dayError}. กรุณาส่งวันนี้ใหม่` };
+          appendMessage(errMsg);
+          return runTurn([...history, reply, errMsg], ctx, depth + 1);
+        }
+        draftPlanDaysRef.current = [...draftPlanDaysRef.current, dayParsed.data];
+        const ackMsg: Message = {
+          role: 'tool',
+          tool_call_id: call.id,
+          content: `บันทึกวันที่ ${draftPlanDaysRef.current.length} ("${dayParsed.data.label}") ไว้ชั่วคราวแล้ว ถ้ามีวันอื่นในแผนนี้อีกให้เรียก propose_workout_plan ต่อทีละวันได้เลย ถ้าครบทุกวันของแผนนี้แล้วให้สรุปให้ผู้ใช้ฟังเป็นข้อความสั้น ๆ (ไม่ต้องเรียก tool อีก ระบบจะรวมทุกวันที่ส่งมาเป็นแผนเดียวให้เอง)`,
+        };
+        appendMessage(ackMsg);
+        return runTurn([...history, reply, ackMsg], ctx, depth + 1);
+      }
+      const parsed = validator.safeParse(parsedArgs);
+      if (!parsed.success) {
         const errMsg: Message = {
           role: 'tool',
           tool_call_id: call.id,
-          content: `ข้อมูลไม่ถูกต้อง: ${parsed?.error.message}. กรุณาส่งใหม่`,
+          content: `ข้อมูลไม่ถูกต้อง: ${parsed.error.message}. กรุณาส่งใหม่`,
         };
         appendMessage(errMsg);
         return runTurn([...history, reply, errMsg], ctx, depth + 1);
       }
-      if (call.function.name === 'propose_workout_plan') {
+      if (toolName === 'propose_workout_plan') {
         const planError = validateWorkoutPlan(parsed.data);
         if (planError) {
           const errMsg: Message = { role: 'tool', tool_call_id: call.id, content: `ข้อมูลไม่ถูกต้อง: ${planError}. กรุณาส่งใหม่` };
@@ -173,11 +245,11 @@ export function useChat() {
         }
       }
       let photoUri: string | null = null;
-      if (call.function.name === 'add_meal') {
+      if (toolName === 'add_meal') {
         photoUri = pendingPhotoUriRef.current;
         pendingPhotoUriRef.current = null;
       }
-      setPendingCards((p) => [...p, { id: call.id, tool: call.function.name, args: parsed.data, status: 'pending', photoUri }]);
+      setPendingCards((p) => [...p, { id: call.id, tool: toolName, args: parsed.data, status: 'pending', photoUri }]);
     }
   }
 
@@ -227,11 +299,22 @@ export function useChat() {
     appendMessage({ role: 'tool', tool_call_id: cardId, content: 'ผู้ใช้ยกเลิกการบันทึกนี้' });
   }
 
+  /**
+   * ตอบคำถามแบบเลือกปุ่ม (ask_choice) — ต่างจาก confirmCard ตรงที่ไม่มีอะไรให้ executeToolCall บันทึก
+   * คำตอบที่แตะเลือกคือคำพูดของผู้ใช้เอง เลยส่งกลับเป็นข้อความ user ธรรมดาต่อบทสนทนาไปเลย
+   * ไม่ใช่ผลลัพธ์ tool call แบบ add_meal/propose_workout_plan
+   */
+  async function answerChoice(cardId: string, optionText: string) {
+    setPendingCards((p) => p.map((c) => (c.id === cardId ? { ...c, status: 'confirmed' } : c)));
+    await send(optionText);
+  }
+
   async function clearHistory() {
     await clearChatHistory();
     setMessages([]);
     setPendingCards([]);
+    draftPlanDaysRef.current = [];
   }
 
-  return { messages, pendingCards, loading, historyLoaded, send, sendImage, confirmCard, dismissCard, clearHistory };
+  return { messages, pendingCards, loading, historyLoaded, send, sendImage, confirmCard, dismissCard, answerChoice, clearHistory };
 }

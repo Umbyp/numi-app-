@@ -9,7 +9,10 @@ const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
 Sentry.init({
   dsn,
   enabled: !!dsn,
-  debug: __DEV__,
+  // debug: __DEV__ อย่างเดียวทำให้ตอนไม่มี DSN (dev บนเครื่องส่วนใหญ่) ทุกครั้งที่ captureException
+  // ถูกเรียก Sentry จะ console.error("Transport disabled") ออกมาเอง กลายเป็นจอแดง LogBox ซ้อนทับ
+  // error จริงที่ต้องการรายงาน ทำให้ดูเหมือนมี 2 บั๊กทั้งที่มีอันเดียว
+  debug: __DEV__ && !!dsn,
   tracesSampleRate: 0.2,
 });
 

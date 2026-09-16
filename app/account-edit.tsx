@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { useNumiStore } from '../lib/store';
-import { saveProfile, addOrUpdateWeightToday, getWorkoutProfile, saveWorkoutProfile } from '../lib/db/queries';
+import { saveProfile, addOrUpdateWeightToday, getWorkoutProfile, saveWorkoutProfile, getHealthProfile, saveHealthProfile } from '../lib/db/queries';
 import {
   ACTIVITY_LEVELS,
   calcBMR,
@@ -35,15 +35,17 @@ import { AmountStepper } from '../components/amount-stepper';
 import { Mascot } from '../components/mascot';
 import { Squish } from '../components/squish';
 import { DEFAULT_WORKOUT_PROFILE, WORKOUT_EQUIPMENT, WORKOUT_EXPERIENCE, WORKOUT_LOCATIONS, type WorkoutProfile } from '../lib/workout-profile';
+import { DEFAULT_HEALTH_PROFILE, type HealthProfile } from '../lib/health-profile';
 
 type GoalType = 'lose' | 'maintain' | 'gain';
 
-const STEP_KEYS = ['basic', 'goal', 'activity', 'workout', 'summary'] as const;
+const STEP_KEYS = ['basic', 'goal', 'activity', 'health', 'workout', 'summary'] as const;
 type StepKey = (typeof STEP_KEYS)[number];
 const STEP_TITLES: Record<StepKey, string> = {
   basic: 'ข้อมูลพื้นฐาน',
   goal: 'เป้าหมาย',
   activity: 'กิจกรรมและกล้ามเนื้อ',
+  health: 'สุขภาพและข้อจำกัดอาหาร',
   workout: 'การออกกำลังกาย',
   summary: 'สรุปผล',
 };
@@ -60,6 +62,7 @@ const FOCUSED_HEADER_TITLE: Record<StepKey, string> = {
   basic: 'ข้อมูลส่วนตัว',
   goal: 'เป้าหมายน้ำหนัก',
   activity: 'ระดับกิจกรรม',
+  health: 'สุขภาพและข้อจำกัดอาหาร',
   workout: 'รูปแบบการออกกำลังกาย',
   summary: 'สรุปผล',
 };
@@ -100,6 +103,7 @@ export default function AccountEditScreen() {
   const [saving, setSaving] = useState(false);
   const [showMacroEditor, setShowMacroEditor] = useState(false);
   const [workoutProfile, setWorkoutProfile] = useState<WorkoutProfile>(DEFAULT_WORKOUT_PROFILE);
+  const [healthProfile, setHealthProfile] = useState<HealthProfile>(DEFAULT_HEALTH_PROFILE);
 
   /** เลือกทิศทางเป้าหมายใหม่ พร้อมตั้งอัตราเริ่มต้นให้สมเหตุสมผล ไม่งั้นปุ่มอัตราจะไม่มีตัวไหนถูกเลือกเลย */
   function pickGoalType(next: GoalType) {
@@ -140,6 +144,7 @@ export default function AccountEditScreen() {
 
   useEffect(() => {
     getWorkoutProfile().then(({ profile: savedProfile }) => setWorkoutProfile(savedProfile));
+    getHealthProfile().then(setHealthProfile);
   }, []);
 
   const preview = useMemo(() => {
@@ -209,6 +214,7 @@ export default function AccountEditScreen() {
         prioritizeMuscle,
       });
       await saveWorkoutProfile(workoutProfile);
+      await saveHealthProfile(healthProfile);
       await refresh();
       router.back();
     } finally {
@@ -470,6 +476,37 @@ export default function AccountEditScreen() {
                   </Squish>
                 </View>
               </View>
+            </View>
+          )}
+
+          {STEP_KEYS[step] === 'health' && (
+            <View style={[styles.stepCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+              <Text style={[textType.cardTitle, { color: c.text, fontSize: 15 }]}>มีอะไรที่ Numi ควรระวังไหม</Text>
+              <Text style={[textType.label, { color: c.faint, fontSize: 11.5, lineHeight: 18, marginTop: 2 }]}>
+                ไม่บังคับกรอก แต่ช่วยให้ Numi แนะนำเมนู/แผนได้ปลอดภัยขึ้น แก้ไขได้ตลอด
+              </Text>
+
+              <Field label="ข้อจำกัดด้านอาหาร" color={c.subtext} style={{ marginTop: 12 }}>
+                <TextInput
+                  value={healthProfile.dietaryRestrictions}
+                  onChangeText={(dietaryRestrictions) => setHealthProfile((p) => ({ ...p, dietaryRestrictions }))}
+                  placeholder="เช่น แพ้ถั่ว, มังสวิรัติ, ฮาลาล, ไม่กินเผ็ด, ไม่มี"
+                  placeholderTextColor={c.faint}
+                  multiline
+                  style={[styles.notesInput, { color: c.text, backgroundColor: c.surfaceAlt, fontFamily: fontFamily(500) }]}
+                />
+              </Field>
+
+              <Field label="โรคประจำตัว / ยาที่กินอยู่ / ตั้งครรภ์" color={c.subtext} style={{ marginBottom: 0 }}>
+                <TextInput
+                  value={healthProfile.medicalConditions}
+                  onChangeText={(medicalConditions) => setHealthProfile((p) => ({ ...p, medicalConditions }))}
+                  placeholder="เช่น เบาหวาน, ความดันสูง, ตั้งครรภ์, ไม่มี"
+                  placeholderTextColor={c.faint}
+                  multiline
+                  style={[styles.notesInput, { color: c.text, backgroundColor: c.surfaceAlt, fontFamily: fontFamily(500) }]}
+                />
+              </Field>
             </View>
           )}
 

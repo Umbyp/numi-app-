@@ -19,6 +19,7 @@ import {
 import { localDateString, scaleFood } from '../nutrition';
 import seedFoods from '../../data/foods-th.json';
 import { DEFAULT_WORKOUT_PROFILE, isWorkoutProfile, type WorkoutProfile } from '../workout-profile';
+import { DEFAULT_HEALTH_PROFILE, isHealthProfile, type HealthProfile } from '../health-profile';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -75,6 +76,28 @@ export async function saveWorkoutProfile(workoutProfile: WorkoutProfile) {
     .insert(appSettings)
     .values({ key: WORKOUT_PROFILE_KEY, value: JSON.stringify(workoutProfile) })
     .onConflictDoUpdate({ target: appSettings.key, set: { value: JSON.stringify(workoutProfile) } });
+}
+
+const HEALTH_PROFILE_KEY = 'health_profile_v1';
+
+/** ข้อจำกัดอาหาร/เรื่องสุขภาพที่ต้องระวัง — เก็บแยกจาก profile หลักเหมือน workout profile เพราะเป็นข้อมูลเสริมให้ AI ระวัง ไม่กระทบสูตรแคลอรี่ */
+export async function getHealthProfile(): Promise<HealthProfile> {
+  const rows = await db.select().from(appSettings).where(eq(appSettings.key, HEALTH_PROFILE_KEY));
+  const raw = rows[0]?.value;
+  if (!raw) return DEFAULT_HEALTH_PROFILE;
+  try {
+    const value = JSON.parse(raw);
+    return isHealthProfile(value) ? value : DEFAULT_HEALTH_PROFILE;
+  } catch {
+    return DEFAULT_HEALTH_PROFILE;
+  }
+}
+
+export async function saveHealthProfile(healthProfile: HealthProfile) {
+  await db
+    .insert(appSettings)
+    .values({ key: HEALTH_PROFILE_KEY, value: JSON.stringify(healthProfile) })
+    .onConflictDoUpdate({ target: appSettings.key, set: { value: JSON.stringify(healthProfile) } });
 }
 
 // ---------- Weights ----------

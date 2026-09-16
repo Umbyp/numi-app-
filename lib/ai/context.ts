@@ -1,7 +1,8 @@
-import { getProfile, getLatestWeight, getMealEntriesForDate, getWorkoutsForDate, getWorkoutProfile } from '../db/queries';
+import { getProfile, getLatestWeight, getMealEntriesForDate, getWorkoutsForDate, getWorkoutProfile, getMealTotalsByDateRange, getHealthProfile } from '../db/queries';
 import { sumTotals } from '../store';
 import { computeGoals, DEFAULT_GOALS } from '../goals';
 import { localDateString, ACTIVITY_LEVELS } from '../nutrition';
+import { addDays } from '../dates';
 import { WORKOUT_EQUIPMENT, WORKOUT_EXPERIENCE, WORKOUT_LOCATIONS } from '../workout-profile';
 
 const GOAL_TYPE_LABEL: Record<'lose' | 'maintain' | 'gain', string> = {
@@ -39,17 +40,28 @@ export interface UserContext {
   workoutMinutesPerSession: number;
   injuryNotes: string;
   workoutPreferences: string;
+  /** เฉลี่ยเฉพาะวันที่มีบันทึกจริงใน 7 วันล่าสุด — null ถ้าไม่มีวันไหนบันทึกเลย */
+  avgKcal7d: number | null;
+  avgProtein7d: number | null;
+  /** จำนวนวันที่มีบันทึกมื้ออาหารจริงใน 7 วันล่าสุด (จาก 7) — ใช้เช็คว่าข้อมูลพอจะสรุปเทรนด์ไหม */
+  loggingDays7d: number;
+  /** แพ้อาหาร/มังสวิรัติ/ฮาลาล ฯลฯ — ผู้ใช้กรอกเองในหน้าแก้ไขโปรไฟล์ */
+  dietaryRestrictions: string;
+  /** โรคประจำตัว/ยาที่กินอยู่/ตั้งครรภ์ ฯลฯ — ให้ AI ใช้เพื่อ "ระวัง" ไม่ใช่วินิจฉัยหรือรักษา */
+  medicalConditions: string;
 }
 
 /** ดึงบริบทผู้ใช้ปัจจุบันมาแปะใน system prompt ตรง ๆ แทนที่จะให้ AI เรียก tool ไปดึงเอง (ประหยัด round trip) */
 export async function buildUserContext(): Promise<UserContext> {
   const today = localDateString();
-  const [profile, weight, entries, workouts, workoutProfileResult] = await Promise.all([
+  const [profile, weight, entries, workouts, workoutProfileResult, last7DaysTotals, healthProfile] = await Promise.all([
     getProfile(),
     getLatestWeight(),
     getMealEntriesForDate(today),
     getWorkoutsForDate(today),
     getWorkoutProfile(),
+    getMealTotalsByDateRange(addDays(today, -6), today),
+    getHealthProfile(),
   ]);
 
   const weightKg = weight?.weightKg ?? 70;
@@ -68,6 +80,14 @@ export async function buildUserContext(): Promise<UserContext> {
   const equipment = workoutProfile.equipment
     .map((key) => WORKOUT_EQUIPMENT.find((item) => item.key === key)?.label ?? key)
     .join(', ');
+
+  // นับเฉพาะวันที่มี kcal > 0 เป็น "บันทึกแล้ว" — เฉลี่ยเอาเฉพาะวันเหล่านั้น ไม่งั้นวันที่ไม่ได้บันทึก
+  // จะฉุดค่าเฉลี่ยลงต่ำผิดปกติจนตีความเป็นเทรนด์ผิด ๆ
+  const loggedDays = last7DaysTotals.filter((d) => d.kcal > 0);
+  const avgKcal7d = loggedDays.length ? Math.round(loggedDays.reduce((s, d) => s + d.kcal, 0) / loggedDays.length) : null;
+  const avgProtein7d = loggedDays.length
+    ? Math.round(loggedDays.reduce((s, d) => s + d.proteinG, 0) / loggedDays.length)
+    : null;
 
   return {
     today,
@@ -98,5 +118,10 @@ export async function buildUserContext(): Promise<UserContext> {
     workoutMinutesPerSession: workoutProfile.minutesPerSession,
     injuryNotes: workoutProfile.injuryNotes,
     workoutPreferences: workoutProfile.preferenceNotes,
+    avgKcal7d,
+    avgProtein7d,
+    loggingDays7d: loggedDays.length,
+    dietaryRestrictions: healthProfile.dietaryRestrictions,
+    medicalConditions: healthProfile.medicalConditions,
   };
 }

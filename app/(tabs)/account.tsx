@@ -32,12 +32,13 @@ const ROWS: {
     | '/community-foods'
     | '/food-review-queue'
     | '/leaderboard';
-  editStep?: 'basic' | 'goal' | 'macros' | 'workout';
+  editStep?: 'basic' | 'goal' | 'summary' | 'health' | 'workout';
   disabled?: boolean;
 }[] = [
   { label: 'ข้อมูลส่วนตัว', icon: User, bgKey: 'brandTint', fgKey: 'brand', route: '/account-edit', editStep: 'basic' },
   { label: 'เป้าหมายน้ำหนัก', icon: Target, bgKey: 'brandTint', fgKey: 'brand', route: '/account-edit', editStep: 'goal' },
-  { label: 'เป้าหมายสารอาหาร', icon: PieChart, bgKey: 'brandTint', fgKey: 'brand', route: '/account-edit', editStep: 'macros' },
+  { label: 'เป้าหมายสารอาหาร', icon: PieChart, bgKey: 'brandTint', fgKey: 'brand', route: '/account-edit', editStep: 'summary' },
+  { label: 'สุขภาพและข้อจำกัดอาหาร', icon: Heart, bgKey: 'brandTint', fgKey: 'brand', route: '/account-edit', editStep: 'health' },
   { label: 'รูปแบบการออกกำลังกาย', icon: Activity, bgKey: 'dinnerBg', fgKey: 'dinner', route: '/account-edit', editStep: 'workout' },
   { label: 'ประวัติกิจกรรม', icon: Activity, bgKey: 'dinnerBg', fgKey: 'dinner', route: '/activity-history' },
   { label: 'ประวัติน้ำหนัก', icon: TrendingUp, bgKey: 'fatBg', fgKey: 'fatText', route: '/weight-history' },
