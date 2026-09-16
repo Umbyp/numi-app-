@@ -166,6 +166,26 @@ export function useChat() {
       } catch {
         parsedArgs = {};
       }
+      // เจอจริงว่าโมเดลบางทีพยายามเรียก propose_workout_plan ทีละวัน (ส่งแค่ label/day_type/exercises
+      // ของวันเดียวมาที่ระดับบนสุด) แทนที่จะห่อทุกวันไว้ใน days array ครั้งเดียวตามที่ schema ต้องการ
+      // ปล่อยให้ zod ฟ้องเฉย ๆ ว่า title เป็น undefined ไม่ช่วยให้โมเดลรู้ว่าต้องแก้โครงสร้างตรงไหน
+      // เลยวนซ้ำแบบเดิมไม่เลิก (เจอ 4 รอบติดในบทสนทนาจริงจนโควตาหมด) เลยดักเคสนี้แยกให้คำแนะนำตรงจุด
+      if (
+        toolName === 'propose_workout_plan' &&
+        parsedArgs &&
+        typeof parsedArgs === 'object' &&
+        !('days' in parsedArgs) &&
+        ('exercises' in parsedArgs || 'day_type' in parsedArgs)
+      ) {
+        const errMsg: Message = {
+          role: 'tool',
+          tool_call_id: call.id,
+          content:
+            'ข้อมูลไม่ถูกต้อง: คุณส่งมาแค่ข้อมูลของวันเดียว (มี label/day_type/exercises ที่ระดับบนสุด) แต่ propose_workout_plan ต้องการอาร์กิวเมนต์เป็น {title, rationale, days} โดย days คือ array ที่รวมทุกวันของแผนไว้ในการเรียกครั้งเดียว ห้ามเรียก tool นี้ทีละวัน กรุณารวมวันที่ส่งไปแล้วก่อนหน้านี้เข้ากับวันที่เหลือทั้งหมด ใส่เป็นสมาชิกของ days แล้วเพิ่ม title กับ rationale เข้าไปด้วย แล้วเรียกใหม่อีกครั้งเดียวให้ครบทุกวัน',
+        };
+        appendMessage(errMsg);
+        return runTurn([...history, reply, errMsg], ctx, depth + 1);
+      }
       const parsed = validator.safeParse(parsedArgs);
       if (!parsed.success) {
         const errMsg: Message = {
