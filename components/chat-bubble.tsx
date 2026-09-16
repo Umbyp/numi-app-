@@ -3,6 +3,7 @@ import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { Mascot } from './mascot';
 import { type } from '../lib/fonts';
 import { pillShadow } from '../lib/theme';
+import { stripMarkdown } from '../lib/ai/types';
 
 interface Props {
   role: 'user' | 'assistant';
@@ -18,6 +19,7 @@ export function ChatBubble({ role, text, imageUri, lastOfRun, firstOfRun }: Prop
   const c = useTheme();
   const scheme = useScheme();
   const isUser = role === 'user';
+  const displayText = isUser ? text : stripMarkdown(text);
   const imageOnly = !!imageUri && !text.trim();
 
   const bubble = (
@@ -34,7 +36,7 @@ export function ChatBubble({ role, text, imageUri, lastOfRun, firstOfRun }: Prop
       ]}
     >
       {imageUri ? <Image source={{ uri: imageUri }} style={styles.image} /> : null}
-      {text.trim() ? (
+      {displayText.trim() ? (
         <Text
           style={[
             type.body,
@@ -46,7 +48,7 @@ export function ChatBubble({ role, text, imageUri, lastOfRun, firstOfRun }: Prop
             },
           ]}
         >
-          {text}
+          {displayText}
         </Text>
       ) : null}
     </View>
