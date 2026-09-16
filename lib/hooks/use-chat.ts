@@ -3,7 +3,7 @@ import { chat } from '../ai/client';
 import { buildSystemPrompt } from '../ai/prompt';
 import { buildUserContext, type UserContext } from '../ai/context';
 import { executeToolCall, needsConfirmation } from '../ai/execute';
-import { VALIDATORS } from '../ai/validators';
+import { VALIDATORS, validateWorkoutPlan } from '../ai/validators';
 import { TOOLS } from '../ai/tools';
 import { getChatMessages, saveChatMessage, clearChatHistory } from '../db/queries';
 import type { Message } from '../ai/types';
@@ -163,6 +163,14 @@ export function useChat() {
         };
         appendMessage(errMsg);
         return runTurn([...history, reply, errMsg], ctx, depth + 1);
+      }
+      if (call.function.name === 'propose_workout_plan') {
+        const planError = validateWorkoutPlan(parsed.data);
+        if (planError) {
+          const errMsg: Message = { role: 'tool', tool_call_id: call.id, content: `ข้อมูลไม่ถูกต้อง: ${planError}. กรุณาส่งใหม่` };
+          appendMessage(errMsg);
+          return runTurn([...history, reply, errMsg], ctx, depth + 1);
+        }
       }
       let photoUri: string | null = null;
       if (call.function.name === 'add_meal') {

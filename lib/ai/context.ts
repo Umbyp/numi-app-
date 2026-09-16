@@ -1,7 +1,8 @@
-import { getProfile, getLatestWeight, getMealEntriesForDate, getWorkoutsForDate } from '../db/queries';
+import { getProfile, getLatestWeight, getMealEntriesForDate, getWorkoutsForDate, getWorkoutProfile } from '../db/queries';
 import { sumTotals } from '../store';
 import { computeGoals, DEFAULT_GOALS } from '../goals';
 import { localDateString, ACTIVITY_LEVELS } from '../nutrition';
+import { WORKOUT_EQUIPMENT, WORKOUT_EXPERIENCE, WORKOUT_LOCATIONS } from '../workout-profile';
 
 const GOAL_TYPE_LABEL: Record<'lose' | 'maintain' | 'gain', string> = {
   lose: 'ลดน้ำหนัก',
@@ -30,16 +31,25 @@ export interface UserContext {
   bmr: number;
   tdee: number;
   prioritizeMuscle: boolean;
+  workoutProfileComplete: boolean;
+  workoutExperience: string;
+  workoutLocation: string;
+  workoutEquipment: string;
+  workoutDaysPerWeek: number;
+  workoutMinutesPerSession: number;
+  injuryNotes: string;
+  workoutPreferences: string;
 }
 
 /** ดึงบริบทผู้ใช้ปัจจุบันมาแปะใน system prompt ตรง ๆ แทนที่จะให้ AI เรียก tool ไปดึงเอง (ประหยัด round trip) */
 export async function buildUserContext(): Promise<UserContext> {
   const today = localDateString();
-  const [profile, weight, entries, workouts] = await Promise.all([
+  const [profile, weight, entries, workouts, workoutProfileResult] = await Promise.all([
     getProfile(),
     getLatestWeight(),
     getMealEntriesForDate(today),
     getWorkoutsForDate(today),
+    getWorkoutProfile(),
   ]);
 
   const weightKg = weight?.weightKg ?? 70;
@@ -52,6 +62,12 @@ export async function buildUserContext(): Promise<UserContext> {
       ? level
       : closest
   );
+  const workoutProfile = workoutProfileResult.profile;
+  const experience = WORKOUT_EXPERIENCE.find((item) => item.key === workoutProfile.experience)?.label ?? workoutProfile.experience;
+  const location = WORKOUT_LOCATIONS.find((item) => item.key === workoutProfile.location)?.label ?? workoutProfile.location;
+  const equipment = workoutProfile.equipment
+    .map((key) => WORKOUT_EQUIPMENT.find((item) => item.key === key)?.label ?? key)
+    .join(', ');
 
   return {
     today,
@@ -74,5 +90,13 @@ export async function buildUserContext(): Promise<UserContext> {
     bmr: goals.bmr,
     tdee: goals.tdee,
     prioritizeMuscle: profile?.prioritizeMuscle ?? false,
+    workoutProfileComplete: workoutProfileResult.completed,
+    workoutExperience: experience,
+    workoutLocation: location,
+    workoutEquipment: equipment,
+    workoutDaysPerWeek: workoutProfile.daysPerWeek,
+    workoutMinutesPerSession: workoutProfile.minutesPerSession,
+    injuryNotes: workoutProfile.injuryNotes,
+    workoutPreferences: workoutProfile.preferenceNotes,
   };
 }

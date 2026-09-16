@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme, useScheme } from '../lib/hooks/use-theme';
 import { useNumiStore } from '../lib/store';
-import { saveProfile, addOrUpdateWeightToday } from '../lib/db/queries';
+import { saveProfile, addOrUpdateWeightToday, getWorkoutProfile, saveWorkoutProfile } from '../lib/db/queries';
 import {
   ACTIVITY_LEVELS,
   calcBMR,
@@ -24,16 +24,18 @@ import { radius, cardShadow, MIN_TOUCH } from '../lib/theme';
 import { AmountStepper } from '../components/amount-stepper';
 import { Mascot } from '../components/mascot';
 import { Squish } from '../components/squish';
+import { DEFAULT_WORKOUT_PROFILE, WORKOUT_EQUIPMENT, WORKOUT_EXPERIENCE, WORKOUT_LOCATIONS, type WorkoutProfile } from '../lib/workout-profile';
 
 type GoalType = 'lose' | 'maintain' | 'gain';
 
-const STEP_KEYS = ['basic', 'goal', 'activity', 'muscle', 'macros', 'summary'] as const;
+const STEP_KEYS = ['basic', 'goal', 'activity', 'muscle', 'workout', 'macros', 'summary'] as const;
 type StepKey = (typeof STEP_KEYS)[number];
 const STEP_TITLES: Record<StepKey, string> = {
   basic: 'ข้อมูลพื้นฐาน',
   goal: 'เป้าหมาย',
   activity: 'ระดับกิจกรรม',
   muscle: 'จุดประสงค์พิเศษ',
+  workout: 'การออกกำลังกาย',
   macros: 'สัดส่วนสารอาหาร',
   summary: 'สรุปผล',
 };
@@ -45,6 +47,7 @@ const FOCUSED_HEADER_TITLE: Record<StepKey, string> = {
   goal: 'เป้าหมายน้ำหนัก',
   activity: 'ระดับกิจกรรม',
   muscle: 'จุดประสงค์พิเศษ',
+  workout: 'รูปแบบการออกกำลังกาย',
   macros: 'เป้าหมายสารอาหาร',
   summary: 'สรุปผล',
 };
@@ -83,6 +86,7 @@ export default function AccountEditScreen() {
   const [carbPct, setCarbPct] = useState(40);
   const fatPct = Math.max(10, 100 - proteinPct - carbPct);
   const [saving, setSaving] = useState(false);
+  const [workoutProfile, setWorkoutProfile] = useState<WorkoutProfile>(DEFAULT_WORKOUT_PROFILE);
 
   function updateProteinPct(v: number) {
     const clamped = Math.min(60, Math.max(10, v));
@@ -113,6 +117,10 @@ export default function AccountEditScreen() {
     }
     if (latestWeightKg) setWeightKg(String(latestWeightKg));
   }, [profile, latestWeightKg]);
+
+  useEffect(() => {
+    getWorkoutProfile().then(({ profile: savedProfile }) => setWorkoutProfile(savedProfile));
+  }, []);
 
   const preview = useMemo(() => {
     const w = parseFloat(weightKg);
@@ -181,11 +189,22 @@ export default function AccountEditScreen() {
         goalWeightKg: parseFloat(goalWeightKg) || null,
         prioritizeMuscle,
       });
+      await saveWorkoutProfile(workoutProfile);
       await refresh();
       router.back();
     } finally {
       setSaving(false);
     }
+  }
+
+  function toggleEquipment(key: WorkoutProfile['equipment'][number]) {
+    setWorkoutProfile((current) => {
+      const selected = current.equipment.includes(key);
+      const equipment = selected
+        ? current.equipment.filter((item) => item !== key)
+        : [...current.equipment.filter((item) => item !== 'bodyweight'), key];
+      return { ...current, equipment: equipment.length ? equipment : ['bodyweight'] };
+    });
   }
 
   return (
@@ -369,6 +388,51 @@ export default function AccountEditScreen() {
                   ใช้สัดส่วนมาตรฐานตามเป้าที่เลือกไว้
                 </Text>
               </Squish>
+            </View>
+          )}
+
+          {STEP_KEYS[step] === 'workout' && (
+            <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
+              <Text style={[textType.cardTitle, { color: c.text, fontSize: 15 }]}>ให้ Numi จัดท่าให้เหมาะกับคุณ</Text>
+              <Text style={[textType.label, { color: c.subtext, fontSize: 11.5, lineHeight: 18, marginTop: -6 }]}>ข้อมูลนี้ใช้เฉพาะตอนออกแบบแผน และแก้ไขได้ตลอด</Text>
+
+              <Field label="ประสบการณ์" color={c.subtext}>
+                <Segmented options={[...WORKOUT_EXPERIENCE]} value={workoutProfile.experience} onChange={(value) => setWorkoutProfile((p) => ({ ...p, experience: value as WorkoutProfile['experience'] }))} c={c} />
+              </Field>
+
+              <Field label="ฝึกที่ไหนเป็นหลัก" color={c.subtext}>
+                <Segmented options={[...WORKOUT_LOCATIONS]} value={workoutProfile.location} onChange={(value) => setWorkoutProfile((p) => ({ ...p, location: value as WorkoutProfile['location'] }))} c={c} />
+              </Field>
+
+              <Field label="มีอุปกรณ์อะไรบ้าง" color={c.subtext}>
+                <View style={styles.optionChipRow}>
+                  {WORKOUT_EQUIPMENT.map((item) => {
+                    const active = workoutProfile.equipment.includes(item.key);
+                    return (
+                      <Squish key={item.key} onPress={() => toggleEquipment(item.key)} style={[styles.optionChip, { backgroundColor: active ? c.brandTint : c.surfaceAlt, borderColor: active ? c.brand : 'transparent' }]}>
+                        <Text style={[textType.row, { color: active ? c.brand : c.subtext, fontSize: 12 }]}>{item.label}</Text>
+                      </Squish>
+                    );
+                  })}
+                </View>
+              </Field>
+
+              <View style={styles.twoCol}>
+                <Field label="วันต่อสัปดาห์" color={c.subtext} style={{ flex: 1 }}>
+                  <AmountStepper value={workoutProfile.daysPerWeek} min={1} step={1} unit=" วัน" onChange={(daysPerWeek) => setWorkoutProfile((p) => ({ ...p, daysPerWeek: Math.min(7, daysPerWeek) }))} />
+                </Field>
+                <Field label="เวลาต่อครั้ง" color={c.subtext} style={{ flex: 1 }}>
+                  <AmountStepper value={workoutProfile.minutesPerSession} min={10} step={5} unit=" นาที" onChange={(minutesPerSession) => setWorkoutProfile((p) => ({ ...p, minutesPerSession: Math.min(180, minutesPerSession) }))} />
+                </Field>
+              </View>
+
+              <Field label="มีอาการเจ็บ บาดเจ็บ หรือข้อจำกัดไหม" color={c.subtext}>
+                <TextInput value={workoutProfile.injuryNotes} onChangeText={(injuryNotes) => setWorkoutProfile((p) => ({ ...p, injuryNotes }))} placeholder="เช่น ปวดเข่าขวา, เพิ่งผ่าตัด, ไม่มี" placeholderTextColor={c.faint} multiline style={[styles.notesInput, { color: c.text, backgroundColor: c.surfaceAlt, fontFamily: fontFamily(500) }]} />
+              </Field>
+
+              <Field label="ท่าที่ชอบ หรืออยากเลี่ยง" color={c.subtext} style={{ marginBottom: 0 }}>
+                <TextInput value={workoutProfile.preferenceNotes} onChangeText={(preferenceNotes) => setWorkoutProfile((p) => ({ ...p, preferenceNotes }))} placeholder="เช่น ชอบเดินเร็ว, ไม่ชอบกระโดด" placeholderTextColor={c.faint} multiline style={[styles.notesInput, { color: c.text, backgroundColor: c.surfaceAlt, fontFamily: fontFamily(500) }]} />
+              </Field>
             </View>
           )}
 
@@ -676,6 +740,7 @@ const styles = StyleSheet.create({
   field: {},
   fieldLabel: { marginBottom: 7 },
   input: { height: MIN_TOUCH, borderRadius: radius.cardInner, paddingHorizontal: 14, fontSize: 15.5 },
+  notesInput: { minHeight: 78, borderRadius: radius.cardInner, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, textAlignVertical: 'top' },
   segmented: { flexDirection: 'row', borderRadius: radius.pill, padding: 4 },
   segment: { flex: 1, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: radius.cardInner },
   optionRow: {
@@ -693,6 +758,8 @@ const styles = StyleSheet.create({
   radioDot: { width: 11, height: 11, borderRadius: 6 },
   rateRow: { flexDirection: 'row', gap: 7, flexWrap: 'wrap' },
   choiceCard: { borderWidth: 2, borderRadius: radius.cardInner, padding: 13, gap: 3, marginTop: 10 },
+  optionChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  optionChip: { borderWidth: 1.5, height: 38, paddingHorizontal: 12, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   ratioBar: { height: 16, borderRadius: 9, overflow: 'hidden', flexDirection: 'row' },
   macroRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
   macroChipRow: { flexDirection: 'row', gap: 9 },

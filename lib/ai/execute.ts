@@ -3,7 +3,7 @@ import { sumTotals } from '../store';
 import { computeGoals, DEFAULT_GOALS } from '../goals';
 import { localDateString } from '../nutrition';
 import { READ_ONLY_TOOLS } from './tools';
-import { addMealSchema, workoutPlanSchema } from './validators';
+import { addMealSchema, workoutPlanSchema, validateWorkoutPlan } from './validators';
 
 export const needsConfirmation = (name: string) => !READ_ONLY_TOOLS.has(name);
 
@@ -67,6 +67,8 @@ export async function executeToolCall(
 
     case 'propose_workout_plan': {
       const data = workoutPlanSchema.parse(args);
+      const planError = validateWorkoutPlan(data);
+      if (planError) throw new Error(planError);
       await addWorkoutPlan({
         title: data.title,
         rationale: data.rationale,

@@ -46,10 +46,29 @@ const workoutPlanDaySchema = z.object({
 export const workoutPlanSchema = z.object({
   title: z.string().min(1).max(120),
   rationale: z.string().min(1).max(1000),
-  days: z.array(workoutPlanDaySchema).min(1).max(14),
+  days: z.array(workoutPlanDaySchema).min(1).max(7),
 });
 
 export type WorkoutPlanArgs = z.infer<typeof workoutPlanSchema>;
+
+/** กฎที่สัมพันธ์กันหลายฟิลด์ แยกจาก Zod เพื่อให้ type ของ tool schema เรียบและตรวจซ้ำได้ทุกจุดที่บันทึก */
+export function validateWorkoutPlan(plan: unknown): string | null {
+  const typedPlan = plan as WorkoutPlanArgs;
+  let totalMinutes = 0;
+  for (const day of typedPlan.days) {
+    for (const exercise of day.exercises) {
+      totalMinutes += exercise.duration_min;
+      if (exercise.category === 'strength') {
+        if (exercise.sets == null || exercise.sets < 2) return `ท่าเวท "${exercise.name}" ต้องมีอย่างน้อย 2 เซต`;
+        if (!exercise.reps?.trim()) return `ท่าเวท "${exercise.name}" ต้องระบุจำนวนครั้ง`;
+        if (exercise.rest_sec == null || exercise.rest_sec < 30) return `ท่าเวท "${exercise.name}" ต้องระบุเวลาพักอย่างน้อย 30 วินาที`;
+        if (!exercise.muscle_group || exercise.muscle_group === 'cardio') return `ท่าเวท "${exercise.name}" ต้องระบุกลุ่มกล้ามเนื้อ`;
+      }
+      if (exercise.category === 'cardio' && !exercise.note?.trim()) return `คาร์ดิโอ "${exercise.name}" ต้องระบุระดับความหนักหรือแนวทางการทำ`;
+    }
+  }
+  return totalMinutes > 720 ? 'แผนรวมต่อสัปดาห์ยาวเกิน 12 ชั่วโมง' : null;
+}
 
 export const VALIDATORS = {
   add_meal: addMealSchema,
