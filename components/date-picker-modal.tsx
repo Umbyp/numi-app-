@@ -146,8 +146,8 @@ const styles = StyleSheet.create({
   navBtn: { width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   weekLabelRow: { flexDirection: 'row', justifyContent: 'space-between' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  cell: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginVertical: 2 },
-  dayCircle: { borderRadius: 14 },
+  cell: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginVertical: 2 },
+  dayCircle: { borderRadius: 18 },
   footerRow: { flexDirection: 'row', gap: 9, marginTop: 2 },
-  footerBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: radius.cardInner },
+  footerBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: radius.iconBox },
 });

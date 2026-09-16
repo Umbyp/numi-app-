@@ -85,8 +85,8 @@ export function AddMealCard({ card, onConfirm, onDismiss }: Props) {
             <View style={{ alignItems: 'flex-end', gap: 6 }}>
               <Text style={[type.cardTitle, { color: c.text, fontSize: 15 }]}>{Math.round(item.kcal)}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <AmountStepper value={item.amount_g} onChange={(v) => updateAmount(idx, v)} />
-                <Squish hitSlop={14} onPress={() => removeItem(idx)}>
+                <AmountStepper compact value={item.amount_g} onChange={(v) => updateAmount(idx, v)} />
+                <Squish hitSlop={10} onPress={() => removeItem(idx)}>
                   <X size={15} color={c.muted} />
                 </Squish>
               </View>
@@ -139,6 +139,6 @@ const styles = StyleSheet.create({
   badge: { borderRadius: radius.badge, paddingHorizontal: 6, paddingVertical: 1 },
   totalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  ghost: { width: 104, borderRadius: radius.cardInner, height: 52, alignItems: 'center', justifyContent: 'center' },
-  primary: { flex: 1, borderRadius: radius.cardInner, height: 52, alignItems: 'center', justifyContent: 'center' },
+  ghost: { width: 104, borderRadius: radius.iconBox, height: 48, alignItems: 'center', justifyContent: 'center' },
+  primary: { flex: 1, borderRadius: radius.iconBox, height: 48, alignItems: 'center', justifyContent: 'center' },
 });

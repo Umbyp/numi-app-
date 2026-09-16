@@ -194,11 +194,6 @@ export default function ScanBarcodeScreen() {
               })}
             </View>
 
-            <View style={styles.amountRow}>
-              <Text style={[textType.row, { color: c.text, fontSize: 13.5 }]}>ปริมาณ</Text>
-              <AmountStepper value={amountG} onChange={setAmountG} large />
-            </View>
-
             {(() => {
               const scaled = scaleFood(product, amountG);
               return (
@@ -215,6 +210,11 @@ export default function ScanBarcodeScreen() {
                 </View>
               );
             })()}
+
+            <View style={styles.amountRow}>
+              <Text style={[textType.row, { color: c.text, fontSize: 13.5 }]}>ปริมาณ (กรัม)</Text>
+              <AmountStepper value={amountG} onChange={setAmountG} large />
+            </View>
 
             <Squish scaleTo={0.97}
               style={[styles.primaryBtn, { backgroundColor: c.brand, height: 56 }, saving && { opacity: 0.6 }, cardShadow(scheme)]}

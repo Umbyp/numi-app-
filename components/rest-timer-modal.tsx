@@ -113,6 +113,6 @@ const styles = StyleSheet.create({
   track: { width: '100%', height: 12, borderRadius: radius.pill, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: radius.pill },
   actions: { flexDirection: 'row', gap: 9, width: '100%' },
-  ghostBtn: { flex: 1, height: 54, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
-  primaryBtn: { flex: 1.4, height: 54, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
+  ghostBtn: { flex: 1, height: 54, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
+  primaryBtn: { flex: 1.4, height: 54, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
 });

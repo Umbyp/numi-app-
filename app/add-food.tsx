@@ -37,8 +37,8 @@ export default function AddFoodScreen() {
   const params = useLocalSearchParams<{
     mealType?: MealType;
     mode?: 'search' | 'manual';
-    prefillFoodId?: string;
     entryId?: string;
+    prefillFoodId?: string;
   }>();
   const isEditing = !!params.entryId;
 
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
   macroPreviewCard: { borderRadius: radius.cardInner, padding: 14, marginTop: 12, gap: 10 },
   macroCols: { flexDirection: 'row', gap: 12 },
   disclaimerCard: { borderRadius: radius.cardInner, padding: 14, marginTop: 12 },
-  saveBtn: { height: 56, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
+  saveBtn: { height: 56, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
   saveBtnText: { color: '#fff', fontSize: 15 },
   manualForm: { padding: 16, paddingBottom: 24 },
   stepCard: { borderRadius: radius.card, borderWidth: StyleSheet.hairlineWidth, padding: 16, gap: 4 },
@@ -530,12 +530,12 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     gap: 6,
   },
-  input: { borderRadius: radius.cardInner, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
+  input: { borderRadius: radius.iconBox, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
   shareToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    borderRadius: radius.cardInner,
+    borderRadius: radius.iconBox,
     paddingHorizontal: 12,
     paddingVertical: 12,
     marginTop: 14,

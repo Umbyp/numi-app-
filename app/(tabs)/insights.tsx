@@ -13,7 +13,7 @@ import {
 import { calcWeightProgress, dailySeries, seriesMovingAverage } from '../../lib/nutrition';
 import { dateAxis } from '../../lib/dates';
 import { type } from '../../lib/fonts';
-import { radius, cardShadow, MIN_TOUCH } from '../../lib/theme';
+import { radius, cardShadow } from '../../lib/theme';
 import { Mascot } from '../../components/mascot';
 import { TrendChart } from '../../components/trend-chart';
 import { EmptyState } from '../../components/empty-state';
@@ -87,7 +87,7 @@ export default function InsightsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={[type.greeting, { color: c.text, fontSize: 22 }]}>ย้อนหลัง</Text>
+        <Text style={[type.greeting, { color: c.text, fontSize: 24 }]}>ย้อนหลัง</Text>
 
         <View style={styles.rangeRow}>
           {RANGES.map((r) => {
@@ -143,7 +143,7 @@ export default function InsightsScreen() {
               </View>
             </View>
           ) : (
-            <Squish onPress={() => router.push('/account-edit')} hitSlop={10}>
+            <Squish onPress={() => router.push('/account-edit')}>
               <Text style={[type.label, { color: c.brand, fontSize: 12 }]}>
                 {goalWeight ? 'บันทึกน้ำหนักเพื่อดูความคืบหน้า' : 'ตั้งเป้าหมายน้ำหนักเพื่อดูความคืบหน้า'}
               </Text>
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { padding: 18, gap: 14 },
   rangeRow: { flexDirection: 'row', gap: 4, backgroundColor: 'transparent' },
-  rangeChip: { height: MIN_TOUCH, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  rangeChip: { height: 36, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 12 },
   rowBetween: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   baselineRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
@@ -237,6 +237,6 @@ const styles = StyleSheet.create({
   barCol: { flex: 1, alignItems: 'center', gap: 6 },
   barStack: { width: '100%', flexDirection: 'column-reverse', borderRadius: 6, overflow: 'hidden' },
   calloutRow: { flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: radius.cardInner, padding: 12 },
-  progressTrack: { height: 8, borderRadius: radius.pill, overflow: 'hidden' },
+  progressTrack: { height: 10, borderRadius: radius.pill, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: radius.pill },
 });

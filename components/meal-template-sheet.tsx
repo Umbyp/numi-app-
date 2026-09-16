@@ -22,7 +22,7 @@ import {
   type MealType,
 } from '../lib/db/queries';
 import { type } from '../lib/fonts';
-import { radius, MIN_TOUCH } from '../lib/theme';
+import { radius } from '../lib/theme';
 import { Squish } from './squish';
 import { Mascot } from './mascot';
 
@@ -168,7 +168,7 @@ export function MealTemplateSheet({ visible, mode, mealType, mealLabel, localDat
                             {tpl.useCount > 0 ? ` · ใช้ไป ${tpl.useCount} ครั้ง` : ''}
                           </Text>
                         </Squish>
-                        <Squish hitSlop={15} onPress={() => handleDelete(tpl)}>
+                        <Squish hitSlop={10} onPress={() => handleDelete(tpl)}>
                           <Trash2 size={15} color={c.faint} />
                         </Squish>
                         <Squish
@@ -187,7 +187,7 @@ export function MealTemplateSheet({ visible, mode, mealType, mealLabel, localDat
               <View style={[styles.divider, { backgroundColor: c.line }]} />
 
               <View style={styles.hintRow}>
-                <Mascot pose="heart" size={56} />
+                <Mascot pose="idle" size={56} />
                 <Text style={[type.label, { color: c.text, fontSize: 12.5, lineHeight: 19, flex: 1 }]}>
                   กินมื้อเดิมบ่อย ๆ ใช่ไหม บันทึกมื้อนี้เสร็จแล้วกด “เก็บเป็นมื้อชุด” ไว้ใช้ครั้งหน้าได้
                 </Text>
@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   handle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 3 },
-  input: { height: MIN_TOUCH, borderRadius: radius.cardInner, paddingHorizontal: 14, fontSize: 15 },
-  primaryBtn: { height: 52, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
+  input: { borderRadius: radius.iconBox, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15 },
+  primaryBtn: { borderRadius: radius.iconBox, paddingVertical: 13, alignItems: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -229,5 +229,5 @@ const styles = StyleSheet.create({
   applyBtn: { width: 48, height: 48, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   divider: { height: 1 },
   hintRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  cancelBtn: { alignItems: 'center', justifyContent: 'center', height: 54, borderRadius: radius.cardInner },
+  cancelBtn: { alignItems: 'center', justifyContent: 'center', height: 54, borderRadius: radius.iconBox },
 });

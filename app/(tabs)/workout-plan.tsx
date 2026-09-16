@@ -117,7 +117,7 @@ export default function WorkoutPlanScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <>
-            <Text style={[type.greeting, { color: c.text, fontSize: 22, marginBottom: 8 }]}>แผนออกกำลังกาย</Text>
+            <Text style={[type.greeting, { color: c.text, fontSize: 24, marginBottom: 8 }]}>แผนออกกำลังกาย</Text>
 
             {suggested && !dismissedToday && (
               <View style={[styles.heroCard, { backgroundColor: c.surface, borderColor: c.line }, cardShadow(scheme)]}>
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 60, paddingHorizontal: 32 },
   heroCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 17, gap: 13, marginBottom: 14 },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  heroPrimaryBtn: { height: 54, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
+  heroPrimaryBtn: { height: 54, borderRadius: radius.iconBox, alignItems: 'center', justifyContent: 'center' },
   heroSecondaryRow: { flexDirection: 'row', gap: 8 },
   heroSecondaryBtn: { flex: 1, height: 44, borderRadius: radius.cardInner, alignItems: 'center', justifyContent: 'center' },
   statsCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.card, padding: 16, gap: 12, marginBottom: 14 },
