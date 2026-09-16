@@ -1,4 +1,4 @@
-import { getProfile, getLatestWeight, getMealEntriesForDate, getWorkoutsForDate, getWorkoutProfile, getMealTotalsByDateRange } from '../db/queries';
+import { getProfile, getLatestWeight, getMealEntriesForDate, getWorkoutsForDate, getWorkoutProfile, getMealTotalsByDateRange, getHealthProfile } from '../db/queries';
 import { sumTotals } from '../store';
 import { computeGoals, DEFAULT_GOALS } from '../goals';
 import { localDateString, ACTIVITY_LEVELS } from '../nutrition';
@@ -45,18 +45,23 @@ export interface UserContext {
   avgProtein7d: number | null;
   /** จำนวนวันที่มีบันทึกมื้ออาหารจริงใน 7 วันล่าสุด (จาก 7) — ใช้เช็คว่าข้อมูลพอจะสรุปเทรนด์ไหม */
   loggingDays7d: number;
+  /** แพ้อาหาร/มังสวิรัติ/ฮาลาล ฯลฯ — ผู้ใช้กรอกเองในหน้าแก้ไขโปรไฟล์ */
+  dietaryRestrictions: string;
+  /** โรคประจำตัว/ยาที่กินอยู่/ตั้งครรภ์ ฯลฯ — ให้ AI ใช้เพื่อ "ระวัง" ไม่ใช่วินิจฉัยหรือรักษา */
+  medicalConditions: string;
 }
 
 /** ดึงบริบทผู้ใช้ปัจจุบันมาแปะใน system prompt ตรง ๆ แทนที่จะให้ AI เรียก tool ไปดึงเอง (ประหยัด round trip) */
 export async function buildUserContext(): Promise<UserContext> {
   const today = localDateString();
-  const [profile, weight, entries, workouts, workoutProfileResult, last7DaysTotals] = await Promise.all([
+  const [profile, weight, entries, workouts, workoutProfileResult, last7DaysTotals, healthProfile] = await Promise.all([
     getProfile(),
     getLatestWeight(),
     getMealEntriesForDate(today),
     getWorkoutsForDate(today),
     getWorkoutProfile(),
     getMealTotalsByDateRange(addDays(today, -6), today),
+    getHealthProfile(),
   ]);
 
   const weightKg = weight?.weightKg ?? 70;
@@ -116,5 +121,7 @@ export async function buildUserContext(): Promise<UserContext> {
     avgKcal7d,
     avgProtein7d,
     loggingDays7d: loggedDays.length,
+    dietaryRestrictions: healthProfile.dietaryRestrictions,
+    medicalConditions: healthProfile.medicalConditions,
   };
 }
