@@ -111,6 +111,10 @@ export default function ChatScreen() {
     }
     await confirmCard(id, editedArgs);
     await refresh();
+    // ยืนยันแผนออกกำลังกายแล้วพาไปดูที่หน้าออกกำลังกายเลย ไม่ต้องเลื่อนหาเองในแชท
+    if (card?.tool === 'propose_workout_plan') {
+      router.push('/workout-plan');
+    }
   }
 
   function handleClearHistory() {
