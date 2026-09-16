@@ -3,7 +3,7 @@ import { chat } from '../ai/client';
 import { buildSystemPrompt } from '../ai/prompt';
 import { buildUserContext, type UserContext } from '../ai/context';
 import { executeToolCall, needsConfirmation } from '../ai/execute';
-import { VALIDATORS, validateWorkoutPlan } from '../ai/validators';
+import { VALIDATORS, validateWorkoutPlan, resolveToolName } from '../ai/validators';
 import { TOOLS } from '../ai/tools';
 import { getChatMessages, saveChatMessage, clearChatHistory } from '../db/queries';
 import type { Message } from '../ai/types';
@@ -147,11 +147,10 @@ export function useChat() {
     }
 
     for (const call of writeCalls) {
-      const validator = VALIDATORS[call.function.name as keyof typeof VALIDATORS];
-      if (!validator) {
-        // บางครั้งโมเดล hallucinate ชื่อ tool ผิด (เช่น "ProposeWorkoutPlanDays" แทน "propose_workout_plan")
-        // ของเดิมปล่อยให้ parsed เป็น undefined ไปด้วย ข้อความ error เลยกลายเป็น "undefined" เฉยๆ
-        // โมเดลไม่รู้ว่าต้องแก้อะไร เลยวนตอบเป็นข้อความยาวๆ แทนโดยไม่เคยเรียก tool ถูกชื่อเลย
+      // เจอจริงว่าบางโมเดลเรียกชื่อ tool เพี้ยน (เช่น "ProposeWorkoutPlanDays") แล้วไม่ยอมกลับมา
+      // เรียกถูกแม้บอกชื่อที่ถูกต้องไปแล้ว — เทียบชื่อแบบผ่อนปรนก่อน ไม่ต้องพึ่งให้โมเดลแก้ไขเอง
+      const toolName = resolveToolName(call.function.name);
+      if (!toolName) {
         const errMsg: Message = {
           role: 'tool',
           tool_call_id: call.id,
@@ -160,6 +159,7 @@ export function useChat() {
         appendMessage(errMsg);
         return runTurn([...history, reply, errMsg], ctx, depth + 1);
       }
+      const validator = VALIDATORS[toolName];
       let parsedArgs: unknown;
       try {
         parsedArgs = JSON.parse(call.function.arguments);
@@ -176,7 +176,7 @@ export function useChat() {
         appendMessage(errMsg);
         return runTurn([...history, reply, errMsg], ctx, depth + 1);
       }
-      if (call.function.name === 'propose_workout_plan') {
+      if (toolName === 'propose_workout_plan') {
         const planError = validateWorkoutPlan(parsed.data);
         if (planError) {
           const errMsg: Message = { role: 'tool', tool_call_id: call.id, content: `ข้อมูลไม่ถูกต้อง: ${planError}. กรุณาส่งใหม่` };
@@ -185,11 +185,11 @@ export function useChat() {
         }
       }
       let photoUri: string | null = null;
-      if (call.function.name === 'add_meal') {
+      if (toolName === 'add_meal') {
         photoUri = pendingPhotoUriRef.current;
         pendingPhotoUriRef.current = null;
       }
-      setPendingCards((p) => [...p, { id: call.id, tool: call.function.name, args: parsed.data, status: 'pending', photoUri }]);
+      setPendingCards((p) => [...p, { id: call.id, tool: toolName, args: parsed.data, status: 'pending', photoUri }]);
     }
   }
 

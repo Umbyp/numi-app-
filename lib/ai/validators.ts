@@ -82,3 +82,17 @@ export const VALIDATORS = {
   propose_workout_plan: workoutPlanSchema,
   ask_choice: askChoiceSchema,
 } as const;
+
+/**
+ * บางโมเดล hallucinate ชื่อ tool เพี้ยนไปจากที่ประกาศไว้จริง (เช่น "ProposeWorkoutPlanDays"
+ * แทน "propose_workout_plan") และไม่ยอมกลับมาเรียกถูกแม้จะบอกชื่อที่ถูกต้องไปแล้วก็ตาม
+ * (เจอจริงจากบทสนทนาที่โมเดลพยายามซ้ำแล้วยังผิดชื่อเดิม สุดท้ายก็เลิกเรียก tool ไปเฉย ๆ)
+ * เลยกันไว้ด้วยการเทียบชื่อแบบตัดตัวพิมพ์เล็ก-ใหญ่และสัญลักษณ์ทิ้งก่อน ถ้าเข้าเค้าก็ถือว่าใช่เลย
+ * ไม่ต้องรอให้โมเดลแก้ไขเอง
+ */
+export function resolveToolName(rawName: string): keyof typeof VALIDATORS | undefined {
+  if (rawName in VALIDATORS) return rawName as keyof typeof VALIDATORS;
+  const simplify = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
+  const target = simplify(rawName);
+  return (Object.keys(VALIDATORS) as (keyof typeof VALIDATORS)[]).find((k) => target.includes(simplify(k)));
+}
